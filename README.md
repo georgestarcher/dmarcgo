@@ -2,6 +2,11 @@
 
 A Go (golang) module for handling Email [DMARC](https://dmarc.org) summary reports.
 
+Written by George Starcher
+
+MIT license, check license.txt for more information
+All text above must be included in any redistribution
+
 ## Installation
 
 ```shell

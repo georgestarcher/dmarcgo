@@ -1,4 +1,4 @@
-# dmarcgo [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
+# dmarcgo [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)[![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo)
 
 A Go (golang) module for handling Email [DMARC](https://dmarc.org) summary reports.
 

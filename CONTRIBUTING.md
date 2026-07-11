@@ -37,3 +37,32 @@ committed.
 This project uses semantic versioning. Version 2 is the current API line and uses
 the required `/v2` module path. The historical v1 API is not maintained. Public
 API changes must be deliberate and documented in `CHANGELOG.md`.
+
+## Maintainer release process
+
+Go publishes this module when a semantic version tag is pushed. The release
+workflow accepts only `v2.x.x` tags, verifies the `/v2` module path and matching
+dated changelog entry, runs `make ci`, and then creates the GitHub Release with
+generated notes. It does not publish binaries because this repository is a
+library.
+
+1. Update `CHANGELOG.md`, moving release changes out of `Unreleased` into a dated
+   version heading such as `## [2.0.0] - 2026-07-11`.
+2. Run `make ci` from a clean working tree and merge the release commit to `main`.
+3. Create and verify a signed annotated tag:
+
+   ```shell
+   git tag -s v2.0.0 -m "dmarcgo v2.0.0"
+   git verify-tag v2.0.0
+   ```
+
+4. Push the commit, then push the tag:
+
+   ```shell
+   git push origin main
+   git push origin v2.0.0
+   ```
+
+5. Confirm the `dmarcgo Release` workflow passes and that the GitHub Release is
+   visible. Do not move or reuse a published tag; issue a new patch version for
+   corrections.

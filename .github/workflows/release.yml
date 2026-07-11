@@ -1,4 +1,4 @@
-name: dmarcgo Release Check
+name: dmarcgo Release
 
 permissions:
   contents: read
@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     tags:
-      - "v*"
+      - "v2.*.*"
 
 jobs:
   verify:
@@ -25,5 +25,50 @@ jobs:
           go-version: "1.26.x"
           cache: true
 
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+
+          if [[ ! "${tag}" =~ ^v2\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "release tag must be a semantic v2 version, got ${tag}" >&2
+            exit 1
+          fi
+
+          grep -Fx 'module github.com/georgestarcher/dmarcgo/v2' go.mod
+          grep -Eq "^## \\[${version}\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$" CHANGELOG.md
+
       - name: Verify module
         run: make ci
+
+  release:
+    name: Create GitHub release
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "GitHub release ${GITHUB_REF_NAME} already exists"
+            exit 0
+          fi
+          release_args=(
+            --verify-tag
+            --generate-notes
+            --title "dmarcgo ${GITHUB_REF_NAME}"
+          )
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+          gh release create "${GITHUB_REF_NAME}" "${release_args[@]}"

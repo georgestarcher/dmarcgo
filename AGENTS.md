@@ -75,14 +75,14 @@ Example:
 ```go
 report, err := dmarcgo.LoadBytes(data)
 if err != nil {
-    switch {
-    case errors.Is(err, utilities.ErrPayloadTooLarge):
-        // ask caller to raise the configured decompressed-size limit
-    case errors.Is(err, dmarcgo.ErrMalformedXML):
-        // readable payload, invalid XML/report shape
-    default:
-        // unsupported format, I/O, context cancellation, etc.
-    }
+	switch {
+	case errors.Is(err, utilities.ErrPayloadTooLarge):
+		// Ask the caller to raise the configured decompressed-size limit.
+	case errors.Is(err, dmarcgo.ErrMalformedXML):
+		// The payload is readable, but the XML/report shape is invalid.
+	default:
+		// Unsupported format, I/O, context cancellation, etc.
+	}
 }
 _ = report
 ```
@@ -111,9 +111,10 @@ When adding a regression fixture derived from a real report:
 
 1. Load the real report locally.
 2. Call `AnonymizeReport`.
-3. Confirm no real source IPs, domains, reporter emails, or contact metadata remain.
-4. Write the anonymized XML or derived rows under `testdata/fixtures`.
-5. Do not commit files from `test_dmarc_reports/`.
+3. Keep `PreserveExtensions` unset unless raw extension XML was manually reviewed.
+4. Confirm no real source IPs, domains, report IDs, reporter emails, or contact metadata remain.
+5. Write the anonymized XML or derived rows under `testdata/fixtures`.
+6. Do not commit files from `test_dmarc_reports/`.
 
 ## Common mistakes to avoid
 
@@ -132,7 +133,7 @@ Run the full local suite before committing repository changes:
 make ci
 ```
 
-If the Go proxy times out fetching staticcheck or govulncheck during local validation, retry with direct module fetch:
+If the Go proxy times out fetching Staticcheck or govulncheck during local validation, retry with direct module fetch:
 
 ```shell
 GOPROXY=direct make ci

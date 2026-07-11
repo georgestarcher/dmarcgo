@@ -5,14 +5,16 @@
 // namespace, the historical dmarc.org aggregate-report namespace, and the RFC
 // 9990 namespace.
 //
-// Supported inputs are gzip, zip, and zlib encoded payloads containing XML DMARC
-// aggregate report data. Use LoadFile(), FileReport.LoadFile(),
-// LoadBytes(), or LoadReader() to deserialize report artifacts.
-// Use ParseBytes() or ParseReader() when the input is already raw XML. Use LoadReaderContext() when caller cancellation should be honored while reading.
+// Supported inputs are gzip, zip, and zlib encoded payloads containing XML
+// DMARC aggregate report data. Use LoadFile(), FileReport.LoadFile(),
+// LoadBytes(), or LoadReader() to deserialize report artifacts. Use
+// ParseBytes() or ParseReader() when the input is already raw XML. Use
+// LoadReaderContext() when caller cancellation should be honored while reading.
 // Use AggregateReport.Rows() for flattened records, AggregateReport.Summary()
-// for aggregate counts, AggregateReport.Validate() or AggregateReport.ValidateStrict() for data-quality findings,
-// SummarizeReports() for multi-report counts, and AggregateReport.UnauthenticatedSources()
-// for unauthenticated source-IP summaries. Use ParseReportFilename() for common
+// for aggregate counts, AggregateReport.Validate() or
+// AggregateReport.ValidateStrict() for data-quality findings, SummarizeReports()
+// for multi-report counts, and AggregateReport.UnauthenticatedSources() for
+// unauthenticated source-IP summaries. Use ParseReportFilename() for common
 // bang-separated attachment names and ExcludeUnauthenticatedSources() for
 // caller-owned exact-IP or CIDR suppression lists. Use ReportKey(),
 // DeduplicateReports(), AnonymizeReport(), and top-N helpers for practical

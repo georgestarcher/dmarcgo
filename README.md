@@ -64,7 +64,6 @@ The parser accepts aggregate XML reports using:
 
 Local real-world report corpora should not be committed. DMARC reports can expose domains, provider metadata, source IPs, and authentication behavior. This repository ignores `test_dmarc_reports/` for that reason. Public regression fixtures belong under `testdata/fixtures/` and should be synthetic or anonymized.
 
-
 ## Which API should I use?
 
 | Situation | Use | Notes |
@@ -261,6 +260,7 @@ Use `AnonymizeReport` before committing fixtures derived from real reports.
 {
   "reporting_org": "Example Reporter",
   "reporting_addr": "dmarc@example.net",
+  "report_id": "example-report-id",
   "target_domain": "example.com",
   "source_ip": "192.0.2.1",
   "header_from": "example.com",
@@ -581,7 +581,7 @@ func main() {
 }
 ```
 
-Use `AnonymizeReport` before committing new fixtures derived from real reports. It replaces reporter contact details, domains, and source IPs with documentation-safe values while preserving counts, dispositions, report dates, and DMARC pass/fail shape.
+Use `AnonymizeReport` before committing new fixtures derived from real reports. It replaces reporter contact details, report IDs, domains, and source IPs with documentation-safe values while preserving counts, dispositions, report dates, and DMARC pass/fail shape. It removes raw extension XML by default because extensions can contain provider-specific data; set `PreserveExtensions` only after reviewing the source report.
 
 ```go
 package main
@@ -719,8 +719,6 @@ func main() {
 }
 ```
 
-
-
 ## CSV output
 
 Use `WriteFeaturesCSV` when you want spreadsheet-friendly flattened rows. Like JSONL output, pass `features` if you want only record rows.
@@ -801,7 +799,7 @@ func main() {
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
 - `Summary()`, `SummarizeReports()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide lightweight analysis helpers without turning the package into an ingest system.
 - `ReportKey()`, `FilenameReportKey()`, `SameReport()`, and `DeduplicateReports()` support duplicate-safe importing without adding storage.
-- `AnonymizeReport()` creates deterministic fixture-safe report copies using documentation IP/domain ranges.
+- `AnonymizeReport()` creates deterministic fixture-safe report copies using documentation IP/domain ranges, replaces report IDs, and removes raw extension XML by default.
 - `TopSources()`, `TopUnauthenticatedSources()`, and `TopCounts()` return sorted top-N lists for dashboards and summaries.
 - `Validate()` reports compatibility-mode data-quality findings after parsing; `ValidateStrict()` adds stricter current-standard checks.
 - `ValidateReportFilename()` checks parsed filename metadata in compatibility or strict RFC 9990 mode.

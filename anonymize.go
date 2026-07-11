@@ -8,15 +8,19 @@ import (
 
 // AnonymizeOptions controls deterministic report anonymization.
 type AnonymizeOptions struct {
-	PolicyDomain string
-	ReportingOrg string
-	ReportEmail  string
+	PolicyDomain       string
+	ReportingOrg       string
+	ReportEmail        string
+	ReportID           string
+	PreserveExtensions bool
 }
 
 // AnonymizeReport returns a copy of report with domains, source IPs, reporter
-// identity, and contact metadata replaced by deterministic documentation-safe
-// values. Counts, dispositions, date ranges, and authentication pass/fail shape
-// are preserved.
+// identity, contact metadata, and report ID replaced by deterministic
+// documentation-safe values. Counts, dispositions, date ranges, and
+// authentication pass/fail shape are preserved. Raw extension XML is removed by
+// default because extensions can contain provider-specific or sensitive data;
+// set PreserveExtensions only after reviewing the source report.
 func AnonymizeReport(report AggregateReport, options AnonymizeOptions) AggregateReport {
 	if options.PolicyDomain == "" {
 		options.PolicyDomain = "example.com"
@@ -27,14 +31,21 @@ func AnonymizeReport(report AggregateReport, options AnonymizeOptions) Aggregate
 	if options.ReportEmail == "" {
 		options.ReportEmail = "dmarc@example.net"
 	}
+	if options.ReportID == "" {
+		options.ReportID = "example-report-id"
+	}
 
 	out := report
 	out.ReportMetadata.OrgName = options.ReportingOrg
 	out.ReportMetadata.Email = options.ReportEmail
+	out.ReportMetadata.ReportID = options.ReportID
 	out.ReportMetadata.ExtraContactInfo = LangString{}
 	out.ReportMetadata.Error = LangString{}
 	out.PolicyPublished.Domain = options.PolicyDomain
-	out.Extension.Elements = copyRawElements(report.Extension.Elements)
+	out.Extension.Elements = nil
+	if options.PreserveExtensions {
+		out.Extension.Elements = copyRawElements(report.Extension.Elements)
+	}
 	out.Record = make([]Record, len(report.Record))
 
 	domains := map[string]string{}
@@ -98,7 +109,10 @@ func AnonymizeReport(report AggregateReport, options AnonymizeOptions) Aggregate
 			spf.Domain = mapDomain(spf.Domain)
 			copied.AuthResults.SPF = &spf
 		}
-		copied.Extensions = copyRawElements(record.Extensions)
+		copied.Extensions = nil
+		if options.PreserveExtensions {
+			copied.Extensions = copyRawElements(record.Extensions)
+		}
 		out.Record[i] = copied
 	}
 	return out

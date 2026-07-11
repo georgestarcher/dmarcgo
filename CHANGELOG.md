@@ -33,6 +33,7 @@ and this project uses semantic versioning for public API changes.
 
 ### Fixed
 
+- `AnonymizeReport` now replaces report IDs and removes raw extension XML by default so real-report fixtures do not accidentally preserve opaque provider metadata.
 - Zip parsing skips directory entries and prefers XML members.
 - Report loading now resets stale content before parsing and returns clearer errors.
 - Decompressed payload reads are size-limited by default to reduce archive-bomb risk.

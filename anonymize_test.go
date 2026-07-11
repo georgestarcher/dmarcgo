@@ -17,6 +17,9 @@ func TestAnonymizeReport(t *testing.T) {
 	if anonymized.PolicyPublished.Domain != "example.com" {
 		t.Fatalf("unexpected policy domain: %q", anonymized.PolicyPublished.Domain)
 	}
+	if anonymized.ReportMetadata.ReportID != "example-report-id" {
+		t.Fatalf("unexpected report id: %q", anonymized.ReportMetadata.ReportID)
+	}
 	if anonymized.Record[0].Row.SourceIP != "192.0.2.1" || anonymized.Record[1].Row.SourceIP != "192.0.2.2" {
 		t.Fatalf("unexpected anonymized IPs: %+v", anonymized.Record)
 	}
@@ -33,6 +36,7 @@ func TestAnonymizeReportCustomOptionsAndCopies(t *testing.T) {
 		ReportMetadata: ReportMetadata{
 			OrgName:          "Original Reporter",
 			Email:            "real@example.test",
+			ReportID:         "secret-report-id",
 			ExtraContactInfo: LangString{Value: "https://reporter.example.test/contact"},
 			Error:            LangString{Value: "real error"},
 		},
@@ -58,9 +62,13 @@ func TestAnonymizeReportCustomOptionsAndCopies(t *testing.T) {
 		PolicyDomain: "safe.example",
 		ReportingOrg: "Safe Reporter",
 		ReportEmail:  "safe@example.net",
+		ReportID:     "safe-report-id",
 	})
 	if anonymized.ReportMetadata.OrgName != "Safe Reporter" || anonymized.ReportMetadata.Email != "safe@example.net" {
 		t.Fatalf("unexpected reporter metadata: %+v", anonymized.ReportMetadata)
+	}
+	if anonymized.ReportMetadata.ReportID != "safe-report-id" {
+		t.Fatalf("unexpected report id: %q", anonymized.ReportMetadata.ReportID)
 	}
 	if anonymized.ReportMetadata.ExtraContactInfo.Value != "" || anonymized.ReportMetadata.Error.Value != "" {
 		t.Fatalf("sensitive metadata was not cleared: %+v", anonymized.ReportMetadata)
@@ -78,9 +86,30 @@ func TestAnonymizeReportCustomOptionsAndCopies(t *testing.T) {
 	if report.Record[0].Row.PolicyEvaluated.Reasons[0].Type == "mutated" {
 		t.Fatal("policy override reasons were not deep-copied")
 	}
+	if len(anonymized.Extension.Elements) != 0 || len(anonymized.Record[0].Extensions) != 0 {
+		t.Fatalf("extensions were not cleared by default: %+v %+v", anonymized.Extension.Elements, anonymized.Record[0].Extensions)
+	}
+}
+
+func TestAnonymizeReportCanPreserveExtensions(t *testing.T) {
+	report := AggregateReport{
+		Extension: Extension{Elements: []RawElement{{XMLName: xmlName("urn:test", "file-ext"), InnerXML: "reviewed"}}},
+		Record: []Record{{
+			Extensions: []RawElement{{XMLName: xmlName("urn:test", "record-ext"), InnerXML: "reviewed"}},
+		}},
+	}
+
+	anonymized := AnonymizeReport(report, AnonymizeOptions{PreserveExtensions: true})
+	if len(anonymized.Extension.Elements) != 1 || len(anonymized.Record[0].Extensions) != 1 {
+		t.Fatalf("extensions were not preserved: %+v %+v", anonymized.Extension.Elements, anonymized.Record[0].Extensions)
+	}
 	anonymized.Extension.Elements[0].InnerXML = "changed"
 	if report.Extension.Elements[0].InnerXML == "changed" {
 		t.Fatal("file extensions were not copied")
+	}
+	anonymized.Record[0].Extensions[0].InnerXML = "changed"
+	if report.Record[0].Extensions[0].InnerXML == "changed" {
+		t.Fatal("record extensions were not copied")
 	}
 }
 

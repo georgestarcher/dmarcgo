@@ -12,24 +12,21 @@ import (
 	"testing"
 )
 
-// Test get count of files in directory
 func TestGetFiles(t *testing.T) {
-
-	target_directory := "../testdata/fixtures/"
-	report_files, err := GetFiles(target_directory)
+	targetDirectory := "../testdata/fixtures/"
+	reportFiles, err := GetFiles(targetDirectory)
 
 	if err != nil {
 		t.Error(err)
 	}
 	want := 4
-	got := report_files
+	got := reportFiles
 
 	if len(got) != want {
 		t.Errorf("got %v, wanted %v", len(got), want)
 	}
 }
 
-// Test get files sorted output
 func TestGetFilesSorted(t *testing.T) {
 	targetDirectory := t.TempDir()
 	if _, err := os.Create(filepath.Join(targetDirectory, "b.txt")); err != nil {
@@ -52,11 +49,9 @@ func TestGetFilesSorted(t *testing.T) {
 	}
 }
 
-// Test read gzip file
 func TestReadGZ(t *testing.T) {
-
-	target_file := "../testdata/fixtures/amazonses.com!georgestarcher.com!1518134400!1518220800.xml.gz"
-	contents, err := ReadGZ(target_file)
+	targetFile := "../testdata/fixtures/amazonses.com!georgestarcher.com!1518134400!1518220800.xml.gz"
+	contents, err := ReadGZ(targetFile)
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,10 +66,9 @@ func TestReadGZ(t *testing.T) {
 	}
 }
 
-// Test read zip file
 func TestReadZip(t *testing.T) {
-	target_file := "../testdata/fixtures/aol.com!georgestarcher.com!1342497600!1342584000.zip"
-	contents, err := ReadZip(target_file)
+	targetFile := "../testdata/fixtures/aol.com!georgestarcher.com!1342497600!1342584000.zip"
+	contents, err := ReadZip(targetFile)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,11 +82,9 @@ func TestReadZip(t *testing.T) {
 	}
 }
 
-// Test read zlib file
 func TestReadZZ(t *testing.T) {
-
-	target_file := "../testdata/fixtures/aol.com!georgestarcher.com!1342497600!1342584000.zlib"
-	contents, err := ReadZZ(target_file)
+	targetFile := "../testdata/fixtures/aol.com!georgestarcher.com!1342497600!1342584000.zlib"
+	contents, err := ReadZZ(targetFile)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +97,6 @@ func TestReadZZ(t *testing.T) {
 	}
 }
 
-// Test zip reading prefers XML content when multiple files are present
 func TestReadZipPrefersXMLFile(t *testing.T) {
 	tempDir := t.TempDir()
 	archivePath := filepath.Join(tempDir, "mixed.zip")
@@ -149,7 +140,6 @@ func TestReadZipPrefersXMLFile(t *testing.T) {
 	}
 }
 
-// Test zip reading returns an error for archive without regular files
 func TestReadZipNoRegularFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	archivePath := filepath.Join(tempDir, "empty.zip")
@@ -175,7 +165,6 @@ func TestReadZipNoRegularFiles(t *testing.T) {
 	}
 }
 
-// Test zip reading ignores directories and still returns a regular XML payload
 func TestReadZipIgnoresDirectoryEntries(t *testing.T) {
 	tempDir := t.TempDir()
 	archivePath := filepath.Join(tempDir, "dir.zip")
@@ -189,14 +178,7 @@ func TestReadZipIgnoresDirectoryEntries(t *testing.T) {
 	if _, err := zipWriter.Create("nested/"); err != nil {
 		t.Fatal(err)
 	}
-	nestedPayload, err := zipWriter.Create("nested/report.xml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := nestedPayload.Write([]byte("<feedback>nested-payload</feedback>")); err != nil {
-		t.Fatal(err)
-	}
-	payloadFile, err := zipWriter.Create("payload.xml")
+	payloadFile, err := zipWriter.Create("nested/report.xml")
 	if err != nil {
 		t.Fatal(err)
 	}

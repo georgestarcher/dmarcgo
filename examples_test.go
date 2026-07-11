@@ -194,3 +194,57 @@ func ExampleDmarcReport_Summary() {
 	fmt.Printf("messages=%d passed=%d\n", summary.TotalMessages, summary.PassedMessages)
 	// Output: messages=27 passed=27
 }
+
+// ExampleDmarcReport_Validate demonstrates non-fatal report validation findings.
+func ExampleDmarcReport_Validate() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(len(report.Validate()))
+	// Output: 0
+}
+
+// ExampleDmarcReport_SuspiciousSources demonstrates finding unauthenticated sources.
+func ExampleDmarcReport_SuspiciousSources() {
+	report, err := ParseBytes([]byte(`<feedback>
+  <report_metadata><org_name>Example Org</org_name><email>alerts@example.com</email><report_id>id</report_id><date_range><begin>1</begin><end>2</end></date_range></report_metadata>
+  <policy_published><domain>example.com</domain><p>reject</p></policy_published>
+  <record><row><source_ip>198.51.100.25</source_ip><count>3</count><policy_evaluated><disposition>reject</disposition><dkim>fail</dkim><spf>fail</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers></record>
+</feedback>`))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sources := report.SuspiciousSources("example.com")
+	fmt.Printf("source=%s messages=%d\n", sources[0].SourceIP, sources[0].Messages)
+	// Output: source=198.51.100.25 messages=3
+}
+
+// ExampleWriteFeaturesJSONL demonstrates writing flattened feature rows as JSON Lines.
+func ExampleWriteFeaturesJSONL() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := WriteFeaturesJSONL(os.Stdout, report.Features()[1:]); err != nil {
+		log.Fatal(err)
+	}
+	// Output: {"reporting_org":"Example Org","reporting_addr":"alerts@example.com","report_id":"example-report-id","beginDate":"1609459200","endDate":"1609545600","target_domain":"example.com","spf_policy_published":"r","dkim_policy_published":"r","requested_handling_policy":"none","sampling_percentage":"100","failure_reporting_options":"0","src_ip":"203.0.113.7","mail_count":27,"vendor_action":"none","dkim_policy_evaluated":"pass","spf_policy_evaluated":"pass","header_from":"example.com","dkim_domain":"example.com","dkim_selector":"s1","dkim_result":"pass","spf_domain":"example.com","spf_result":"pass","dkim_auth_results":[{"domain":"example.com","selector":"s1","result":"pass","human_result":{}}],"spf_auth_result":{"domain":"example.com","result":"pass","human_result":{}}}
+}
+
+// ExampleWriteFeaturesCSV demonstrates writing flattened feature rows as CSV.
+func ExampleWriteFeaturesCSV() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := WriteFeaturesCSV(os.Stdout, report.Features()[1:]); err != nil {
+		log.Fatal(err)
+	}
+	// Output: reporting_org,reporting_addr,report_id,begin_date,end_date,target_domain,requested_handling_policy,subdomain_policy_published,nonexistent_subdomain_policy,source_ip,mail_count,vendor_action,dkim_policy_evaluated,spf_policy_evaluated,header_from,envelope_from,envelope_to,dkim_domain,dkim_selector,dkim_result,spf_domain,spf_scope,spf_result
+	// Example Org,alerts@example.com,example-report-id,1609459200,1609545600,example.com,none,,,203.0.113.7,27,none,pass,pass,example.com,,,example.com,s1,pass,example.com,,pass
+}

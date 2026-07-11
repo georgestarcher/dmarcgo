@@ -76,8 +76,11 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You know the input is raw XML | `dmarcgo.ParseBytes(data)` or `dmarcgo.ParseReader(reader)` | Skips archive detection. |
 | You want easy JSON rows | `report.Content.Features()` | Returns one metadata row first, then one row per DMARC record. |
 | You want complete structured data | `report.Content.Record` | Preserves RFC 9990 fields such as multiple DKIM results. |
-| You want quick counts | `report.Content.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
+| You want quick counts for one report | `report.Content.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
+| You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
 | You want obvious spoofing candidates | `report.Content.SuspiciousSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
+| You want data-quality checks | `report.Content.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
+| You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 
 ## Quick start: flattened rows
 
@@ -257,6 +260,69 @@ func main() {
 }
 ```
 
+
+## Validation
+
+Parsing accepts real-world reports, including older reports that may not be perfectly RFC 9990-shaped. Use `Validate()` when you want structured data-quality findings after parsing. Validation does not mutate the report and does not reject legacy reports by itself.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadReportFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, finding := range report.Content.Validate() {
+		fmt.Printf("%s %s: %s\n", finding.Severity, finding.Path, finding.Message)
+	}
+}
+```
+
+## Summaries across many reports
+
+Use `SummarizeReports` when you have several parsed `Report` values and want combined counts. Nil reports are skipped.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	results, err := dmarcgo.LoadReportsFromDir("reports/dmarc")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var reports []*dmarcgo.Report
+	for _, result := range results {
+		if result.Err == nil {
+			reports = append(reports, result.Report)
+		}
+	}
+
+	summary := dmarcgo.SummarizeReports(reports)
+	fmt.Printf("reports=%d messages=%d rejected=%d\n",
+		summary.Reports,
+		summary.TotalMessages,
+		summary.RejectedMessages,
+	)
+}
+```
+
 ## JSON Lines output
 
 Use `WriteFeaturesJSONL` when sending flattened rows into logs, queues, data lakes, or SIEM-style tooling. Pass `features[1:]` when you only want record rows and do not want the metadata-only first element.
@@ -284,6 +350,34 @@ func main() {
 }
 ```
 
+
+
+## CSV output
+
+Use `WriteFeaturesCSV` when you want spreadsheet-friendly flattened rows. Like JSONL output, pass `features[1:]` if you want only record rows.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadReportFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	features := report.Content.Features()
+	if err := dmarcgo.WriteFeaturesCSV(os.Stdout, features[1:]); err != nil {
+		log.Fatal(err)
+	}
+}
+```
 
 ## Error handling and size limits
 
@@ -336,7 +430,9 @@ func main() {
 - Malformed XML returns a parse-specific error.
 - Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
-- `Summary()` and `SuspiciousSources()` provide lightweight analysis helpers without turning the package into an ingest system.
+- `Summary()`, `SummarizeReports()`, and `SuspiciousSources()` provide lightweight analysis helpers without turning the package into an ingest system.
+- `Validate()` reports data-quality findings after parsing rather than rejecting legacy reports upfront.
+- `WriteFeaturesJSONL()` and `WriteFeaturesCSV()` provide simple pipeline and spreadsheet output formats.
 - Parsing does not perform DNS lookups or network access.
 
 ## Standards coverage

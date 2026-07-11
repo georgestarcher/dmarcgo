@@ -39,10 +39,20 @@ jobs:
         run: go test -v ./...
 
       - name: Public helper API tests
-        run: go test -run TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestDateRange ./...
+        run: go test -run 'TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
 
       - name: Race detector
         run: go test -race ./...
+
+      - name: Fuzz smoke tests
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26.x'
+        run: |
+          go test -run=^$ -fuzz=FuzzParseBytes -fuzztime=2s .
+          go test -run=^$ -fuzz=FuzzLoadReportBytes -fuzztime=2s .
+
+      - name: Benchmark smoke tests
+        if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26.x'
+        run: go test -run=^$ -bench='BenchmarkLoadReportBytes|BenchmarkSummary|BenchmarkSuspiciousSources' -benchtime=1x ./...
 
       - name: Build
         run: go build -v ./...
@@ -67,7 +77,7 @@ jobs:
         run: |
           fmt_out=$(gofmt -l .)
           if [ -n "$fmt_out" ]; then
-            echo "gofmt must be run on:" 
+            echo "gofmt must be run on:"
             echo "$fmt_out"
             exit 1
           fi

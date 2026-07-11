@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 75.0
 
-.PHONY: build test race cover cover-check clean format-check lint vuln readme-check api-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check api-check ci
 
 build:
 	go build ./...
@@ -32,7 +32,7 @@ readme-check:
 	python3 scripts/check_readme_examples.py
 
 api-check:
-	go test -run TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestDateRange ./...
+	go test -run 'TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
 
 mod-verify:
 	go mod tidy
@@ -53,7 +53,14 @@ format-check:
 		exit 1; \
 	fi
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check api-check test race cover-check build
+fuzz-smoke:
+	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=2s .
+	go test -run=^$$ -fuzz=FuzzLoadReportBytes -fuzztime=2s .
+
+bench-smoke:
+	go test -run=^$$ -bench='BenchmarkLoadReportBytes|BenchmarkSummary|BenchmarkSuspiciousSources' -benchtime=1x ./...
+
+ci: format-check mod-verify mod-verify-local lint vuln readme-check api-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

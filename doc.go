@@ -10,8 +10,9 @@
 // LoadReportBytes(), or LoadReportReader() to deserialize report artifacts.
 // Use ParseBytes() or ParseReader() when the input is already raw XML.
 // Use DmarcReport.Features() for flattened records, DmarcReport.Summary()
-// for aggregate counts, and DmarcReport.SuspiciousSources() for
-// unauthenticated source-IP summaries.
+// for aggregate counts, DmarcReport.Validate() for data-quality findings,
+// SummarizeReports() for multi-report counts, and DmarcReport.SuspiciousSources()
+// for unauthenticated source-IP summaries.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally

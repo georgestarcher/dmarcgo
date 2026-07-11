@@ -64,11 +64,26 @@ The parser accepts aggregate XML reports using:
 
 Local real-world report corpora should not be committed. DMARC reports can expose domains, provider metadata, source IPs, and authentication behavior. This repository ignores `test_dmarc_reports/` for that reason. Public regression fixtures belong under `testdata/fixtures/` and should be synthetic or anonymized.
 
+
+## Which API should I use?
+
+| Situation | Use | Notes |
+| --- | --- | --- |
+| You have a local report archive path | `dmarcgo.LoadReportFile(path)` | Convenience constructor that returns `*Report`. |
+| You already created a `Report` value | `report.LoadReportFileFromPath(path)` | Useful when setting `Report.MaxDecompressedBytes` directly. |
+| You have attachment bytes from mail, S3, or an upload | `dmarcgo.LoadReportBytes(data)` | Accepts gzip, zip, zlib, or raw XML bytes. |
+| You have an `io.Reader` for an attachment or object | `dmarcgo.LoadReportReader(reader)` | Reads with the same decompressed-size protection. |
+| You know the input is raw XML | `dmarcgo.ParseBytes(data)` or `dmarcgo.ParseReader(reader)` | Skips archive detection. |
+| You want easy JSON rows | `report.Content.Features()` | Returns one metadata row first, then one row per DMARC record. |
+| You want complete structured data | `report.Content.Record` | Preserves RFC 9990 fields such as multiple DKIM results. |
+| You want quick counts | `report.Content.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
+| You want obvious spoofing candidates | `report.Content.SuspiciousSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
+
 ## Quick start: flattened rows
 
 `Features()` returns a convenient flattened representation that is easy to encode as JSON or feed into another system.
 
-The first returned element contains report-level metadata. Subsequent elements contain one row per DMARC record.
+The first returned element contains report-level metadata. Subsequent elements contain one row per DMARC record. Most pipelines should skip index `0` when exporting record data, but keeping the metadata row is useful when callers want report-level values without separately inspecting `ReportMetadata`.
 
 ```go
 package main
@@ -99,11 +114,11 @@ func main() {
 }
 ```
 
-The flattened output keeps simple single-value fields such as `DkimDomain` and `SpfResult`, while also exposing complete RFC 9990 data such as `DkimAuthResults`, `SpfAuthResult`, and `PolicyOverrideReasons`.
+The flattened output keeps simple single-value fields such as `DkimDomain` and `SpfResult`, while also exposing complete RFC 9990 data such as `DkimAuthResults`, `SpfAuthResult`, and `PolicyOverrideReasons`. The single-value fields are populated from the first available result for convenience; use the plural/structured fields when correctness depends on every DKIM result or every override reason.
 
 ## Structured report access
 
-For applications that need complete data, use the parsed `DmarcReport` model directly.
+For applications that need complete data, use the parsed `DmarcReport` model directly. This is the right path for dashboards, enrichment pipelines, policy auditing, or any code that needs every DKIM signature result rather than a flattened convenience view.
 
 ```go
 package main
@@ -148,7 +163,7 @@ func main() {
 
 ## Parse bytes or readers
 
-Use `LoadReportBytes` or `LoadReportReader` when report data comes from an email attachment, object storage, upload, or test fixture instead of a local path. These helpers accept gzip, zip, zlib, or raw XML bytes.
+Use `LoadReportBytes` or `LoadReportReader` when report data comes from an email attachment, object storage, upload, or test fixture instead of a local path. These helpers accept gzip, zip, zlib, or raw XML bytes and apply the same size-limit protections as file loading.
 
 ```go
 package main
@@ -176,11 +191,11 @@ func main() {
 }
 ```
 
-Use `ParseBytes` or `ParseReader` only when the input is already raw XML.
+Use `ParseBytes` or `ParseReader` only when the input is already raw XML. If you are not sure whether the attachment is compressed, use `LoadReportBytes` or `LoadReportReader`.
 
 ## Processing a directory
 
-`LoadReportsFromDir` processes a local directory and returns one result per file. Per-file errors are stored on the result, so one malformed report does not abort the whole batch.
+`LoadReportsFromDir` processes a local directory and returns one result per file. Per-file errors are stored on the result, so one malformed report does not abort the whole batch. This is useful for local test corpora, scheduled attachment downloads, and one-off report analysis.
 
 ```go
 package main
@@ -209,9 +224,9 @@ func main() {
 
 ## Summaries and suspicious sources
 
-`Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops.
+`Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops. It includes total messages, disposition counts, DKIM/SPF alignment counts, source-IP summaries, and parsed UTC date-range values.
 
-`SuspiciousSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed.
+`SuspiciousSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed. It is intentionally factual rather than a risk score: a row is suspicious because it failed authentication while claiming the target domain.
 
 ```go
 package main
@@ -244,7 +259,7 @@ func main() {
 
 ## JSON Lines output
 
-Use `WriteFeaturesJSONL` when sending flattened rows into logs, queues, data lakes, or SIEM-style tooling.
+Use `WriteFeaturesJSONL` when sending flattened rows into logs, queues, data lakes, or SIEM-style tooling. Pass `features[1:]` when you only want record rows and do not want the metadata-only first element.
 
 ```go
 package main
@@ -264,6 +279,48 @@ func main() {
 
 	features := report.Content.Features()
 	if err := dmarcgo.WriteFeaturesJSONL(os.Stdout, features[1:]); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+
+## Error handling and size limits
+
+The most useful exported errors are:
+
+- `dmarcgo.ErrNoFilePath` for empty path input.
+- `dmarcgo.ErrMalformedXML` when bytes were readable but not valid DMARC XML.
+- `dmarcgo.ErrUnsupportedReportFormat` when bytes cannot be treated as gzip, zip, zlib, or raw XML.
+- `utilities.ErrPayloadTooLarge` when decompressed data exceeds the configured limit.
+
+Use `errors.Is` for checks because errors may include path or parser context.
+
+```go
+package main
+
+import (
+	"errors"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/utilities"
+)
+
+func main() {
+	_, err := dmarcgo.LoadReportFile("reports/example-dmarc-report.xml.gz",
+		dmarcgo.WithMaxDecompressedBytes(10<<20),
+	)
+	if err == nil {
+		return
+	}
+
+	switch {
+	case errors.Is(err, utilities.ErrPayloadTooLarge):
+		log.Fatal("report is larger than the configured limit")
+	case errors.Is(err, dmarcgo.ErrMalformedXML):
+		log.Fatal("report payload is not valid DMARC XML")
+	default:
 		log.Fatal(err)
 	}
 }

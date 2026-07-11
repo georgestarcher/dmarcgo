@@ -7,6 +7,15 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+### Added
+
+- Versioned automation and AI-agent output envelopes for report validation,
+  report summaries, aggregate summaries, flattened rows, and source review.
+- Stable finding, evidence, action, provenance, redaction, and truncation
+  metadata with an embedded JSON Schema.
+- Deterministic JSON and JSONL writers, bounded collections, public output
+  redaction, and hostile-input tests for downstream AI consumers.
+
 ## [2.0.1] - 2026-07-11
 
 Version 2.0.1 completes the public project and release support around the v2

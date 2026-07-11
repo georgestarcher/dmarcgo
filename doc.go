@@ -18,7 +18,12 @@
 // bang-separated attachment names and ExcludeUnauthenticatedSources() for
 // caller-owned exact-IP or CIDR suppression lists. Use ReportKey(),
 // DeduplicateReports(), AnonymizeReport(), and top-N helpers for practical
-// report-consumer workflows.
+// report-consumer workflows. BuildReportSummaryOutput(),
+// BuildAggregateSummaryOutput(), BuildValidationOutput(),
+// BuildReportRowsOutput(), and BuildSourceReviewOutput() create versioned,
+// deterministic envelopes for automation and AI consumers. Output profiles
+// change representation only; they never trigger parsing, analysis, or network
+// access.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally

@@ -28,6 +28,7 @@ maintained.
 - CI checks for formatting, module tidiness, vet, Staticcheck, tests, race tests, README examples, vulnerability checks, coverage, and build.
 - Automated v2 tag validation, full release gating, GitHub Release creation, and weekly dependency update checks.
 - Manual CI reruns and verified signed-tag ancestry checks for releases.
+- Node 24-based GitHub Actions and cross-platform-safe file tests for clean Windows CI.
 
 ### Changed
 

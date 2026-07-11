@@ -30,10 +30,10 @@ func TestGetFiles(t *testing.T) {
 
 func TestGetFilesSorted(t *testing.T) {
 	targetDirectory := t.TempDir()
-	if _, err := os.Create(filepath.Join(targetDirectory, "b.txt")); err != nil {
+	if err := os.WriteFile(filepath.Join(targetDirectory, "b.txt"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Create(filepath.Join(targetDirectory, "a.txt")); err != nil {
+	if err := os.WriteFile(filepath.Join(targetDirectory, "a.txt"), nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
 

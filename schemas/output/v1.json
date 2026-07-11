@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/georgestarcher/dmarcgo/schemas/output/v1.json",
+  "title": "dmarcgo automation output envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "mode", "profile", "generated_at", "status", "scope", "input", "summary", "findings", "data", "recommended_actions", "warnings", "errors", "limitations", "provenance", "redaction", "truncation"],
+  "properties": {
+    "schema": {"const": "https://github.com/georgestarcher/dmarcgo/schemas/output/v1.json"},
+    "schema_version": {"const": "1"},
+    "module_version": {"type": "string"},
+    "mode": {"enum": ["report_validation", "report_summary", "aggregate_summary", "report_rows", "source_review"]},
+    "profile": {"enum": ["automation", "agent"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["completed", "completed_with_findings", "failed"]},
+    "scope": {"type": "object", "required": ["target_domains"], "properties": {"target_domains": {"type": "array", "items": {"type": "string"}}}},
+    "input": {"type": "object", "required": ["report_count", "record_count", "message_count"], "properties": {"report_count": {"type": "integer", "minimum": 0}, "record_count": {"type": "integer", "minimum": 0}, "message_count": {"type": "integer", "minimum": 0}}},
+    "summary": {"type": "object"},
+    "findings": {"type": "array", "items": {"type": "object"}},
+    "data": {},
+    "recommended_actions": {"type": "array", "items": {"type": "object"}},
+    "warnings": {"type": "array", "items": {"type": "object"}},
+    "errors": {"type": "array", "items": {"type": "object"}},
+    "limitations": {"type": "array", "items": {"type": "string"}},
+    "provenance": {"type": "array", "items": {"type": "object"}},
+    "redaction": {"type": "object"},
+    "truncation": {"type": "object"}
+  }
+}

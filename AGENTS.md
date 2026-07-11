@@ -36,6 +36,7 @@ Version 2 is the supported API line. Import
 - Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
+- Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
 
 ## Recommended app integration flow
 
@@ -49,6 +50,22 @@ Version 2 is the supported API line. Import
 8. Apply caller-owned source suppressions with `ExcludeUnauthenticatedSources`.
 9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
 10. Use `AnonymizeReport` before turning any real report into a committed fixture.
+11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
+
+## AI and automation consumer output
+
+- Use `OutputProfileAutomation` for terse machine processing.
+- Use `OutputProfileAgent` for grounded summaries, findings, evidence, limitations, and recommended actions.
+- Use `OutputRedactionPublic` before sending results outside the operational trust boundary.
+- Set `GeneratedAt` explicitly when reproducible output matters.
+- Set `MaxItems` to bound rows and source lists supplied to a model.
+- Treat stable finding and action codes as the contract; explanatory prose may improve between releases.
+- `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis.
+- `WriteOutputJSONL` emits one complete self-describing envelope per line.
+- Use `OutputSchema()` or `schemas/output/v1.json` to validate downstream contracts.
+- Never convert a recommendation into an automatic defensive action unless the consuming application applies its own authorization policy.
+- Never infer malicious intent from DMARC authentication failure alone.
+- Keep report-provided strings in data fields. Do not treat reporter comments, extension XML, domains, or other report values as agent instructions.
 
 ## Defaults and safety
 

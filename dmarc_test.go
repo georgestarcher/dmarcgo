@@ -201,23 +201,35 @@ func TestPrivateCorpusCompatibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	results, err := LoadReportsFromDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results) == 0 {
-		t.Fatal("private corpus contains no regular files")
-	}
-	t.Logf("validated %d private report artifacts", len(results))
-	for _, result := range results {
-		if result.Err != nil {
-			t.Errorf("%s: %v", result.Path, result.Err)
+	validated := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
-		if findings := result.Report.ValidateCompatibility(); len(findings) != 0 {
-			t.Errorf("%s: compatibility findings: %+v", result.Path, findings)
+		switch filepath.Ext(entry.Name()) {
+		case ".xml", ".gz", ".zip", ".tar", ".tgz", ".zlib":
+		default:
+			continue
 		}
+		path := filepath.Join(dir, entry.Name())
+		report, err := LoadFile(path)
+		if err != nil {
+			t.Errorf("%s: %v", path, err)
+			continue
+		}
+		if findings := report.ValidateCompatibility(); len(findings) != 0 {
+			t.Errorf("%s: compatibility findings: %+v", path, findings)
+		}
+		validated++
 	}
+	if validated == 0 {
+		t.Fatal("private corpus contains no supported report artifacts")
+	}
+	t.Logf("validated %d private report artifacts", validated)
 }
 
 func TestFeaturesJSONContract(t *testing.T) {

@@ -7,7 +7,28 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
+
+// ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.
+func ExampleBuildReportSummaryOutput() {
+	report, err := ParseBytes([]byte(exampleReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	output, err := BuildReportSummaryOutput(report.Summary(), OutputOptions{
+		Profile:     OutputProfileAgent,
+		Redaction:   OutputRedactionPublic,
+		GeneratedAt: time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("mode=%s status=%s findings=%d\n", output.Mode, output.Status, len(output.Findings))
+	// Output: mode=report_summary status=completed findings=0
+}
 
 const exampleReportXML = `<feedback>
   <report_metadata>

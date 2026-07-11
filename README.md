@@ -87,6 +87,80 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want dashboard-ready top lists | `dmarcgo.TopSources`, `dmarcgo.TopUnauthenticatedSources`, or `dmarcgo.TopCounts` | Returns sorted top-N slices without storage or scoring policy. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
+| You want versioned automation or AI-agent output | `dmarcgo.BuildReportSummaryOutput(summary, options)` | Produces a self-describing envelope with findings, evidence, actions, provenance, redaction, and truncation metadata. |
+
+## Automation and AI-agent output
+
+Use the output builders when results will be consumed by workflow engines,
+AI summarizers, or other systems that need a stable, self-describing contract.
+The current schema supports report validation, report summaries, aggregate
+summaries, flattened rows, and source review.
+
+Output choices are orthogonal:
+
+- `OutputProfileAutomation` keeps explanations terse for deterministic processing.
+- `OutputProfileAgent` adds grounded headlines and explanations without chain-of-thought.
+- `OutputDetailSummary`, `OutputDetailStandard`, and `OutputDetailFull` control result detail.
+- `OutputRedactionPublic`, `OutputRedactionOperational`, and `OutputRedactionRestricted` control operational identifier exposure.
+- `MaxItems` bounds record-shaped output and reports explicit truncation counts.
+
+Profiles change representation only. They never load reports, rerun analysis,
+perform DNS lookups, or access the network. Pass already computed values to the
+appropriate builder.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+	"time"
+
+	"github.com/georgestarcher/dmarcgo/v2"
+)
+
+func main() {
+	report, err := dmarcgo.LoadFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result, err := dmarcgo.BuildReportSummaryOutput(report.Summary(), dmarcgo.OutputOptions{
+		Profile:       dmarcgo.OutputProfileAgent,
+		Detail:        dmarcgo.OutputDetailStandard,
+		Redaction:     dmarcgo.OutputRedactionOperational,
+		GeneratedAt:   time.Now(),
+		ModuleVersion: "v2",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := dmarcgo.WriteOutputJSON(os.Stdout, result); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Use these mode-specific builders:
+
+| Mode | Builder | Input is already computed |
+| --- | --- | --- |
+| `report_validation` | `BuildValidationOutput` | Parsed report and validation findings |
+| `report_summary` | `BuildReportSummaryOutput` | `ReportSummary` |
+| `aggregate_summary` | `BuildAggregateSummaryOutput` | `AggregateSummary` |
+| `report_rows` | `BuildReportRowsOutput` | `[]FeatureRow` |
+| `source_review` | `BuildSourceReviewOutput` | `SourceReview` |
+
+Every JSONL line written by `WriteOutputJSONL` is a complete envelope. The
+embedded schema is available through `OutputSchema()`, and its identifier and
+version are available through `OutputSchemaID` and `OutputSchemaVersion`.
+
+The agent profile treats report-provided text as untrusted structured data. It
+does not turn reporter comments, domains, extension XML, or other input values
+into instructions. Recommendations are advisory and are never automatically
+executed. Authentication failure does not by itself establish spoofing or
+malicious intent.
 
 ## Sample outputs
 

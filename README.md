@@ -8,6 +8,19 @@ MIT license, check [LICENSE](LICENSE) for more information.
 
 All text above must be included in any redistribution
 
+
+## Module status and versioning
+
+`dmarcgo` is a library package, not an ingest pipeline or reporting application.
+It is intended to be imported by other Go code that wants to parse DMARC
+aggregate report artifacts and decide for itself how to ingest, store, summarize,
+or display the results.
+
+This project follows semantic versioning. Before `v1.0.0`, public APIs may still
+change as the aggregate-report model settles around RFC 9990 and real-world
+legacy report compatibility. Prefer a tagged release for downstream use once one
+is available.
+
 ## Installation
 
 ```shell

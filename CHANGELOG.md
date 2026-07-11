@@ -10,16 +10,21 @@ and this project uses semantic versioning for public API changes.
 ### Added
 
 - Package documentation and executable examples.
+- RFC 9990 aggregate-report model fields, including modern metadata, policy, identifier, authentication-result, override-reason, and extension fields.
+- Anonymized RFC 9990 synthetic fixture based on newer real-world report shapes.
+- Repository metadata for editor configuration, text normalization, contributing guidance, and security reporting.
 - Tests for malformed XML, invalid row counts, nil receivers, empty paths, sorted directory reads, and zip member selection.
-- CI checks for formatting, module tidiness, vet, Staticcheck, tests, and build.
+- CI checks for formatting, module tidiness, vet, Staticcheck, tests, race tests, README examples, vulnerability checks, coverage, and build.
 
 ### Changed
 
 - Test fixtures now live under `testdata/fixtures`, following Go conventions.
 - Staticcheck is pinned to `v0.7.0` in local and CI checks.
 - The module targets the supported Go 1.25+ toolchain line.
+- GitHub Actions now uses read-only permissions, credential persistence disabled on checkout, concurrency cancellation, and job timeouts.
 
 ### Fixed
 
 - Zip parsing skips directory entries and prefers XML members.
 - Report loading now resets stale content before parsing and returns clearer errors.
+- Decompressed payload reads are size-limited by default to reduce archive-bomb risk.

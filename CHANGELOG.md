@@ -7,11 +7,22 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+## [2.0.1] - 2026-07-11
+
+Version 2.0.1 completes the public project and release support around the v2
+library without changing its parsing or analysis API.
+
 ### Added
 
 - Structured privacy-aware issue forms, pull request guidance, support information, and contributor conduct expectations.
 - Reusable changelog extraction so future GitHub Releases publish complete version notes.
 - Centralized, longer-running fuzz and benchmark smoke gates to reduce timing-dependent CI failures.
+
+### Changed
+
+- GitHub Actions use `actions/checkout@v7` across CI and release workflows.
+- The README and repository community files provide direct support, contribution, security, privacy, and conduct guidance for human and AI consumers.
+- Future GitHub Releases use the matching dated changelog section as their release notes.
 
 ## [2.0.0] - 2026-07-11
 

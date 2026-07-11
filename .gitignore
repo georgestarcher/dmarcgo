@@ -1,0 +1,18 @@
+.DS_Store
+
+# Local/private DMARC corpora. DMARC aggregate reports can expose domains,
+# source IPs, provider metadata, and mail authentication behavior.
+test_dmarc_reports/
+
+# Go build and test outputs.
+*.test
+coverage.out
+coverage.html
+dist/
+bin/
+
+# Editor and local environment files.
+.idea/
+.vscode/
+*.swp
+*.tmp

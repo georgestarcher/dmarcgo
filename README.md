@@ -87,6 +87,210 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 
+## Sample outputs
+
+These examples use synthetic, documentation-safe values. Real reports can expose source IPs, domains, reporter metadata, and authentication behavior.
+
+### Aggregate summary
+
+Use `SummarizeReports` or `MergeSummaries` when you want an overall view across many reports.
+
+```json
+{
+  "reports": 49,
+  "total_records": 86,
+  "total_messages": 114,
+  "passed_messages": 66,
+  "failed_messages": 48,
+  "rejected_messages": 48,
+  "quarantined_messages": 0,
+  "none_messages": 66,
+  "pass_rate": 0.5789,
+  "failure_rate": 0.4211
+}
+```
+
+### Per-report summary
+
+Use `report.Summary()` when you want counts and source breakdowns for one aggregate report.
+
+```json
+{
+  "reporting_org": "Example Reporter",
+  "target_domain": "example.com",
+  "begin_time": "2026-05-21T00:00:00Z",
+  "end_time": "2026-05-21T23:59:59Z",
+  "total_records": 2,
+  "total_messages": 2,
+  "passed_messages": 2,
+  "failed_messages": 0,
+  "pass_rate": 1
+}
+```
+
+### Flattened row
+
+Use `report.Rows()` when you want one record-oriented row per source/result tuple.
+
+```json
+{
+  "reporting_org": "Example Reporter",
+  "report_id": "example-report-id",
+  "begin_date": "1779321600",
+  "end_date": "1779407999",
+  "target_domain": "example.com",
+  "source_ip": "192.0.2.1",
+  "mail_count": 1,
+  "vendor_action": "none",
+  "dkim_policy_evaluated": "pass",
+  "spf_policy_evaluated": "pass",
+  "header_from": "example.com",
+  "dkim_domain": "example.com",
+  "dkim_selector": "google",
+  "spf_domain": "example.com"
+}
+```
+
+### JSON Lines
+
+Use `WriteFeaturesJSONL` when each flattened row should be one JSON object per line.
+
+```jsonl
+{"reporting_org":"Example Reporter","report_id":"example-report-id","target_domain":"example.com","source_ip":"192.0.2.1","mail_count":1,"dkim_policy_evaluated":"pass","spf_policy_evaluated":"pass"}
+{"reporting_org":"Example Reporter","report_id":"example-report-id","target_domain":"example.com","source_ip":"192.0.2.2","mail_count":1,"dkim_policy_evaluated":"pass","spf_policy_evaluated":"pass"}
+```
+
+### CSV
+
+Use `WriteFeaturesCSV` for spreadsheet-friendly exports.
+
+```csv
+reporting_org,reporting_addr,report_id,begin_date,end_date,target_domain,requested_handling_policy,subdomain_policy_published,nonexistent_subdomain_policy,source_ip,mail_count,vendor_action,dkim_policy_evaluated,spf_policy_evaluated,header_from,envelope_from,envelope_to,dkim_domain,dkim_selector,dkim_result,spf_domain,spf_scope,spf_result
+Example Reporter,dmarc@example.net,example-report-id,1779321600,1779407999,example.com,reject,,,192.0.2.1,1,none,pass,pass,example.com,,,example.com,google,pass,example.com,,pass
+```
+
+### Filename metadata
+
+Use `ParseReportFilename` before opening an attachment when the filename is useful for ingest metadata.
+
+```json
+{
+  "raw": "reporter.example!example.com!1779321600!1779407999.xml.gz",
+  "reporter": "reporter.example",
+  "policy_domain": "example.com",
+  "begin": "1779321600",
+  "end": "1779407999",
+  "begin_time": "2026-05-21T00:00:00Z",
+  "end_time": "2026-05-21T23:59:59Z",
+  "extension": ".xml.gz",
+  "compression": "gzip"
+}
+```
+
+### Report identity
+
+Use `ReportKey` or `FilenameReportKey` when deduplicating reports from mailbox or object-store imports.
+
+```json
+{
+  "report_id": "example-report-id",
+  "reporting_org": "Example Reporter",
+  "policy_domain": "example.com",
+  "begin": "1779321600",
+  "end": "1779407999"
+}
+```
+
+### Source review
+
+Use `UnauthenticatedSources`, `RejectedUnauthenticatedSources`, and `PassingSources` to separate failed and authenticated sources.
+
+```json
+[
+  {
+    "source_ip": "198.51.100.25",
+    "messages": 4,
+    "records": 2,
+    "rejected_messages": 4,
+    "header_from": {
+      "example.com": 4
+    }
+  }
+]
+```
+
+```json
+[
+  {
+    "source_ip": "192.0.2.1",
+    "messages": 27,
+    "passed_messages": 27,
+    "pass_rate": 1
+  }
+]
+```
+
+### Top-N lists
+
+Use `TopSources`, `TopUnauthenticatedSources`, or `TopCounts` for dashboard cards.
+
+```json
+[
+  {
+    "source_ip": "192.0.2.1",
+    "messages": 27,
+    "passed_messages": 27,
+    "failed_messages": 0,
+    "pass_rate": 1
+  },
+  {
+    "source_ip": "198.51.100.25",
+    "messages": 8,
+    "passed_messages": 0,
+    "failed_messages": 8,
+    "failure_rate": 1
+  }
+]
+```
+
+### Anonymized fixture row
+
+Use `AnonymizeReport` before committing fixtures derived from real reports.
+
+```json
+{
+  "reporting_org": "Example Reporter",
+  "reporting_addr": "dmarc@example.net",
+  "target_domain": "example.com",
+  "source_ip": "192.0.2.1",
+  "header_from": "example.com",
+  "dkim_domain": "example.com",
+  "spf_domain": "example.com",
+  "mail_count": 1,
+  "dkim_policy_evaluated": "pass",
+  "spf_policy_evaluated": "pass"
+}
+```
+
+### Validation findings
+
+Use `Validate`, `ValidateStrict`, and `ValidateReportFilename` when you want non-fatal data-quality findings.
+
+```json
+[
+  {
+    "severity": "error",
+    "path": "report_metadata.report_id",
+    "message": "missing report id"
+  },
+  {
+    "severity": "warning",
+    "path": "record[0].row.source_ip",
+    "message": "source IP is not a valid IPv4 or IPv6 address"
+  }
+]
+```
+
 ## Quick start: flattened rows
 
 `Rows()` returns a convenient flattened representation that is easy to encode as JSON or feed into another system.

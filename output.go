@@ -1215,6 +1215,7 @@ func sortSourceSummariesForLimit(sources []SourceSummary) {
 }
 
 func limitCountMap(out *OutputEnvelope, name string, values map[string]int, max int) map[string]int {
+	values = canonicalizeCountMapForOutput(out, name, values)
 	total := len(values)
 	if max <= 0 || total <= max {
 		addTruncation(out, name, total, total)
@@ -1240,6 +1241,26 @@ func limitCountMap(out *OutputEnvelope, name string, values map[string]int, max 
 	}
 	addTruncation(out, name, total, len(limited))
 	return limited
+}
+
+func canonicalizeCountMapForOutput(out *OutputEnvelope, name string, values map[string]int) map[string]int {
+	if out.Redaction.Profile != OutputRedactionPublic {
+		return values
+	}
+	var kind string
+	switch name {
+	case "data.by_target_domain":
+		kind = "target_domain"
+	case "data.by_header_from":
+		kind = "header_from"
+	default:
+		return values
+	}
+	canonical := make(map[string]int, len(values))
+	for key, count := range values {
+		canonical[canonicalRedactionValue(kind, key)] += count
+	}
+	return canonical
 }
 
 func sourceReviewCounts(review SourceReview) (records, messages int) {

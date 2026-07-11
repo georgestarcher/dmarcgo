@@ -407,6 +407,27 @@ func TestOutputRedactionCorrelatesMixedCaseDomains(t *testing.T) {
 	}
 }
 
+func TestOutputPublicRedactionCanonicalizesBeforeLimiting(t *testing.T) {
+	summary := AggregateSummary{ByHeaderFrom: map[string]int{"Example.COM": 3, "example.com": 3, "foo.com": 4}}
+	output, err := BuildAggregateSummaryOutput(summary, OutputOptions{Detail: OutputDetailFull, Redaction: OutputRedactionPublic, MaxItems: 1, GeneratedAt: outputTestTime})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := output.Data.(AggregateSummary)
+	if len(data.ByHeaderFrom) != 1 {
+		t.Fatalf("unexpected limited map: %+v", data.ByHeaderFrom)
+	}
+	for _, count := range data.ByHeaderFrom {
+		if count != 6 {
+			t.Fatalf("limit selected lower-volume canonical domain: %+v", data.ByHeaderFrom)
+		}
+	}
+	items := truncationCollection(t, output, "data.by_header_from")
+	if items.TotalItems != 2 || items.ReturnedItems != 1 {
+		t.Fatalf("truncation used pre-canonical counts: %+v", items)
+	}
+}
+
 func TestSourceReviewOutputDoesNotMutateAndIsConcurrentSafe(t *testing.T) {
 	review := SourceReview{
 		Domain: "example.com",

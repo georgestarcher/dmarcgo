@@ -116,6 +116,51 @@ func TestLoadBytesReturnsDecodedParseError(t *testing.T) {
 	}
 }
 
+func TestLoadBytesReturnsUnsupportedFormat(t *testing.T) {
+	_, err := LoadBytes([]byte{0x00, 0x01, 0x02, 0x03})
+	if err == nil {
+		t.Fatal("expected unsupported format error")
+	}
+	if !errors.Is(err, ErrUnsupportedReportFormat) {
+		t.Fatalf("got %v, wanted ErrUnsupportedReportFormat", err)
+	}
+}
+
+func TestLoadBytesReturnsTarGZMemberParseError(t *testing.T) {
+	var tarBuf bytes.Buffer
+	tarWriter := tar.NewWriter(&tarBuf)
+	payload := []byte("<feedback><report_metadata></feedback")
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "report.xml", Typeflag: tar.TypeReg, Mode: 0o600, Size: int64(len(payload))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tarWriter.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	var gzBuf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&gzBuf)
+	if _, err := gzipWriter.Write(tarBuf.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := LoadBytes(gzBuf.Bytes())
+	if err == nil {
+		t.Fatal("expected malformed XML error")
+	}
+	if !errors.Is(err, ErrMalformedXML) {
+		t.Fatalf("got %v, wanted ErrMalformedXML", err)
+	}
+	if strings.Contains(err.Error(), "invalid character") {
+		t.Fatalf("got raw tar-byte parse error instead of tar member XML parse error: %v", err)
+	}
+}
+
 func TestLoadReportsFromDirCapturesPerFileErrors(t *testing.T) {
 	dir := t.TempDir()
 	writeGzipFile(t, filepath.Join(dir, "good.xml.gz"), []byte(helperReportXML))

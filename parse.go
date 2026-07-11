@@ -21,8 +21,8 @@ import (
 // DMARC aggregate XML.
 var ErrMalformedXML = errors.New("malformed DMARC XML")
 
-// ErrUnsupportedReportFormat is returned when bytes cannot be decoded as gzip,
-// zip, tar, zlib, or raw XML.
+// ErrUnsupportedReportFormat is wrapped when bytes cannot be decoded as gzip,
+// gzip-compressed tar, zip, tar, zlib, or raw XML.
 var ErrUnsupportedReportFormat = errors.New("unsupported DMARC report format")
 
 // ReportLoadError wraps a load failure with optional path and format context.
@@ -129,16 +129,20 @@ func LoadBytes(payload []byte, options ...LoadOption) (*AggregateReport, error) 
 	config := applyLoadOptions(options)
 	readers := []func([]byte, int64) ([]byte, error){
 		readGzipBytes,
-		readGzipTarBytes,
 		readZipBytes,
 		readTarBytes,
 		readZlibBytes,
+		readGzipTarBytes,
 	}
 
+	var unsupportedErr error
 	var decodedParseError error
 	for _, reader := range readers {
 		decoded, err := reader(payload, config.maxDecompressedBytes)
 		if err != nil {
+			if unsupportedErr == nil {
+				unsupportedErr = err
+			}
 			continue
 		}
 		report, err := ParseBytes(decoded)
@@ -157,7 +161,10 @@ func LoadBytes(payload []byte, options ...LoadOption) (*AggregateReport, error) 
 		if decodedParseError != nil {
 			return nil, decodedParseError
 		}
-		return nil, err
+		if unsupportedErr != nil {
+			return nil, fmt.Errorf("%w: %w", ErrUnsupportedReportFormat, unsupportedErr)
+		}
+		return nil, fmt.Errorf("%w: %w", ErrUnsupportedReportFormat, err)
 	}
 }
 

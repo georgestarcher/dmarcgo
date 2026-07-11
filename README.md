@@ -82,7 +82,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
 | You want duplicate-safe importing | `dmarcgo.ReportKey(report)` and `dmarcgo.DeduplicateReports(reports)` | Uses report ID, reporter, policy domain, and date range. |
-| You want safe regression fixtures | `dmarcgo.AnonymizeReport(report, options)` | Preserves report shape while replacing domains, source IPs, and reporter contact details. |
+| You want safe regression fixtures | `dmarcgo.AnonymizeReport(report, options)` | Preserves report shape while replacing domains, source IPs, report IDs, and reporter contact details. Raw extension XML is removed by default. |
 | You want dashboard-ready top lists | `dmarcgo.TopSources`, `dmarcgo.TopUnauthenticatedSources`, or `dmarcgo.TopCounts` | Returns sorted top-N slices without storage or scoring policy. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
@@ -527,7 +527,7 @@ func main() {
 }
 ```
 
-Use `ValidateReportFilename` when you want to distinguish practical compatibility from strict RFC 9990 filename expectations. Compatibility mode accepts common real-world zip reports; strict mode expects `.xml` or `.xml.gz`.
+Use `ValidateReportFilename` when you want to distinguish practical compatibility from strict RFC 9990 filename expectations. Compatibility mode accepts common real-world zip and tar reports; strict mode expects `.xml` or `.xml.gz`.
 
 ```go
 package main
@@ -753,7 +753,7 @@ The most useful exported errors are:
 
 - `dmarcgo.ErrNoFilePath` for empty path input.
 - `dmarcgo.ErrMalformedXML` when bytes were readable but not valid DMARC XML.
-- `dmarcgo.ErrUnsupportedReportFormat` when bytes cannot be treated as gzip, zip, zlib, or raw XML.
+- `dmarcgo.ErrUnsupportedReportFormat` when bytes cannot be treated as gzip XML, gzip-compressed tar, zip, tar, zlib, or raw XML.
 - `utilities.ErrPayloadTooLarge` when decompressed data exceeds the configured limit.
 
 Use `errors.Is` for checks because errors may include path or parser context.
@@ -806,6 +806,21 @@ func main() {
 - `ValidateReportFilename()` checks parsed filename metadata in compatibility or strict RFC 9990 mode.
 - `WriteFeaturesJSONL()` and `WriteFeaturesCSV()` provide simple pipeline and spreadsheet output formats. `FeatureCSVHeaders()` exposes the CSV header order.
 - Parsing does not perform DNS lookups or network access.
+
+## Pipeline integration recipe
+
+For a mailbox, object-storage, or upload-backed processing pipeline:
+
+1. Read each attachment into bytes and record the original filename, message ID, and a content hash in your application.
+2. Parse attachment bytes with `LoadBytes`, or parse local backfills with `LoadFile` or `LoadReportsFromDir`.
+3. Run `Validate()` and store any findings with the import result.
+4. Build an identity with `ReportKey(report)` and, when useful, `FilenameReportKey(filename)`.
+5. Deduplicate in your application storage using report identity plus your attachment hash.
+6. Store `report.Rows()` for record-oriented reporting, or store the full `AggregateReport` when you need every structured DKIM/SPF result.
+7. Use `Summary()`, `SummarizeReports()`, top-N helpers, and source-review helpers for reporting views.
+8. Export analyst-friendly output with `WriteFeaturesJSONL` or `WriteFeaturesCSV`.
+
+Recommended fields to persist outside this library include the original filename, attachment hash, message/source identifier, parsed report identity, compatibility validation findings, flattened rows, and import timestamp. Avoid logging raw report XML or raw attachments by default because reports can contain domains, source IPs, provider metadata, and authentication behavior.
 
 ## Standards coverage
 

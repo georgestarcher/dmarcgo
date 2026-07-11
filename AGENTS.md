@@ -101,7 +101,7 @@ _ = report
 
 Use `ParseReportFilename` for common bang-separated aggregate report attachment names.
 
-Use `ValidateReportFilename(info, dmarcgo.ValidationModeCompatibility)` for real-world imports. Compatibility mode accepts common zip reports.
+Use `ValidateReportFilename(info, dmarcgo.ValidationModeCompatibility)` for real-world imports. Compatibility mode accepts common zip and tar reports.
 
 Use `ValidateReportFilename(info, dmarcgo.ValidationModeStrictRFC9990)` for strict RFC 9990 filename expectations. Strict mode expects `.xml` or `.xml.gz`.
 

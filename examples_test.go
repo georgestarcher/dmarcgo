@@ -248,3 +248,45 @@ func ExampleWriteFeaturesCSV() {
 	// Output: reporting_org,reporting_addr,report_id,begin_date,end_date,target_domain,requested_handling_policy,subdomain_policy_published,nonexistent_subdomain_policy,source_ip,mail_count,vendor_action,dkim_policy_evaluated,spf_policy_evaluated,header_from,envelope_from,envelope_to,dkim_domain,dkim_selector,dkim_result,spf_domain,spf_scope,spf_result
 	// Example Org,alerts@example.com,example-report-id,1609459200,1609545600,example.com,none,,,203.0.113.7,27,none,pass,pass,example.com,,,example.com,s1,pass,example.com,,pass
 }
+
+// ExampleDmarcReport_ValidateStrictRFC9990 demonstrates strict RFC 9990 validation.
+func ExampleDmarcReport_ValidateStrictRFC9990() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, finding := range report.ValidateStrictRFC9990() {
+		fmt.Println(finding.Path)
+		break
+	}
+	// Output: feedback.xmlns
+}
+
+// ExampleSummarizeReports demonstrates combining multiple parsed reports.
+func ExampleSummarizeReports() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	summary := SummarizeReports([]*Report{{Content: report}, {Content: report}})
+	fmt.Printf("reports=%d messages=%d\n", summary.Reports, summary.TotalMessages)
+	// Output: reports=2 messages=54
+}
+
+// ExampleDmarcReport_UnauthenticatedSources demonstrates factual unauthenticated source detection.
+func ExampleDmarcReport_UnauthenticatedSources() {
+	report, err := ParseBytes([]byte(`<feedback>
+  <report_metadata><org_name>Example Org</org_name><email>alerts@example.com</email><report_id>id</report_id><date_range><begin>1</begin><end>2</end></date_range></report_metadata>
+  <policy_published><domain>example.com</domain><p>reject</p></policy_published>
+  <record><row><source_ip>198.51.100.25</source_ip><count>3</count><policy_evaluated><disposition>reject</disposition><dkim>fail</dkim><spf>fail</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers></record>
+</feedback>`))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sources := report.UnauthenticatedSources("example.com")
+	fmt.Printf("source=%s messages=%d\n", sources[0].SourceIP, sources[0].Messages)
+	// Output: source=198.51.100.25 messages=3
+}

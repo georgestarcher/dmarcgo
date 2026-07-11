@@ -15,6 +15,16 @@ const (
 	ValidationWarning ValidationSeverity = "warning"
 )
 
+// ValidationMode controls how strictly ValidateWithMode checks a report.
+type ValidationMode int
+
+const (
+	// ValidationModeCompatibility accepts common legacy aggregate-report shapes.
+	ValidationModeCompatibility ValidationMode = iota
+	// ValidationModeStrictRFC9990 adds checks for the current RFC 9990 shape.
+	ValidationModeStrictRFC9990
+)
+
 // ValidationFinding describes a non-fatal standards or data-quality issue.
 type ValidationFinding struct {
 	Severity ValidationSeverity `json:"severity"`
@@ -22,13 +32,43 @@ type ValidationFinding struct {
 	Message  string             `json:"message"`
 }
 
-// Validate checks required aggregate-report fields and common value constraints.
-// It is intentionally non-mutating and does not require strict schema validation;
-// real-world DMARC aggregate reports often contain legacy quirks.
+// Validate checks required aggregate-report fields and common value constraints
+// using compatibility mode. It is intentionally non-mutating and tolerant of
+// real-world legacy reports.
 func (r DmarcReport) Validate() []ValidationFinding {
+	return r.ValidateWithMode(ValidationModeCompatibility)
+}
+
+// ValidateCompatibility checks required fields and common value constraints while
+// accepting common legacy aggregate-report shapes.
+func (r DmarcReport) ValidateCompatibility() []ValidationFinding {
+	return r.ValidateWithMode(ValidationModeCompatibility)
+}
+
+// ValidateStrictRFC9990 checks compatibility findings plus stricter RFC 9990
+// expectations such as namespace, version, DKIM selectors, and current policy
+// fields. It is best used for synthetic fixtures or producers claiming RFC 9990.
+func (r DmarcReport) ValidateStrictRFC9990() []ValidationFinding {
+	return r.ValidateWithMode(ValidationModeStrictRFC9990)
+}
+
+// ValidateWithMode checks required aggregate-report fields and common value constraints.
+func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 	var findings []ValidationFinding
 	add := func(severity ValidationSeverity, path, message string) {
 		findings = append(findings, ValidationFinding{Severity: severity, Path: path, Message: message})
+	}
+
+	if mode == ValidationModeStrictRFC9990 {
+		if r.XMLName.Space != RFC9990Namespace {
+			add(ValidationError, "feedback.xmlns", "strict RFC 9990 reports must use the RFC 9990 DMARC namespace")
+		}
+		if strings.TrimSpace(r.Version) != "" && strings.TrimSpace(r.Version) != "1.0" {
+			add(ValidationError, "version", "version must be 1.0 when present")
+		}
+		if r.PolicyPublished.Pct != "" {
+			add(ValidationWarning, "policy_published.pct", "pct is legacy aggregate-report data and is not part of RFC 9990")
+		}
 	}
 
 	if strings.TrimSpace(r.ReportMetadata.OrgName) == "" {
@@ -95,6 +135,9 @@ func (r DmarcReport) Validate() []ValidationFinding {
 			dkimPrefix := fmt.Sprintf("%s.auth_results.dkim[%d]", prefix, dkimIndex)
 			if strings.TrimSpace(dkim.Domain) == "" {
 				add(ValidationError, dkimPrefix+".domain", "missing DKIM domain")
+			}
+			if mode == ValidationModeStrictRFC9990 && strings.TrimSpace(dkim.Selector) == "" {
+				add(ValidationError, dkimPrefix+".selector", "strict RFC 9990 DKIM auth results must include selector")
 			}
 			validateEnum(&findings, dkimPrefix+".result", dkim.Result, []string{"none", "pass", "fail", "policy", "neutral", "temperror", "permerror"}, true)
 		}

@@ -116,3 +116,55 @@ func BenchmarkSuspiciousSources(b *testing.B) {
 		_ = report.SuspiciousSources("example.com")
 	}
 }
+
+func TestValidationModes(t *testing.T) {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(report.ValidateCompatibility()); got != 0 {
+		t.Fatalf("compatibility findings got %d", got)
+	}
+	strict := report.ValidateStrictRFC9990()
+	if !hasFinding(strict, "feedback.xmlns") {
+		t.Fatalf("strict findings missing namespace issue: %+v", strict)
+	}
+}
+
+func TestFeatureCSVHeaders(t *testing.T) {
+	headers := FeatureCSVHeaders()
+	if len(headers) == 0 || headers[0] != "reporting_org" {
+		t.Fatalf("unexpected headers: %+v", headers)
+	}
+	headers[0] = "mutated"
+	if FeatureCSVHeaders()[0] != "reporting_org" {
+		t.Fatal("FeatureCSVHeaders must return a copy")
+	}
+}
+
+func TestSourceHelperVariants(t *testing.T) {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := report.UnauthenticatedSources("example.com"); len(got) != 1 || got[0].Messages != 3 {
+		t.Fatalf("unexpected unauthenticated sources: %+v", got)
+	}
+	if got := report.RejectedUnauthenticatedSources("example.com"); len(got) != 1 || got[0].RejectedMessages != 3 {
+		t.Fatalf("unexpected rejected unauthenticated sources: %+v", got)
+	}
+	if got := report.PassingSources("example.com"); len(got) != 1 || got[0].Messages != 2 {
+		t.Fatalf("unexpected passing sources: %+v", got)
+	}
+}
+
+func BenchmarkUnauthenticatedSources(b *testing.B) {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(helperReportXML), &report); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = report.UnauthenticatedSources("example.com")
+	}
+}

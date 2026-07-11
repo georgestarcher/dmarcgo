@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,39 @@ var ErrMalformedXML = errors.New("malformed DMARC XML")
 // ErrUnsupportedReportFormat is returned when bytes cannot be decoded as gzip,
 // zip, zlib, or raw XML.
 var ErrUnsupportedReportFormat = errors.New("unsupported DMARC report format")
+
+// ReportLoadError wraps a load failure with optional path and format context.
+type ReportLoadError struct {
+	Path   string
+	Format string
+	Err    error
+}
+
+// Error returns a human-readable load failure.
+func (e *ReportLoadError) Error() string {
+	if e == nil {
+		return ""
+	}
+	context := "DMARC report load failed"
+	if e.Path != "" {
+		context += " for " + e.Path
+	}
+	if e.Format != "" {
+		context += " as " + e.Format
+	}
+	if e.Err != nil {
+		return context + ": " + e.Err.Error()
+	}
+	return context
+}
+
+// Unwrap returns the underlying load error.
+func (e *ReportLoadError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
 
 // LoadOption configures file and archive loading helpers.
 type LoadOption func(*loadConfig)
@@ -54,7 +88,7 @@ func LoadReportFile(path string, options ...LoadOption) (*Report, error) {
 	config := applyLoadOptions(options)
 	report := &Report{MaxDecompressedBytes: config.maxDecompressedBytes}
 	if err := report.LoadReportFileFromPath(path); err != nil {
-		return nil, err
+		return nil, &ReportLoadError{Path: path, Err: err}
 	}
 	return report, nil
 }
@@ -117,8 +151,17 @@ func LoadReportBytes(payload []byte, options ...LoadOption) (*DmarcReport, error
 // LoadReportReader loads a DMARC aggregate report from gzip, zip, zlib, or raw
 // XML data read from reader.
 func LoadReportReader(reader io.Reader, options ...LoadOption) (*DmarcReport, error) {
+	return LoadReportReaderContext(context.Background(), reader, options...)
+}
+
+// LoadReportReaderContext loads a DMARC aggregate report from reader and checks
+// ctx while reading. It is useful for request-scoped server work.
+func LoadReportReaderContext(ctx context.Context, reader io.Reader, options ...LoadOption) (*DmarcReport, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	config := applyLoadOptions(options)
-	payload, err := readAllLimited(reader, config.maxDecompressedBytes)
+	payload, err := readAllLimited(contextReader{ctx: ctx, reader: reader}, config.maxDecompressedBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +201,20 @@ func WriteFeaturesJSONL(writer io.Writer, features []DmarcReportFeatures) error 
 		}
 	}
 	return nil
+}
+
+type contextReader struct {
+	ctx    context.Context
+	reader io.Reader
+}
+
+func (r contextReader) Read(p []byte) (int, error) {
+	select {
+	case <-r.ctx.Done():
+		return 0, r.ctx.Err()
+	default:
+		return r.reader.Read(p)
+	}
 }
 
 func readAllLimited(reader io.Reader, maxBytes int64) ([]byte, error) {

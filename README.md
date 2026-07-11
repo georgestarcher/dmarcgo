@@ -196,6 +196,8 @@ func main() {
 
 Use `ParseBytes` or `ParseReader` only when the input is already raw XML. If you are not sure whether the attachment is compressed, use `LoadReportBytes` or `LoadReportReader`.
 
+Use `LoadReportReaderContext` for request-scoped server work where cancellation should stop reading before parsing begins.
+
 ## Processing a directory
 
 `LoadReportsFromDir` processes a local directory and returns one result per file. Per-file errors are stored on the result, so one malformed report does not abort the whole batch. This is useful for local test corpora, scheduled attachment downloads, and one-off report analysis.
@@ -229,7 +231,7 @@ func main() {
 
 `Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops. It includes total messages, disposition counts, DKIM/SPF alignment counts, source-IP summaries, and parsed UTC date-range values.
 
-`SuspiciousSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed. It is intentionally factual rather than a risk score: a row is suspicious because it failed authentication while claiming the target domain.
+`UnauthenticatedSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed. `RejectedUnauthenticatedSources(domain)` narrows that list to rejected traffic, and `PassingSources(domain)` shows source IPs that passed at least one DMARC alignment mechanism. `SuspiciousSources(domain)` remains available as a compatibility alias for `UnauthenticatedSources(domain)`.
 
 ```go
 package main
@@ -254,7 +256,7 @@ func main() {
 		summary.PassedMessages,
 	)
 
-	for _, source := range report.Content.SuspiciousSources("example.com") {
+	for _, source := range report.Content.UnauthenticatedSources("example.com") {
 		fmt.Printf("source=%s rejected=%d\n", source.SourceIP, source.RejectedMessages)
 	}
 }
@@ -263,7 +265,9 @@ func main() {
 
 ## Validation
 
-Parsing accepts real-world reports, including older reports that may not be perfectly RFC 9990-shaped. Use `Validate()` when you want structured data-quality findings after parsing. Validation does not mutate the report and does not reject legacy reports by itself.
+Parsing accepts real-world reports, including older reports that may not be perfectly RFC 9990-shaped. Use `Validate()` or `ValidateCompatibility()` when you want pragmatic data-quality findings after parsing. Use `ValidateStrictRFC9990()` for producers or fixtures that claim the current RFC 9990 shape. Validation does not mutate the report and does not reject legacy reports by itself.
+
+Strict validation is expected to flag many current real-world aggregate reports because large providers still emit legacy/no-namespace XML even when the report data itself is useful. Use strict mode for producer conformance checks, not for deciding whether legacy reports are worth ingesting.
 
 ```go
 package main
@@ -423,16 +427,16 @@ func main() {
 ## Behavior and safety notes
 
 - `LoadReportFile()` tries gzip, zip, then zlib.
-- `LoadReportBytes()` and `LoadReportReader()` accept gzip, zip, zlib, or raw XML.
+- `LoadReportBytes()`, `LoadReportReader()`, and `LoadReportReaderContext()` accept gzip, zip, zlib, or raw XML.
 - `ParseBytes()` and `ParseReader()` parse raw XML only.
 - Decompressed payload reads are size-limited by default to reduce archive-bomb risk.
 - Set `Report.MaxDecompressedBytes` if your deployment needs a different decompressed-size limit.
 - Malformed XML returns a parse-specific error.
 - Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
-- `Summary()`, `SummarizeReports()`, and `SuspiciousSources()` provide lightweight analysis helpers without turning the package into an ingest system.
-- `Validate()` reports data-quality findings after parsing rather than rejecting legacy reports upfront.
-- `WriteFeaturesJSONL()` and `WriteFeaturesCSV()` provide simple pipeline and spreadsheet output formats.
+- `Summary()`, `SummarizeReports()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide lightweight analysis helpers without turning the package into an ingest system.
+- `Validate()` reports compatibility-mode data-quality findings after parsing; `ValidateStrictRFC9990()` adds stricter current-standard checks.
+- `WriteFeaturesJSONL()` and `WriteFeaturesCSV()` provide simple pipeline and spreadsheet output formats. `FeatureCSVHeaders()` exposes the CSV header order.
 - Parsing does not perform DNS lookups or network access.
 
 ## Standards coverage

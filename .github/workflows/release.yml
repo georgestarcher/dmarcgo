@@ -1,0 +1,35 @@
+name: dmarcgo Release Check
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+          cache: true
+
+      - name: Verify module
+        run: |
+          go test ./...
+          go test -race ./...
+          go test -covermode=atomic -coverprofile=coverage.out ./...
+          python3 scripts/check_coverage.py --profile coverage.out --min 80.0
+          python3 scripts/check_readme_examples.py
+          go build ./...

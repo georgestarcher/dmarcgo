@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"compress/zlib"
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -274,5 +276,25 @@ func TestLoadReportFileConvenience(t *testing.T) {
 	}
 	if report.Content.ReportMetadata.ReportID != "helper-report" {
 		t.Fatalf("got report id %q", report.Content.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadReportReaderContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := LoadReportReaderContext(ctx, strings.NewReader(helperReportXML))
+	if err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("got %v, wanted context canceled", err)
+	}
+}
+
+func TestReportLoadError(t *testing.T) {
+	_, err := LoadReportFile("")
+	var loadErr *ReportLoadError
+	if !errors.As(err, &loadErr) {
+		t.Fatalf("got %T, wanted ReportLoadError", err)
+	}
+	if !errors.Is(err, ErrNoFilePath) {
+		t.Fatalf("got %v, wanted wrapped ErrNoFilePath", err)
 	}
 }

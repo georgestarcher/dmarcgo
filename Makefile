@@ -1,6 +1,6 @@
 STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
-COVERAGE_MIN ?= 75.0
+COVERAGE_MIN ?= 80.0
 
 .PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check api-check ci
 
@@ -58,7 +58,7 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzLoadReportBytes -fuzztime=2s .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadReportBytes|BenchmarkSummary|BenchmarkSuspiciousSources' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadReportBytes|BenchmarkSummary|BenchmarkSuspiciousSources|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
 
 ci: format-check mod-verify mod-verify-local lint vuln readme-check api-check test race cover-check fuzz-smoke bench-smoke build
 

@@ -140,13 +140,76 @@ func (r DmarcReport) Summary() ReportSummary {
 	return summary
 }
 
+// UnauthenticatedSources returns source IPs that used domain in header_from while
+// both DMARC DKIM and SPF alignment failed.
+func (r DmarcReport) UnauthenticatedSources(domain string) []SuspiciousSource {
+	return r.unauthenticatedSources(domain, "")
+}
+
+// RejectedUnauthenticatedSources returns unauthenticated sources whose reported
+// disposition was reject.
+func (r DmarcReport) RejectedUnauthenticatedSources(domain string) []SuspiciousSource {
+	return r.unauthenticatedSources(domain, "reject")
+}
+
+// PassingSources returns source IPs that used domain in header_from and passed
+// at least one DMARC alignment mechanism.
+func (r DmarcReport) PassingSources(domain string) []SourceSummary {
+	byIP := map[string]*SourceSummary{}
+	domain = strings.ToLower(strings.TrimSpace(domain))
+	for _, record := range r.Record {
+		if domain != "" && strings.ToLower(record.Identifiers.HeaderFrom) != domain {
+			continue
+		}
+		if record.Row.PolicyEvaluated.Dkim != "pass" && record.Row.PolicyEvaluated.Spf != "pass" {
+			continue
+		}
+		count := parseCount(record.Row.Count)
+		source := byIP[record.Row.SourceIp]
+		if source == nil {
+			source = &SourceSummary{SourceIP: record.Row.SourceIp, HeaderFrom: map[string]int{}, DKIMDomains: map[string]int{}, SPFDomains: map[string]int{}, Reporters: map[string]int{}}
+			byIP[record.Row.SourceIp] = source
+		}
+		source.Records++
+		source.Messages += count
+		source.PassedMessages += count
+		source.HeaderFrom[record.Identifiers.HeaderFrom] += count
+		for _, dkim := range record.AuthResults.Dkim {
+			if dkim.Domain != "" {
+				source.DKIMDomains[dkim.Domain] += count
+			}
+		}
+		if record.AuthResults.Spf != nil && record.AuthResults.Spf.Domain != "" {
+			source.SPFDomains[record.AuthResults.Spf.Domain] += count
+		}
+	}
+	out := make([]SourceSummary, 0, len(byIP))
+	for _, source := range byIP {
+		out = append(out, *source)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Messages == out[j].Messages {
+			return out[i].SourceIP < out[j].SourceIP
+		}
+		return out[i].Messages > out[j].Messages
+	})
+	return out
+}
+
 // SuspiciousSources returns source IPs that used domain in header_from while both
-// DMARC DKIM and SPF alignment failed.
+// DMARC DKIM and SPF alignment failed. Prefer UnauthenticatedSources for new code.
 func (r DmarcReport) SuspiciousSources(domain string) []SuspiciousSource {
+	return r.UnauthenticatedSources(domain)
+}
+
+func (r DmarcReport) unauthenticatedSources(domain, disposition string) []SuspiciousSource {
 	byIP := map[string]*SuspiciousSource{}
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	for _, record := range r.Record {
 		if domain != "" && strings.ToLower(record.Identifiers.HeaderFrom) != domain {
+			continue
+		}
+		if disposition != "" && record.Row.PolicyEvaluated.Disposition != disposition {
 			continue
 		}
 		if record.Row.PolicyEvaluated.Dkim != "fail" || record.Row.PolicyEvaluated.Spf != "fail" {

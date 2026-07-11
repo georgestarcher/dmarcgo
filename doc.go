@@ -8,9 +8,9 @@
 // Supported inputs are gzip, zip, and zlib encoded payloads containing XML DMARC
 // aggregate report data. Use Report.LoadReportFile(), LoadReportFile(),
 // LoadReportBytes(), or LoadReportReader() to deserialize report artifacts.
-// Use ParseBytes() or ParseReader() when the input is already raw XML.
+// Use ParseBytes() or ParseReader() when the input is already raw XML. Use LoadReportReaderContext() when caller cancellation should be honored while reading.
 // Use DmarcReport.Features() for flattened records, DmarcReport.Summary()
-// for aggregate counts, DmarcReport.Validate() for data-quality findings,
+// for aggregate counts, DmarcReport.Validate() or DmarcReport.ValidateStrictRFC9990() for data-quality findings,
 // SummarizeReports() for multi-report counts, and DmarcReport.SuspiciousSources()
 // for unauthenticated source-IP summaries.
 //

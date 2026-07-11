@@ -12,9 +12,11 @@ and this project uses semantic versioning for public API changes.
 - Versioned automation and AI-agent output envelopes for report validation,
   report summaries, aggregate summaries, flattened rows, and source review.
 - Stable finding, evidence, action, provenance, redaction, and truncation
-  metadata with an embedded JSON Schema.
+  metadata with a strict embedded JSON Schema and version-discovery helpers.
 - Deterministic JSON and JSONL writers, bounded collections, public output
   redaction, and hostile-input tests for downstream AI consumers.
+- Fail-closed, mode-aware redaction; explicit evaluation and failure output;
+  per-collection truncation; and concurrent non-mutating output builders.
 
 ## [2.0.1] - 2026-07-11
 

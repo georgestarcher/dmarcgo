@@ -30,6 +30,28 @@ func ExampleBuildReportSummaryOutput() {
 	// Output: mode=report_summary status=completed findings=0
 }
 
+// ExampleBuildFailureOutput demonstrates a stable error envelope for work that
+// could not be evaluated.
+func ExampleBuildFailureOutput() {
+	output, err := BuildFailureOutput(
+		OutputModeReportValidation,
+		OutputScope{},
+		OutputInput{ReportCount: 1},
+		[]OutputMessage{{
+			Code:     "report.malformed_xml",
+			Category: "malformed_xml",
+			Message:  "the synthetic report could not be parsed",
+		}},
+		OutputOptions{GeneratedAt: time.Date(2026, 7, 11, 12, 0, 0, 0, time.UTC)},
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("status=%s evaluation=%s errors=%d\n", output.Status, output.Evaluation.State, len(output.Errors))
+	// Output: status=failed evaluation=not_evaluated errors=1
+}
+
 const exampleReportXML = `<feedback>
   <report_metadata>
     <org_name>Example Org</org_name>

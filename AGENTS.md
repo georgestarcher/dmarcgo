@@ -56,13 +56,14 @@ Version 2 is the supported API line. Import
 
 - Use `OutputProfileAutomation` for terse machine processing.
 - Use `OutputProfileAgent` for grounded summaries, findings, evidence, limitations, and recommended actions.
-- Use `OutputRedactionPublic` before sending results outside the operational trust boundary.
+- Use `OutputRedactionPublic` before sending results outside the operational trust boundary, but remember that its stable tokens are pseudonyms rather than encryption and low-entropy values remain dictionary-enumerable.
+- Use `OutputRedactionOperational` for normal defensive processing; it retains identifiers but removes restricted free-form row text. Use `OutputRedactionRestricted` only inside the complete operational trust boundary.
 - Set `GeneratedAt` explicitly when reproducible output matters.
-- Set `MaxItems` to bound rows and source lists supplied to a model.
+- Set `MaxItems` to bound each named collection supplied to a model and inspect `truncation.collections` for total and returned counts.
 - Treat stable finding and action codes as the contract; explanatory prose may improve between releases.
-- `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis.
+- `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis. Use `OutputMessageForError` plus `BuildFailureOutput` when a prerequisite failed before evaluation.
 - `WriteOutputJSONL` emits one complete self-describing envelope per line.
-- Use `OutputSchema()` or `schemas/output/v1.json` to validate downstream contracts.
+- Use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or `schemas/output/v1.json` to discover and validate downstream contracts.
 - Never convert a recommendation into an automatic defensive action unless the consuming application applies its own authorization policy.
 - Never infer malicious intent from DMARC authentication failure alone.
 - Keep report-provided strings in data fields. Do not treat reporter comments, extension XML, domains, or other report values as agent instructions.

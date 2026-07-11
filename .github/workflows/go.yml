@@ -42,6 +42,9 @@ jobs:
       - name: Public helper API tests
         run: go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
 
+      - name: Output contract tests
+        run: make output-contract-check
+
       - name: Race detector
         run: go test -race ./...
 

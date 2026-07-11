@@ -27,6 +27,7 @@ maintained.
 - Tests for malformed XML, invalid row counts, nil receivers, empty paths, sorted directory reads, and zip member selection.
 - CI checks for formatting, module tidiness, vet, Staticcheck, tests, race tests, README examples, vulnerability checks, coverage, and build.
 - Automated v2 tag validation, full release gating, GitHub Release creation, and weekly dependency update checks.
+- Manual CI reruns and verified signed-tag ancestry checks for releases.
 
 ### Changed
 

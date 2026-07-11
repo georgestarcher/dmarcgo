@@ -42,9 +42,11 @@ API changes must be deliberate and documented in `CHANGELOG.md`.
 
 Go publishes this module when a semantic version tag is pushed. The release
 workflow accepts only `v2.x.x` tags, verifies the `/v2` module path and matching
-dated changelog entry, runs `make ci`, and then creates the GitHub Release with
+dated changelog entry, requires a GitHub-verified signed annotated tag pointing
+to a commit on `main`, runs `make ci`, and then creates the GitHub Release with
 generated notes. It does not publish binaries because this repository is a
-library.
+library. Both CI and release workflows can also be rerun manually from GitHub
+Actions; release validation still requires the selected ref to be a valid tag.
 
 1. Update `CHANGELOG.md`, moving release changes out of `Unreleased` into a dated
    version heading such as `## [2.0.0] - 2026-07-11`.

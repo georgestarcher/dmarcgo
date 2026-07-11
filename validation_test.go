@@ -18,11 +18,11 @@ func TestValidateValidReport(t *testing.T) {
 }
 
 func TestValidateFindings(t *testing.T) {
-	report := DmarcReport{
+	report := AggregateReport{
 		ReportMetadata:  ReportMetadata{DateRange: DateRange{Begin: "bad", End: "1"}},
 		PolicyPublished: PolicyPublished{P: "explode", Pct: "101"},
 		Record: []Record{{
-			Row:         Row{SourceIp: "not-ip", Count: "-1", PolicyEvaluated: PolicyEvaluated{Disposition: "wat", Dkim: "maybe", Spf: ""}},
+			Row:         Row{SourceIP: "not-ip", Count: "-1", PolicyEvaluated: PolicyEvaluated{Disposition: "wat", DKIM: "maybe", SPF: ""}},
 			Identifiers: Identifiers{},
 		}},
 	}
@@ -40,7 +40,7 @@ func TestMergeSummariesAndSummarizeReports(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reports := []*Report{{Content: *report}, nil, {Content: *report}}
+	reports := []*AggregateReport{report, nil, report}
 	agg := SummarizeReports(reports)
 	if agg.Reports != 2 || agg.TotalMessages != 10 || agg.RejectedMessages != 6 {
 		t.Fatalf("unexpected aggregate summary: %+v", agg)
@@ -61,7 +61,7 @@ func TestWriteFeaturesCSV(t *testing.T) {
 		t.Fatal(err)
 	}
 	var buf bytes.Buffer
-	if err := WriteFeaturesCSV(&buf, report.Features()[1:]); err != nil {
+	if err := WriteFeaturesCSV(&buf, report.Rows()); err != nil {
 		t.Fatal(err)
 	}
 	rows, err := csv.NewReader(bytes.NewReader(buf.Bytes())).ReadAll()
@@ -85,18 +85,18 @@ func hasFinding(findings []ValidationFinding, path string) bool {
 	return false
 }
 
-func BenchmarkLoadReportBytes(b *testing.B) {
+func BenchmarkLoadBytes(b *testing.B) {
 	payload := []byte(helperReportXML)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := LoadReportBytes(payload); err != nil {
+		if _, err := LoadBytes(payload); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
 func BenchmarkSummary(b *testing.B) {
-	var report DmarcReport
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(helperReportXML), &report); err != nil {
 		b.Fatal(err)
 	}
@@ -106,26 +106,15 @@ func BenchmarkSummary(b *testing.B) {
 	}
 }
 
-func BenchmarkSuspiciousSources(b *testing.B) {
-	var report DmarcReport
-	if err := xml.Unmarshal([]byte(helperReportXML), &report); err != nil {
-		b.Fatal(err)
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = report.SuspiciousSources("example.com")
-	}
-}
-
 func TestValidationModes(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(report.ValidateCompatibility()); got != 0 {
+	if got := len(report.Validate()); got != 0 {
 		t.Fatalf("compatibility findings got %d", got)
 	}
-	strict := report.ValidateStrictRFC9990()
+	strict := report.ValidateStrict()
 	if !hasFinding(strict, "feedback.xmlns") {
 		t.Fatalf("strict findings missing namespace issue: %+v", strict)
 	}
@@ -159,7 +148,7 @@ func TestSourceHelperVariants(t *testing.T) {
 }
 
 func BenchmarkUnauthenticatedSources(b *testing.B) {
-	var report DmarcReport
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(helperReportXML), &report); err != nil {
 		b.Fatal(err)
 	}

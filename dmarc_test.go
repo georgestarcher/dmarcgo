@@ -11,22 +11,22 @@ import (
 )
 
 func TestLoadReport(t *testing.T) {
-	dmarcReport := new(Report)
+	dmarcReport := new(FileReport)
 	dmarcReport.FilePath = "testdata/fixtures/amazonses.com!georgestarcher.com!1518134400!1518220800.xml.gz"
 
-	err := dmarcReport.LoadReportFile()
+	err := dmarcReport.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	reportID := dmarcReport.Content.Features()[0].ReportID
+	reportID := dmarcReport.Content.ReportMetadata.ReportID
 	want := "072b67ad-a2bd-4ee2-bbb3-533ca391825f"
 	if reportID != want {
 		t.Errorf("got %v, wanted %v", reportID, want)
 	}
 }
 
-func TestLoadReportFileMalformedXML(t *testing.T) {
+func TestLoadFileMalformedXML(t *testing.T) {
 	reportFile := filepath.Join(t.TempDir(), "broken.xml.gz")
 	fileHandle, err := os.Create(reportFile)
 	if err != nil {
@@ -44,9 +44,9 @@ func TestLoadReportFileMalformedXML(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	report := new(Report)
+	report := new(FileReport)
 	report.FilePath = reportFile
-	if err := report.LoadReportFile(); err == nil {
+	if err := report.Load(); err == nil {
 		t.Fatal("expected XML parse error, got nil")
 	} else if !strings.Contains(err.Error(), "failed to parse DMARC XML") {
 		t.Fatalf("got error %q, wanted parse-specific failure", err.Error())
@@ -54,7 +54,7 @@ func TestLoadReportFileMalformedXML(t *testing.T) {
 }
 
 func TestFeaturesMailCountParsing(t *testing.T) {
-	report := DmarcReport{}
+	report := AggregateReport{}
 	payload := []byte(`
 	<feedback>
 	  <report_metadata>
@@ -94,18 +94,18 @@ func TestFeaturesMailCountParsing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	features := report.Features()
-	if len(features) != 2 {
-		t.Fatalf("got %d features, wanted 2", len(features))
+	features := report.Rows()
+	if len(features) != 1 {
+		t.Fatalf("got %d features, wanted 1", len(features))
 	}
-	if features[1].MailCount != InvalidMailCount {
-		t.Fatalf("got MailCount %d, wanted %d", features[1].MailCount, InvalidMailCount)
+	if features[0].MailCount != InvalidMailCount {
+		t.Fatalf("got MailCount %d, wanted %d", features[0].MailCount, InvalidMailCount)
 	}
 }
 
-func TestLoadReportFileFromPathEmpty(t *testing.T) {
-	report := new(Report)
-	if err := report.LoadReportFileFromPath(""); err == nil {
+func TestLoadFileEmpty(t *testing.T) {
+	report := new(FileReport)
+	if err := report.LoadFile(""); err == nil {
 		t.Fatal("expected error for empty report path")
 	}
 }
@@ -125,10 +125,10 @@ func TestFixtureReportsParse(t *testing.T) {
 
 		t.Run(entry.Name(), func(t *testing.T) {
 			var report Report
-			if err := report.LoadReportFileFromPath(filepath.Join(fixtureDir, entry.Name())); err != nil {
+			if err := report.LoadFile(filepath.Join(fixtureDir, entry.Name())); err != nil {
 				t.Fatal(err)
 			}
-			if features := report.Content.Features(); len(features) == 0 {
+			if features := report.Content.Rows(); len(features) == 0 {
 				t.Fatal("expected at least one feature row")
 			}
 		})
@@ -192,17 +192,17 @@ func TestFeaturesJSONContract(t *testing.T) {
 	</record>
 	</feedback>`)
 
-	var report DmarcReport
+	var report AggregateReport
 	if err := xml.Unmarshal(reportXML, &report); err != nil {
 		t.Fatal(err)
 	}
 
-	features := report.Features()
-	if len(features) != 2 {
-		t.Fatalf("got %d features, wanted %d", len(features), 2)
+	features := report.Rows()
+	if len(features) != 1 {
+		t.Fatalf("got %d features, wanted %d", len(features), 1)
 	}
 
-	got, err := json.Marshal(features[1])
+	got, err := json.Marshal(features[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,15 +215,15 @@ func TestFeaturesJSONContract(t *testing.T) {
 		"reporting_org":             "example org",
 		"reporting_addr":            "alerts@example.com",
 		"report_id":                 "report-1",
-		"beginDate":                 "1",
-		"endDate":                   "2",
+		"begin_date":                "1",
+		"end_date":                  "2",
 		"target_domain":             "example.com",
 		"spf_policy_published":      "r",
 		"dkim_policy_published":     "r",
 		"requested_handling_policy": "none",
 		"sampling_percentage":       "100",
 		"failure_reporting_options": "0",
-		"src_ip":                    "198.51.100.12",
+		"source_ip":                 "198.51.100.12",
 		"mail_count":                float64(42),
 		"vendor_action":             "none",
 		"dkim_policy_evaluated":     "pass",
@@ -252,24 +252,24 @@ func TestFeaturesJSONContract(t *testing.T) {
 
 func TestRFC9990SyntheticFixture(t *testing.T) {
 	var report Report
-	if err := report.LoadReportFileFromPath(filepath.Join("testdata", "fixtures", "rfc9990-modern-synthetic.xml.gz")); err != nil {
+	if err := report.LoadFile(filepath.Join("testdata", "fixtures", "rfc9990-modern-synthetic.xml.gz")); err != nil {
 		t.Fatal(err)
 	}
 
-	features := report.Content.Features()
-	if len(features) != 3 {
-		t.Fatalf("got %d features, wanted 3", len(features))
+	features := report.Content.Rows()
+	if len(features) != 2 {
+		t.Fatalf("got %d features, wanted 2", len(features))
 	}
 	if report.Content.XMLName.Space != RFC9990Namespace {
 		t.Fatalf("got namespace %q, wanted %q", report.Content.XMLName.Space, RFC9990Namespace)
 	}
-	if got := len(report.Content.Record[0].AuthResults.Dkim); got != 2 {
+	if got := len(report.Content.Record[0].AuthResults.DKIM); got != 2 {
 		t.Fatalf("got %d DKIM results, wanted 2", got)
 	}
-	if features[1].DkimSelector != "selector1" || len(features[1].DkimAuthResults) != 2 {
+	if features[0].DKIMSelector != "selector1" || len(features[0].DKIMAuthResults) != 2 {
 		t.Fatalf("modern DKIM feature fields were not preserved")
 	}
-	if features[2].VendorAction != "reject" || features[2].SpfResult != "fail" {
+	if features[1].VendorAction != "reject" || features[1].SPFResult != "fail" {
 		t.Fatalf("rejected synthetic row was not flattened correctly")
 	}
 }
@@ -324,16 +324,16 @@ func TestRFC9990ReportFeaturesPreserveModernFields(t *testing.T) {
 	</record>
 </feedback>`)
 
-	var report DmarcReport
+	var report AggregateReport
 	if err := decodeDMARCXML(payload, &report); err != nil {
 		t.Fatal(err)
 	}
 
-	features := report.Features()
-	if len(features) != 2 {
-		t.Fatalf("got %d features, wanted 2", len(features))
+	features := report.Rows()
+	if len(features) != 1 {
+		t.Fatalf("got %d features, wanted 1", len(features))
 	}
-	record := features[1]
+	record := features[0]
 	if record.ReportGenerator != "Example Generator 2.0" {
 		t.Fatalf("got generator %q", record.ReportGenerator)
 	}
@@ -346,14 +346,14 @@ func TestRFC9990ReportFeaturesPreserveModernFields(t *testing.T) {
 	if record.EnvelopeTo != "example.net" {
 		t.Fatalf("got envelope_to %q", record.EnvelopeTo)
 	}
-	if record.DkimSelector != "s1" {
-		t.Fatalf("got first DKIM selector %q", record.DkimSelector)
+	if record.DKIMSelector != "s1" {
+		t.Fatalf("got first DKIM selector %q", record.DKIMSelector)
 	}
-	if len(record.DkimAuthResults) != 2 {
-		t.Fatalf("got %d flattened DKIM auth results, wanted 2", len(record.DkimAuthResults))
+	if len(record.DKIMAuthResults) != 2 {
+		t.Fatalf("got %d flattened DKIM auth results, wanted 2", len(record.DKIMAuthResults))
 	}
-	if record.SpfScope != "mfrom" {
-		t.Fatalf("got SPF scope %q", record.SpfScope)
+	if record.SPFScope != "mfrom" {
+		t.Fatalf("got SPF scope %q", record.SPFScope)
 	}
 	if len(record.PolicyOverrideReasons) != 2 {
 		t.Fatalf("got %d flattened override reasons, wanted 2", len(record.PolicyOverrideReasons))
@@ -372,12 +372,12 @@ func BenchmarkReportFeatures(b *testing.B) {
 		<policy_published><domain>example.com</domain><p>none</p></policy_published>
 		<record><row><source_ip>192.0.2.1</source_ip><count>1</count><policy_evaluated><disposition>none</disposition><dkim>pass</dkim><spf>pass</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers></record>
 	</feedback>`
-	var report DmarcReport
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(baseReport), &report); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = report.Features()
+		_ = report.Rows()
 	}
 }

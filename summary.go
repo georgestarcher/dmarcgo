@@ -59,7 +59,7 @@ type SuspiciousSource struct {
 }
 
 // Summary returns message counts and grouped source-IP information for a report.
-func (r DmarcReport) Summary() ReportSummary {
+func (r AggregateReport) Summary() ReportSummary {
 	summary := ReportSummary{
 		ReportID:      r.ReportMetadata.ReportID,
 		ReportingOrg:  r.ReportMetadata.OrgName,
@@ -80,16 +80,16 @@ func (r DmarcReport) Summary() ReportSummary {
 		summary.ByDisposition[record.Row.PolicyEvaluated.Disposition] += count
 		summary.ByHeaderFrom[record.Identifiers.HeaderFrom] += count
 
-		source := byIP[record.Row.SourceIp]
+		source := byIP[record.Row.SourceIP]
 		if source == nil {
 			source = &SourceSummary{
-				SourceIP:    record.Row.SourceIp,
+				SourceIP:    record.Row.SourceIP,
 				HeaderFrom:  map[string]int{},
 				DKIMDomains: map[string]int{},
 				SPFDomains:  map[string]int{},
 				Reporters:   map[string]int{},
 			}
-			byIP[record.Row.SourceIp] = source
+			byIP[record.Row.SourceIP] = source
 		}
 		source.Records++
 		source.Messages += count
@@ -106,25 +106,25 @@ func (r DmarcReport) Summary() ReportSummary {
 			summary.PassedMessages += count
 			source.PassedMessages += count
 		}
-		if record.Row.PolicyEvaluated.Dkim == "pass" {
+		if record.Row.PolicyEvaluated.DKIM == "pass" {
 			summary.DKIMPassMessages += count
-		} else if record.Row.PolicyEvaluated.Dkim == "fail" {
+		} else if record.Row.PolicyEvaluated.DKIM == "fail" {
 			summary.DKIMFailMessages += count
 			source.DKIMFailMessages += count
 		}
-		if record.Row.PolicyEvaluated.Spf == "pass" {
+		if record.Row.PolicyEvaluated.SPF == "pass" {
 			summary.SPFPassMessages += count
-		} else if record.Row.PolicyEvaluated.Spf == "fail" {
+		} else if record.Row.PolicyEvaluated.SPF == "fail" {
 			summary.SPFFailMessages += count
 			source.SPFFailMessages += count
 		}
-		for _, dkim := range record.AuthResults.Dkim {
+		for _, dkim := range record.AuthResults.DKIM {
 			if dkim.Domain != "" {
 				source.DKIMDomains[dkim.Domain] += count
 			}
 		}
-		if record.AuthResults.Spf != nil && record.AuthResults.Spf.Domain != "" {
-			source.SPFDomains[record.AuthResults.Spf.Domain] += count
+		if record.AuthResults.SPF != nil && record.AuthResults.SPF.Domain != "" {
+			source.SPFDomains[record.AuthResults.SPF.Domain] += count
 		}
 	}
 
@@ -142,45 +142,45 @@ func (r DmarcReport) Summary() ReportSummary {
 
 // UnauthenticatedSources returns source IPs that used domain in header_from while
 // both DMARC DKIM and SPF alignment failed.
-func (r DmarcReport) UnauthenticatedSources(domain string) []SuspiciousSource {
+func (r AggregateReport) UnauthenticatedSources(domain string) []SuspiciousSource {
 	return r.unauthenticatedSources(domain, "")
 }
 
 // RejectedUnauthenticatedSources returns unauthenticated sources whose reported
 // disposition was reject.
-func (r DmarcReport) RejectedUnauthenticatedSources(domain string) []SuspiciousSource {
+func (r AggregateReport) RejectedUnauthenticatedSources(domain string) []SuspiciousSource {
 	return r.unauthenticatedSources(domain, "reject")
 }
 
 // PassingSources returns source IPs that used domain in header_from and passed
 // at least one DMARC alignment mechanism.
-func (r DmarcReport) PassingSources(domain string) []SourceSummary {
+func (r AggregateReport) PassingSources(domain string) []SourceSummary {
 	byIP := map[string]*SourceSummary{}
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	for _, record := range r.Record {
 		if domain != "" && strings.ToLower(record.Identifiers.HeaderFrom) != domain {
 			continue
 		}
-		if record.Row.PolicyEvaluated.Dkim != "pass" && record.Row.PolicyEvaluated.Spf != "pass" {
+		if record.Row.PolicyEvaluated.DKIM != "pass" && record.Row.PolicyEvaluated.SPF != "pass" {
 			continue
 		}
 		count := parseCount(record.Row.Count)
-		source := byIP[record.Row.SourceIp]
+		source := byIP[record.Row.SourceIP]
 		if source == nil {
-			source = &SourceSummary{SourceIP: record.Row.SourceIp, HeaderFrom: map[string]int{}, DKIMDomains: map[string]int{}, SPFDomains: map[string]int{}, Reporters: map[string]int{}}
-			byIP[record.Row.SourceIp] = source
+			source = &SourceSummary{SourceIP: record.Row.SourceIP, HeaderFrom: map[string]int{}, DKIMDomains: map[string]int{}, SPFDomains: map[string]int{}, Reporters: map[string]int{}}
+			byIP[record.Row.SourceIP] = source
 		}
 		source.Records++
 		source.Messages += count
 		source.PassedMessages += count
 		source.HeaderFrom[record.Identifiers.HeaderFrom] += count
-		for _, dkim := range record.AuthResults.Dkim {
+		for _, dkim := range record.AuthResults.DKIM {
 			if dkim.Domain != "" {
 				source.DKIMDomains[dkim.Domain] += count
 			}
 		}
-		if record.AuthResults.Spf != nil && record.AuthResults.Spf.Domain != "" {
-			source.SPFDomains[record.AuthResults.Spf.Domain] += count
+		if record.AuthResults.SPF != nil && record.AuthResults.SPF.Domain != "" {
+			source.SPFDomains[record.AuthResults.SPF.Domain] += count
 		}
 	}
 	out := make([]SourceSummary, 0, len(byIP))
@@ -198,11 +198,11 @@ func (r DmarcReport) PassingSources(domain string) []SourceSummary {
 
 // SuspiciousSources returns source IPs that used domain in header_from while both
 // DMARC DKIM and SPF alignment failed. Prefer UnauthenticatedSources for new code.
-func (r DmarcReport) SuspiciousSources(domain string) []SuspiciousSource {
+func (r AggregateReport) SuspiciousSources(domain string) []SuspiciousSource {
 	return r.UnauthenticatedSources(domain)
 }
 
-func (r DmarcReport) unauthenticatedSources(domain, disposition string) []SuspiciousSource {
+func (r AggregateReport) unauthenticatedSources(domain, disposition string) []SuspiciousSource {
 	byIP := map[string]*SuspiciousSource{}
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	for _, record := range r.Record {
@@ -212,15 +212,15 @@ func (r DmarcReport) unauthenticatedSources(domain, disposition string) []Suspic
 		if disposition != "" && record.Row.PolicyEvaluated.Disposition != disposition {
 			continue
 		}
-		if record.Row.PolicyEvaluated.Dkim != "fail" || record.Row.PolicyEvaluated.Spf != "fail" {
+		if record.Row.PolicyEvaluated.DKIM != "fail" || record.Row.PolicyEvaluated.SPF != "fail" {
 			continue
 		}
 
 		count := parseCount(record.Row.Count)
-		source := byIP[record.Row.SourceIp]
+		source := byIP[record.Row.SourceIP]
 		if source == nil {
-			source = &SuspiciousSource{SourceIP: record.Row.SourceIp, HeaderFrom: map[string]int{}, SPFDomains: map[string]int{}, DKIMDomains: map[string]int{}}
-			byIP[record.Row.SourceIp] = source
+			source = &SuspiciousSource{SourceIP: record.Row.SourceIP, HeaderFrom: map[string]int{}, SPFDomains: map[string]int{}, DKIMDomains: map[string]int{}}
+			byIP[record.Row.SourceIP] = source
 		}
 		source.Records++
 		source.Messages += count
@@ -233,13 +233,13 @@ func (r DmarcReport) unauthenticatedSources(domain, disposition string) []Suspic
 		case "none", "pass":
 			source.NoneMessages += count
 		}
-		for _, dkim := range record.AuthResults.Dkim {
+		for _, dkim := range record.AuthResults.DKIM {
 			if dkim.Domain != "" {
 				source.DKIMDomains[dkim.Domain] += count
 			}
 		}
-		if record.AuthResults.Spf != nil && record.AuthResults.Spf.Domain != "" {
-			source.SPFDomains[record.AuthResults.Spf.Domain] += count
+		if record.AuthResults.SPF != nil && record.AuthResults.SPF.Domain != "" {
+			source.SPFDomains[record.AuthResults.SPF.Domain] += count
 		}
 	}
 

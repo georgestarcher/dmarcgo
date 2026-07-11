@@ -32,7 +32,7 @@ readme-check:
 	python3 scripts/check_readme_examples.py
 
 api-check:
-	go test -run 'TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
+	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
 
 mod-verify:
 	go mod tidy
@@ -55,10 +55,10 @@ format-check:
 
 fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=2s .
-	go test -run=^$$ -fuzz=FuzzLoadReportBytes -fuzztime=2s .
+	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=2s .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadReportBytes|BenchmarkSummary|BenchmarkSuspiciousSources|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
 
 ci: format-check mod-verify mod-verify-local lint vuln readme-check api-check test race cover-check fuzz-smoke bench-smoke build
 

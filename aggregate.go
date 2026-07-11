@@ -21,15 +21,15 @@ type AggregateSummary struct {
 	BySourceIP          []SourceSummary `json:"by_source_ip,omitempty"`
 }
 
-// SummarizeReports combines message counts across parsed Report values. Nil
+// SummarizeReports combines message counts across parsed AggregateReport values. Nil
 // reports are skipped.
-func SummarizeReports(reports []*Report) AggregateSummary {
+func SummarizeReports(reports []*AggregateReport) AggregateSummary {
 	summaries := make([]ReportSummary, 0, len(reports))
 	for _, report := range reports {
 		if report == nil {
 			continue
 		}
-		summaries = append(summaries, report.Content.Summary())
+		summaries = append(summaries, report.Summary())
 	}
 	return MergeSummaries(summaries)
 }

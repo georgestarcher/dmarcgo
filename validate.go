@@ -35,25 +35,33 @@ type ValidationFinding struct {
 // Validate checks required aggregate-report fields and common value constraints
 // using compatibility mode. It is intentionally non-mutating and tolerant of
 // real-world legacy reports.
-func (r DmarcReport) Validate() []ValidationFinding {
+func (r AggregateReport) Validate() []ValidationFinding {
 	return r.ValidateWithMode(ValidationModeCompatibility)
 }
 
 // ValidateCompatibility checks required fields and common value constraints while
 // accepting common legacy aggregate-report shapes.
-func (r DmarcReport) ValidateCompatibility() []ValidationFinding {
+func (r AggregateReport) ValidateCompatibility() []ValidationFinding {
 	return r.ValidateWithMode(ValidationModeCompatibility)
 }
 
-// ValidateStrictRFC9990 checks compatibility findings plus stricter RFC 9990
+// ValidateStrict checks compatibility findings plus stricter RFC 9990
 // expectations such as namespace, version, DKIM selectors, and current policy
 // fields. It is best used for synthetic fixtures or producers claiming RFC 9990.
-func (r DmarcReport) ValidateStrictRFC9990() []ValidationFinding {
+func (r AggregateReport) ValidateStrict() []ValidationFinding {
 	return r.ValidateWithMode(ValidationModeStrictRFC9990)
 }
 
+// ValidateStrictRFC9990 checks compatibility findings plus stricter RFC 9990
+// expectations.
+//
+// Deprecated: use ValidateStrict.
+func (r AggregateReport) ValidateStrictRFC9990() []ValidationFinding {
+	return r.ValidateStrict()
+}
+
 // ValidateWithMode checks required aggregate-report fields and common value constraints.
-func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
+func (r AggregateReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 	var findings []ValidationFinding
 	add := func(severity ValidationSeverity, path, message string) {
 		findings = append(findings, ValidationFinding{Severity: severity, Path: path, Message: message})
@@ -97,8 +105,8 @@ func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 	validateEnum(&findings, "policy_published.p", r.PolicyPublished.P, []string{"none", "quarantine", "reject"}, true)
 	validateEnum(&findings, "policy_published.sp", r.PolicyPublished.Sp, []string{"none", "quarantine", "reject"}, false)
 	validateEnum(&findings, "policy_published.np", r.PolicyPublished.Np, []string{"none", "quarantine", "reject"}, false)
-	validateEnum(&findings, "policy_published.adkim", r.PolicyPublished.Adkim, []string{"r", "s"}, false)
-	validateEnum(&findings, "policy_published.aspf", r.PolicyPublished.Aspf, []string{"r", "s"}, false)
+	validateEnum(&findings, "policy_published.adkim", r.PolicyPublished.ADKIM, []string{"r", "s"}, false)
+	validateEnum(&findings, "policy_published.aspf", r.PolicyPublished.ASPF, []string{"r", "s"}, false)
 	validateEnum(&findings, "policy_published.discovery_method", r.PolicyPublished.DiscoveryMethod, []string{"psl", "treewalk"}, false)
 	validateEnum(&findings, "policy_published.testing", r.PolicyPublished.Testing, []string{"n", "y"}, false)
 	if r.PolicyPublished.Pct != "" {
@@ -113,9 +121,9 @@ func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 
 	for i, record := range r.Record {
 		prefix := fmt.Sprintf("record[%d]", i)
-		if strings.TrimSpace(record.Row.SourceIp) == "" {
+		if strings.TrimSpace(record.Row.SourceIP) == "" {
 			add(ValidationError, prefix+".row.source_ip", "missing source IP")
-		} else if _, err := netip.ParseAddr(strings.TrimSpace(record.Row.SourceIp)); err != nil {
+		} else if _, err := netip.ParseAddr(strings.TrimSpace(record.Row.SourceIP)); err != nil {
 			add(ValidationWarning, prefix+".row.source_ip", "source IP is not a valid IPv4 or IPv6 address")
 		}
 		count, err := strconv.Atoi(strings.TrimSpace(record.Row.Count))
@@ -123,15 +131,15 @@ func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 			add(ValidationError, prefix+".row.count", "count must be a non-negative integer")
 		}
 		validateEnum(&findings, prefix+".row.policy_evaluated.disposition", record.Row.PolicyEvaluated.Disposition, []string{"none", "pass", "quarantine", "reject"}, true)
-		validateEnum(&findings, prefix+".row.policy_evaluated.dkim", record.Row.PolicyEvaluated.Dkim, []string{"pass", "fail"}, true)
-		validateEnum(&findings, prefix+".row.policy_evaluated.spf", record.Row.PolicyEvaluated.Spf, []string{"pass", "fail"}, true)
+		validateEnum(&findings, prefix+".row.policy_evaluated.dkim", record.Row.PolicyEvaluated.DKIM, []string{"pass", "fail"}, true)
+		validateEnum(&findings, prefix+".row.policy_evaluated.spf", record.Row.PolicyEvaluated.SPF, []string{"pass", "fail"}, true)
 		if strings.TrimSpace(record.Identifiers.HeaderFrom) == "" {
 			add(ValidationError, prefix+".identifiers.header_from", "missing header_from domain")
 		}
 		for reasonIndex, reason := range record.Row.PolicyEvaluated.Reasons {
 			validateEnum(&findings, fmt.Sprintf("%s.row.policy_evaluated.reason[%d].type", prefix, reasonIndex), reason.Type, []string{"local_policy", "mailing_list", "other", "policy_test_mode", "trusted_forwarder"}, true)
 		}
-		for dkimIndex, dkim := range record.AuthResults.Dkim {
+		for dkimIndex, dkim := range record.AuthResults.DKIM {
 			dkimPrefix := fmt.Sprintf("%s.auth_results.dkim[%d]", prefix, dkimIndex)
 			if strings.TrimSpace(dkim.Domain) == "" {
 				add(ValidationError, dkimPrefix+".domain", "missing DKIM domain")
@@ -141,12 +149,12 @@ func (r DmarcReport) ValidateWithMode(mode ValidationMode) []ValidationFinding {
 			}
 			validateEnum(&findings, dkimPrefix+".result", dkim.Result, []string{"none", "pass", "fail", "policy", "neutral", "temperror", "permerror"}, true)
 		}
-		if record.AuthResults.Spf != nil {
-			if strings.TrimSpace(record.AuthResults.Spf.Domain) == "" {
+		if record.AuthResults.SPF != nil {
+			if strings.TrimSpace(record.AuthResults.SPF.Domain) == "" {
 				add(ValidationError, prefix+".auth_results.spf.domain", "missing SPF domain")
 			}
-			validateEnum(&findings, prefix+".auth_results.spf.scope", record.AuthResults.Spf.Scope, []string{"mfrom"}, false)
-			validateEnum(&findings, prefix+".auth_results.spf.result", record.AuthResults.Spf.Result, []string{"none", "pass", "fail", "softfail", "policy", "neutral", "temperror", "permerror"}, true)
+			validateEnum(&findings, prefix+".auth_results.spf.scope", record.AuthResults.SPF.Scope, []string{"mfrom"}, false)
+			validateEnum(&findings, prefix+".auth_results.spf.result", record.AuthResults.SPF.Result, []string{"none", "pass", "fail", "softfail", "policy", "neutral", "temperror", "permerror"}, true)
 		}
 	}
 	return findings

@@ -20,6 +20,9 @@ and this project uses semantic versioning for public API changes.
 
 ### Changed
 
+- Simplified the pre-v1 public API around `AggregateReport`, `FeatureRow`, `FileReport`, `LoadFile`, `LoadBytes`, `LoadReader`, `Rows`, and `ValidateStrict`.
+- Flattened feature JSON now uses consistent snake_case field names such as `begin_date`, `end_date`, and `source_ip`.
+- `Rows()` now returns only record rows, with report metadata copied onto each row; the legacy `Features()` method remains available for callers that need the historical metadata row.
 - Test fixtures now live under `testdata/fixtures`, following Go conventions.
 - Staticcheck is pinned to `v0.7.0` in local and CI checks.
 - The module targets the supported Go 1.25+ toolchain line.

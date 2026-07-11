@@ -23,11 +23,11 @@ const InvalidMailCount = -1
 
 var ErrNoFilePath = errors.New("report file path is empty")
 
-// DmarcReport is a DMARC aggregate feedback report.
+// AggregateReport is a DMARC aggregate feedback report.
 //
 // The model accepts legacy aggregate reports as well as RFC 9990 reports. Unknown
 // extension elements are retained as raw XML rather than interpreted.
-type DmarcReport struct {
+type AggregateReport struct {
 	XMLName         xml.Name        `xml:"feedback"`
 	Version         string          `xml:"version"`
 	ReportMetadata  ReportMetadata  `xml:"report_metadata"`
@@ -62,8 +62,8 @@ type DateRange struct {
 // PolicyPublished is the discovered DMARC policy applied by the reporter.
 type PolicyPublished struct {
 	Domain          string `xml:"domain" json:"domain"`
-	Adkim           string `xml:"adkim" json:"adkim,omitempty"`
-	Aspf            string `xml:"aspf" json:"aspf,omitempty"`
+	ADKIM           string `xml:"adkim" json:"adkim,omitempty"`
+	ASPF            string `xml:"aspf" json:"aspf,omitempty"`
 	P               string `xml:"p" json:"p"`
 	Sp              string `xml:"sp" json:"sp,omitempty"`
 	Np              string `xml:"np" json:"np,omitempty"`
@@ -94,7 +94,7 @@ type Record struct {
 
 // Row contains the reported source and DMARC policy evaluation.
 type Row struct {
-	SourceIp        string          `xml:"source_ip" json:"source_ip"`
+	SourceIP        string          `xml:"source_ip" json:"source_ip"`
 	Count           string          `xml:"count" json:"count"`
 	PolicyEvaluated PolicyEvaluated `xml:"policy_evaluated" json:"policy_evaluated"`
 }
@@ -102,8 +102,8 @@ type Row struct {
 // PolicyEvaluated contains the final DMARC disposition and alignment outcomes.
 type PolicyEvaluated struct {
 	Disposition string                 `xml:"disposition" json:"disposition"`
-	Dkim        string                 `xml:"dkim" json:"dkim"`
-	Spf         string                 `xml:"spf" json:"spf"`
+	DKIM        string                 `xml:"dkim" json:"dkim"`
+	SPF         string                 `xml:"spf" json:"spf"`
 	Reasons     []PolicyOverrideReason `xml:"reason" json:"reasons,omitempty"`
 }
 
@@ -122,8 +122,8 @@ type Identifiers struct {
 
 // AuthResults contains uninterpreted DKIM and SPF authentication results.
 type AuthResults struct {
-	Dkim []DKIMAuthResult `xml:"dkim" json:"dkim,omitempty"`
-	Spf  *SPFAuthResult   `xml:"spf" json:"spf,omitempty"`
+	DKIM []DKIMAuthResult `xml:"dkim" json:"dkim,omitempty"`
+	SPF  *SPFAuthResult   `xml:"spf" json:"spf,omitempty"`
 }
 
 // DKIMAuthResult is one DKIM authentication result from auth_results.
@@ -142,8 +142,8 @@ type SPFAuthResult struct {
 	HumanResult LangString `xml:"human_result" json:"human_result,omitempty"`
 }
 
-// DmarcReportFeatures is a flattened representation of report and record data.
-type DmarcReportFeatures struct {
+// FeatureRow is a flattened representation of report and record data.
+type FeatureRow struct {
 	ReportingOrg               string                 `json:"reporting_org"`
 	ReportingEmail             string                 `json:"reporting_addr"`
 	ExtraContactInfo           string                 `json:"extra_contact_info,omitempty"`
@@ -153,11 +153,11 @@ type DmarcReportFeatures struct {
 	ReportError                string                 `json:"report_error,omitempty"`
 	ReportErrorLang            string                 `json:"report_error_lang,omitempty"`
 	ReportGenerator            string                 `json:"report_generator,omitempty"`
-	BeginDate                  string                 `json:"beginDate"`
-	EndDate                    string                 `json:"endDate"`
+	BeginDate                  string                 `json:"begin_date"`
+	EndDate                    string                 `json:"end_date"`
 	TargetDomain               string                 `json:"target_domain"`
-	SpfPolicyPublished         string                 `json:"spf_policy_published"`
-	DkimPolicyPublished        string                 `json:"dkim_policy_published"`
+	SPFPolicyPublished         string                 `json:"spf_policy_published"`
+	DKIMPolicyPublished        string                 `json:"dkim_policy_published"`
 	RequestedHandlingPolicy    string                 `json:"requested_handling_policy"`
 	SubdomainPolicyPublished   string                 `json:"subdomain_policy_published,omitempty"`
 	NonexistentSubdomainPolicy string                 `json:"nonexistent_subdomain_policy,omitempty"`
@@ -165,38 +165,32 @@ type DmarcReportFeatures struct {
 	FailureReportingOptions    string                 `json:"failure_reporting_options,omitempty"`
 	PolicyDiscoveryMethod      string                 `json:"policy_discovery_method,omitempty"`
 	Testing                    string                 `json:"testing,omitempty"`
-	SrcIp                      string                 `json:"src_ip,omitempty"`
+	SourceIP                   string                 `json:"source_ip,omitempty"`
 	MailCount                  int                    `json:"mail_count"`
 	VendorAction               string                 `json:"vendor_action,omitempty"`
-	DkimPolicyEvaluated        string                 `json:"dkim_policy_evaluated,omitempty"`
-	SpfPolicyEvaluated         string                 `json:"spf_policy_evaluated,omitempty"`
+	DKIMPolicyEvaluated        string                 `json:"dkim_policy_evaluated,omitempty"`
+	SPFPolicyEvaluated         string                 `json:"spf_policy_evaluated,omitempty"`
 	Type                       string                 `json:"type,omitempty"`
 	Comment                    string                 `json:"comment,omitempty"`
 	HeaderFrom                 string                 `json:"header_from,omitempty"`
 	EnvelopeFrom               string                 `json:"envelope_from,omitempty"`
 	EnvelopeTo                 string                 `json:"envelope_to,omitempty"`
-	DkimDomain                 string                 `json:"dkim_domain,omitempty"`
-	DkimSelector               string                 `json:"dkim_selector,omitempty"`
-	DkimResult                 string                 `json:"dkim_result,omitempty"`
-	DkimHumanResult            string                 `json:"dkim_human_result,omitempty"`
-	SpfDomain                  string                 `json:"spf_domain,omitempty"`
-	SpfScope                   string                 `json:"spf_scope,omitempty"`
-	SpfResult                  string                 `json:"spf_result,omitempty"`
-	SpfHumanResult             string                 `json:"spf_human_result,omitempty"`
-	DkimAuthResults            []DKIMAuthResult       `json:"dkim_auth_results,omitempty"`
-	SpfAuthResult              *SPFAuthResult         `json:"spf_auth_result,omitempty"`
+	DKIMDomain                 string                 `json:"dkim_domain,omitempty"`
+	DKIMSelector               string                 `json:"dkim_selector,omitempty"`
+	DKIMResult                 string                 `json:"dkim_result,omitempty"`
+	DKIMHumanResult            string                 `json:"dkim_human_result,omitempty"`
+	SPFDomain                  string                 `json:"spf_domain,omitempty"`
+	SPFScope                   string                 `json:"spf_scope,omitempty"`
+	SPFResult                  string                 `json:"spf_result,omitempty"`
+	SPFHumanResult             string                 `json:"spf_human_result,omitempty"`
+	DKIMAuthResults            []DKIMAuthResult       `json:"dkim_auth_results,omitempty"`
+	SPFAuthResult              *SPFAuthResult         `json:"spf_auth_result,omitempty"`
 	PolicyOverrideReasons      []PolicyOverrideReason `json:"policy_override_reasons,omitempty"`
 	ExtensionCount             int                    `json:"extension_count,omitempty"`
 }
 
-// Features returns flattened report rows.
-//
-// The first returned element contains report-level metadata. Subsequent elements
-// contain one item per record, combining report-level fields with row-level data.
-func (r DmarcReport) Features() []DmarcReportFeatures {
-	returnFeatures := make([]DmarcReportFeatures, 0, len(r.Record)+1)
-
-	baseReport := DmarcReportFeatures{
+func (r AggregateReport) baseFeatureRow() FeatureRow {
+	return FeatureRow{
 		ReportID:                   r.ReportMetadata.ReportID,
 		ReportVersion:              r.Version,
 		ReportingOrg:               r.ReportMetadata.OrgName,
@@ -209,8 +203,8 @@ func (r DmarcReport) Features() []DmarcReportFeatures {
 		BeginDate:                  r.ReportMetadata.DateRange.Begin,
 		EndDate:                    r.ReportMetadata.DateRange.End,
 		TargetDomain:               r.PolicyPublished.Domain,
-		SpfPolicyPublished:         r.PolicyPublished.Aspf,
-		DkimPolicyPublished:        r.PolicyPublished.Adkim,
+		SPFPolicyPublished:         r.PolicyPublished.ASPF,
+		DKIMPolicyPublished:        r.PolicyPublished.ADKIM,
 		RequestedHandlingPolicy:    r.PolicyPublished.P,
 		SubdomainPolicyPublished:   r.PolicyPublished.Sp,
 		NonexistentSubdomainPolicy: r.PolicyPublished.Np,
@@ -220,11 +214,15 @@ func (r DmarcReport) Features() []DmarcReportFeatures {
 		Testing:                    r.PolicyPublished.Testing,
 		ExtensionCount:             len(r.Extension.Elements),
 	}
+}
 
-	returnFeatures = append(returnFeatures, baseReport)
+// FeatureRows returns one flattened row per DMARC record.
+func (r AggregateReport) FeatureRows() []FeatureRow {
+	baseReport := r.baseFeatureRow()
+	rows := make([]FeatureRow, 0, len(r.Record))
 	for _, record := range r.Record {
 		tempReport := baseReport
-		tempReport.SrcIp = record.Row.SourceIp
+		tempReport.SourceIP = record.Row.SourceIP
 		countString := strings.TrimSpace(record.Row.Count)
 		if mailCount, err := strconv.Atoi(countString); err == nil {
 			tempReport.MailCount = mailCount
@@ -232,8 +230,8 @@ func (r DmarcReport) Features() []DmarcReportFeatures {
 			tempReport.MailCount = InvalidMailCount
 		}
 		tempReport.VendorAction = record.Row.PolicyEvaluated.Disposition
-		tempReport.DkimPolicyEvaluated = record.Row.PolicyEvaluated.Dkim
-		tempReport.SpfPolicyEvaluated = record.Row.PolicyEvaluated.Spf
+		tempReport.DKIMPolicyEvaluated = record.Row.PolicyEvaluated.DKIM
+		tempReport.SPFPolicyEvaluated = record.Row.PolicyEvaluated.SPF
 		tempReport.PolicyOverrideReasons = record.Row.PolicyEvaluated.Reasons
 		if len(record.Row.PolicyEvaluated.Reasons) > 0 {
 			tempReport.Type = record.Row.PolicyEvaluated.Reasons[0].Type
@@ -242,50 +240,62 @@ func (r DmarcReport) Features() []DmarcReportFeatures {
 		tempReport.HeaderFrom = record.Identifiers.HeaderFrom
 		tempReport.EnvelopeFrom = record.Identifiers.EnvelopeFrom
 		tempReport.EnvelopeTo = record.Identifiers.EnvelopeTo
-		tempReport.DkimAuthResults = record.AuthResults.Dkim
-		if len(record.AuthResults.Dkim) > 0 {
-			tempReport.DkimDomain = record.AuthResults.Dkim[0].Domain
-			tempReport.DkimSelector = record.AuthResults.Dkim[0].Selector
-			tempReport.DkimResult = record.AuthResults.Dkim[0].Result
-			tempReport.DkimHumanResult = record.AuthResults.Dkim[0].HumanResult.Value
+		tempReport.DKIMAuthResults = record.AuthResults.DKIM
+		if len(record.AuthResults.DKIM) > 0 {
+			tempReport.DKIMDomain = record.AuthResults.DKIM[0].Domain
+			tempReport.DKIMSelector = record.AuthResults.DKIM[0].Selector
+			tempReport.DKIMResult = record.AuthResults.DKIM[0].Result
+			tempReport.DKIMHumanResult = record.AuthResults.DKIM[0].HumanResult.Value
 		}
-		tempReport.SpfAuthResult = record.AuthResults.Spf
-		if record.AuthResults.Spf != nil {
-			tempReport.SpfDomain = record.AuthResults.Spf.Domain
-			tempReport.SpfScope = record.AuthResults.Spf.Scope
-			tempReport.SpfResult = record.AuthResults.Spf.Result
-			tempReport.SpfHumanResult = record.AuthResults.Spf.HumanResult.Value
+		tempReport.SPFAuthResult = record.AuthResults.SPF
+		if record.AuthResults.SPF != nil {
+			tempReport.SPFDomain = record.AuthResults.SPF.Domain
+			tempReport.SPFScope = record.AuthResults.SPF.Scope
+			tempReport.SPFResult = record.AuthResults.SPF.Result
+			tempReport.SPFHumanResult = record.AuthResults.SPF.HumanResult.Value
 		}
 		tempReport.ExtensionCount += len(record.Extensions)
-
-		returnFeatures = append(returnFeatures, tempReport)
+		rows = append(rows, tempReport)
 	}
-
-	return returnFeatures
+	return rows
 }
 
-// Report is a loadable DMARC aggregate report file.
-type Report struct {
+// Rows is an alias for FeatureRows.
+func (r AggregateReport) Rows() []FeatureRow {
+	return r.FeatureRows()
+}
+
+// Features returns a legacy flattened view with a metadata-only row at index 0.
+// Prefer FeatureRows or Rows for new code.
+func (r AggregateReport) Features() []FeatureRow {
+	rows := make([]FeatureRow, 0, len(r.Record)+1)
+	rows = append(rows, r.baseFeatureRow())
+	rows = append(rows, r.FeatureRows()...)
+	return rows
+}
+
+// FileReport is a loadable DMARC aggregate report file.
+type FileReport struct {
 	FilePath string
-	Content  DmarcReport
+	Content  AggregateReport
 	// MaxDecompressedBytes limits decompressed archive payload size. If zero,
 	// utilities.DefaultMaxDecompressedBytes is used.
 	MaxDecompressedBytes int64
 }
 
-// LoadReportFile parses the configured report file as gzip, zip, then zlib.
+// Load parses the configured report file as gzip, zip, then zlib.
 //
 // It tries each supported encoding in that order and returns an error if:
 //   - no supported decoder can read the file, or
 //   - the decoder succeeds but the XML payload is invalid.
 //
 // For row count parsing behavior, invalid <count> values in record rows are surfaced
-// in Features() as MailCount == InvalidMailCount instead of being silently converted to zero.
-func (r *Report) LoadReportFile() error {
+// in Rows() as MailCount == InvalidMailCount instead of being silently converted to zero.
+func (r *FileReport) Load() error {
 	if r == nil {
 		return fmt.Errorf("report receiver is nil")
 	}
-	r.Content = DmarcReport{}
+	r.Content = AggregateReport{}
 
 	if r.FilePath == "" {
 		return ErrNoFilePath
@@ -320,19 +330,28 @@ func (r *Report) LoadReportFile() error {
 	return fmt.Errorf("failed to read file: %q", r.FilePath)
 }
 
-// LoadReportFileFromPath validates file path and loads report contents.
-func (r *Report) LoadReportFileFromPath(filePath string) error {
+// LoadFile validates file path and loads report contents.
+func (r *FileReport) LoadFile(path string) error {
 	if r == nil {
 		return fmt.Errorf("report receiver is nil")
 	}
-	if filePath == "" {
+	if path == "" {
 		return ErrNoFilePath
 	}
-	r.FilePath = filePath
-	return r.LoadReportFile()
+	r.FilePath = path
+	return r.Load()
 }
 
-func decodeDMARCXML(payload []byte, report *DmarcReport) error {
+// Report is a deprecated alias for FileReport.
+type Report = FileReport
+
+// LoadReportFile is a deprecated alias for Load.
+func (r *FileReport) LoadReportFile() error { return r.Load() }
+
+// LoadReportFileFromPath is a deprecated alias for LoadFile.
+func (r *FileReport) LoadReportFileFromPath(path string) error { return r.LoadFile(path) }
+
+func decodeDMARCXML(payload []byte, report *AggregateReport) error {
 	decoder := xml.NewDecoder(bytes.NewReader(payload))
 	decoder.CharsetReader = dmarcCharsetReader
 	return decoder.Decode(report)

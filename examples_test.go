@@ -54,8 +54,8 @@ const exampleReportXML = `<feedback>
   </record>
 </feedback>`
 
-// ExampleReport_LoadReportFile demonstrates successful loading and feature extraction.
-func ExampleReport_LoadReportFile() {
+// ExampleReport_LoadFile demonstrates successful loading and feature extraction.
+func ExampleReport_LoadFile() {
 	tmpFile, err := os.CreateTemp("", "dmarc-report-*.xml.gz")
 	if err != nil {
 		log.Fatal(err)
@@ -72,29 +72,29 @@ func ExampleReport_LoadReportFile() {
 	}
 
 	var report Report
-	if err := report.LoadReportFileFromPath(tmpFile.Name()); err != nil {
+	if err := report.LoadFile(tmpFile.Name()); err != nil {
 		log.Fatal(err)
 	}
 
-	features := report.Content.Features()
-	fmt.Printf("records=%d first_count=%d\n", len(features), features[1].MailCount)
-	// Output: records=2 first_count=27
+	features := report.Content.Rows()
+	fmt.Printf("records=%d first_count=%d\n", len(features), features[0].MailCount)
+	// Output: records=1 first_count=27
 }
 
-// ExampleDmarcReport demonstrates structured access to parsed report data.
-func ExampleDmarcReport() {
-	var report DmarcReport
+// ExampleAggregateReport demonstrates structured access to parsed report data.
+func ExampleAggregateReport() {
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
 		log.Fatal(err)
 	}
 
 	record := report.Record[0]
-	fmt.Printf("source=%s dkim_selector=%s\n", record.Row.SourceIp, record.AuthResults.Dkim[0].Selector)
+	fmt.Printf("source=%s dkim_selector=%s\n", record.Row.SourceIP, record.AuthResults.DKIM[0].Selector)
 	// Output: source=203.0.113.7 dkim_selector=s1
 }
 
-// ExampleReport_LoadReportFile_error demonstrates malformed XML detection.
-func ExampleReport_LoadReportFile_error() {
+// ExampleReport_LoadFile_error demonstrates malformed XML detection.
+func ExampleReport_LoadFile_error() {
 	tmpFile, err := os.CreateTemp("", "dmarc-report-malformed-*.xml.gz")
 	if err != nil {
 		log.Fatal(err)
@@ -111,14 +111,14 @@ func ExampleReport_LoadReportFile_error() {
 	}
 
 	var report Report
-	err = report.LoadReportFileFromPath(tmpFile.Name())
+	err = report.LoadFile(tmpFile.Name())
 	fmt.Println(err != nil)
 	// Output: true
 }
 
-// ExampleDmarcReportFeatures_invalidCount shows that malformed counts are surfaced.
-func ExampleDmarcReportFeatures_invalidCount() {
-	var report DmarcReport
+// ExampleFeatureRow_invalidCount shows that malformed counts are surfaced.
+func ExampleFeatureRow_invalidCount() {
+	var report AggregateReport
 	xmlPayload := []byte(`
 <feedback>
   <report_metadata>
@@ -158,13 +158,13 @@ func ExampleDmarcReportFeatures_invalidCount() {
 		log.Fatal(err)
 	}
 
-	features := report.Features()
-	fmt.Println(features[1].MailCount)
+	features := report.Rows()
+	fmt.Println(features[0].MailCount)
 	// Output: -1
 }
 
-// ExampleLoadReportBytes demonstrates parsing a compressed attachment already in memory.
-func ExampleLoadReportBytes() {
+// ExampleLoadBytes demonstrates parsing a compressed attachment already in memory.
+func ExampleLoadBytes() {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	if _, err := gz.Write([]byte(exampleReportXML)); err != nil {
@@ -174,7 +174,7 @@ func ExampleLoadReportBytes() {
 		log.Fatal(err)
 	}
 
-	report, err := LoadReportBytes(buf.Bytes())
+	report, err := LoadBytes(buf.Bytes())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -183,9 +183,9 @@ func ExampleLoadReportBytes() {
 	// Output: example-report-id
 }
 
-// ExampleDmarcReport_Summary demonstrates aggregate message counts.
-func ExampleDmarcReport_Summary() {
-	var report DmarcReport
+// ExampleAggregateReport_Summary demonstrates aggregate message counts.
+func ExampleAggregateReport_Summary() {
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
 		log.Fatal(err)
 	}
@@ -195,9 +195,9 @@ func ExampleDmarcReport_Summary() {
 	// Output: messages=27 passed=27
 }
 
-// ExampleDmarcReport_Validate demonstrates non-fatal report validation findings.
-func ExampleDmarcReport_Validate() {
-	var report DmarcReport
+// ExampleAggregateReport_Validate demonstrates non-fatal report validation findings.
+func ExampleAggregateReport_Validate() {
+	var report AggregateReport
 	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
 		log.Fatal(err)
 	}
@@ -206,77 +206,8 @@ func ExampleDmarcReport_Validate() {
 	// Output: 0
 }
 
-// ExampleDmarcReport_SuspiciousSources demonstrates finding unauthenticated sources.
-func ExampleDmarcReport_SuspiciousSources() {
-	report, err := ParseBytes([]byte(`<feedback>
-  <report_metadata><org_name>Example Org</org_name><email>alerts@example.com</email><report_id>id</report_id><date_range><begin>1</begin><end>2</end></date_range></report_metadata>
-  <policy_published><domain>example.com</domain><p>reject</p></policy_published>
-  <record><row><source_ip>198.51.100.25</source_ip><count>3</count><policy_evaluated><disposition>reject</disposition><dkim>fail</dkim><spf>fail</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers></record>
-</feedback>`))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sources := report.SuspiciousSources("example.com")
-	fmt.Printf("source=%s messages=%d\n", sources[0].SourceIP, sources[0].Messages)
-	// Output: source=198.51.100.25 messages=3
-}
-
-// ExampleWriteFeaturesJSONL demonstrates writing flattened feature rows as JSON Lines.
-func ExampleWriteFeaturesJSONL() {
-	var report DmarcReport
-	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := WriteFeaturesJSONL(os.Stdout, report.Features()[1:]); err != nil {
-		log.Fatal(err)
-	}
-	// Output: {"reporting_org":"Example Org","reporting_addr":"alerts@example.com","report_id":"example-report-id","beginDate":"1609459200","endDate":"1609545600","target_domain":"example.com","spf_policy_published":"r","dkim_policy_published":"r","requested_handling_policy":"none","sampling_percentage":"100","failure_reporting_options":"0","src_ip":"203.0.113.7","mail_count":27,"vendor_action":"none","dkim_policy_evaluated":"pass","spf_policy_evaluated":"pass","header_from":"example.com","dkim_domain":"example.com","dkim_selector":"s1","dkim_result":"pass","spf_domain":"example.com","spf_result":"pass","dkim_auth_results":[{"domain":"example.com","selector":"s1","result":"pass","human_result":{}}],"spf_auth_result":{"domain":"example.com","result":"pass","human_result":{}}}
-}
-
-// ExampleWriteFeaturesCSV demonstrates writing flattened feature rows as CSV.
-func ExampleWriteFeaturesCSV() {
-	var report DmarcReport
-	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := WriteFeaturesCSV(os.Stdout, report.Features()[1:]); err != nil {
-		log.Fatal(err)
-	}
-	// Output: reporting_org,reporting_addr,report_id,begin_date,end_date,target_domain,requested_handling_policy,subdomain_policy_published,nonexistent_subdomain_policy,source_ip,mail_count,vendor_action,dkim_policy_evaluated,spf_policy_evaluated,header_from,envelope_from,envelope_to,dkim_domain,dkim_selector,dkim_result,spf_domain,spf_scope,spf_result
-	// Example Org,alerts@example.com,example-report-id,1609459200,1609545600,example.com,none,,,203.0.113.7,27,none,pass,pass,example.com,,,example.com,s1,pass,example.com,,pass
-}
-
-// ExampleDmarcReport_ValidateStrictRFC9990 demonstrates strict RFC 9990 validation.
-func ExampleDmarcReport_ValidateStrictRFC9990() {
-	var report DmarcReport
-	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
-		log.Fatal(err)
-	}
-
-	for _, finding := range report.ValidateStrictRFC9990() {
-		fmt.Println(finding.Path)
-		break
-	}
-	// Output: feedback.xmlns
-}
-
-// ExampleSummarizeReports demonstrates combining multiple parsed reports.
-func ExampleSummarizeReports() {
-	var report DmarcReport
-	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
-		log.Fatal(err)
-	}
-
-	summary := SummarizeReports([]*Report{{Content: report}, {Content: report}})
-	fmt.Printf("reports=%d messages=%d\n", summary.Reports, summary.TotalMessages)
-	// Output: reports=2 messages=54
-}
-
-// ExampleDmarcReport_UnauthenticatedSources demonstrates factual unauthenticated source detection.
-func ExampleDmarcReport_UnauthenticatedSources() {
+// ExampleAggregateReport_UnauthenticatedSources demonstrates finding unauthenticated sources.
+func ExampleAggregateReport_UnauthenticatedSources() {
 	report, err := ParseBytes([]byte(`<feedback>
   <report_metadata><org_name>Example Org</org_name><email>alerts@example.com</email><report_id>id</report_id><date_range><begin>1</begin><end>2</end></date_range></report_metadata>
   <policy_published><domain>example.com</domain><p>reject</p></policy_published>
@@ -289,4 +220,73 @@ func ExampleDmarcReport_UnauthenticatedSources() {
 	sources := report.UnauthenticatedSources("example.com")
 	fmt.Printf("source=%s messages=%d\n", sources[0].SourceIP, sources[0].Messages)
 	// Output: source=198.51.100.25 messages=3
+}
+
+// ExampleWriteFeaturesJSONL demonstrates writing flattened feature rows as JSON Lines.
+func ExampleWriteFeaturesJSONL() {
+	var report AggregateReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := WriteFeaturesJSONL(os.Stdout, report.Rows()); err != nil {
+		log.Fatal(err)
+	}
+	// Output: {"reporting_org":"Example Org","reporting_addr":"alerts@example.com","report_id":"example-report-id","begin_date":"1609459200","end_date":"1609545600","target_domain":"example.com","spf_policy_published":"r","dkim_policy_published":"r","requested_handling_policy":"none","sampling_percentage":"100","failure_reporting_options":"0","source_ip":"203.0.113.7","mail_count":27,"vendor_action":"none","dkim_policy_evaluated":"pass","spf_policy_evaluated":"pass","header_from":"example.com","dkim_domain":"example.com","dkim_selector":"s1","dkim_result":"pass","spf_domain":"example.com","spf_result":"pass","dkim_auth_results":[{"domain":"example.com","selector":"s1","result":"pass","human_result":{}}],"spf_auth_result":{"domain":"example.com","result":"pass","human_result":{}}}
+}
+
+// ExampleWriteFeaturesCSV demonstrates writing flattened feature rows as CSV.
+func ExampleWriteFeaturesCSV() {
+	var report AggregateReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := WriteFeaturesCSV(os.Stdout, report.Rows()); err != nil {
+		log.Fatal(err)
+	}
+	// Output: reporting_org,reporting_addr,report_id,begin_date,end_date,target_domain,requested_handling_policy,subdomain_policy_published,nonexistent_subdomain_policy,source_ip,mail_count,vendor_action,dkim_policy_evaluated,spf_policy_evaluated,header_from,envelope_from,envelope_to,dkim_domain,dkim_selector,dkim_result,spf_domain,spf_scope,spf_result
+	// Example Org,alerts@example.com,example-report-id,1609459200,1609545600,example.com,none,,,203.0.113.7,27,none,pass,pass,example.com,,,example.com,s1,pass,example.com,,pass
+}
+
+// ExampleAggregateReport_ValidateStrict demonstrates strict RFC 9990 validation.
+func ExampleAggregateReport_ValidateStrict() {
+	var report AggregateReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, finding := range report.ValidateStrict() {
+		fmt.Println(finding.Path)
+		break
+	}
+	// Output: feedback.xmlns
+}
+
+// ExampleSummarizeReports demonstrates combining multiple parsed reports.
+func ExampleSummarizeReports() {
+	var report AggregateReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	summary := SummarizeReports([]*AggregateReport{&report, &report})
+	fmt.Printf("reports=%d messages=%d\n", summary.Reports, summary.TotalMessages)
+	// Output: reports=2 messages=54
+}
+
+// ExampleAggregateReport_RejectedUnauthenticatedSources demonstrates policy-rejected unauthenticated source detection.
+func ExampleAggregateReport_RejectedUnauthenticatedSources() {
+	report, err := ParseBytes([]byte(`<feedback>
+  <report_metadata><org_name>Example Org</org_name><email>alerts@example.com</email><report_id>id</report_id><date_range><begin>1</begin><end>2</end></date_range></report_metadata>
+  <policy_published><domain>example.com</domain><p>reject</p></policy_published>
+  <record><row><source_ip>198.51.100.25</source_ip><count>3</count><policy_evaluated><disposition>reject</disposition><dkim>fail</dkim><spf>fail</spf></policy_evaluated></row><identifiers><header_from>example.com</header_from></identifiers></record>
+</feedback>`))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sources := report.RejectedUnauthenticatedSources("example.com")
+	fmt.Printf("source=%s rejected=%d\n", sources[0].SourceIP, sources[0].RejectedMessages)
+	// Output: source=198.51.100.25 rejected=3
 }

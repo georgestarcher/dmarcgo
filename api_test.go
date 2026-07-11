@@ -67,8 +67,8 @@ func TestParseBytesAndReader(t *testing.T) {
 	}
 }
 
-func TestLoadReportBytesSupportsRawAndGzip(t *testing.T) {
-	raw, err := LoadReportBytes([]byte(helperReportXML))
+func TestLoadBytesSupportsRawAndGzip(t *testing.T) {
+	raw, err := LoadBytes([]byte(helperReportXML))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,12 +84,34 @@ func TestLoadReportBytesSupportsRawAndGzip(t *testing.T) {
 	if err := gz.Close(); err != nil {
 		t.Fatal(err)
 	}
-	compressed, err := LoadReportBytes(buf.Bytes())
+	compressed, err := LoadBytes(buf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if compressed.ReportMetadata.ReportID != "helper-report" {
 		t.Fatalf("got report id %q", compressed.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadBytesReturnsDecodedParseError(t *testing.T) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	if _, err := gz.Write([]byte("<feedback><report_metadata></feedback")); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := LoadBytes(buf.Bytes())
+	if err == nil {
+		t.Fatal("expected malformed XML error")
+	}
+	if !errors.Is(err, ErrMalformedXML) {
+		t.Fatalf("got %v, wanted ErrMalformedXML", err)
+	}
+	if strings.Contains(err.Error(), "invalid UTF-8") {
+		t.Fatalf("got raw compressed-byte parse error instead of decoded XML parse error: %v", err)
 	}
 }
 
@@ -122,7 +144,7 @@ func TestLoadReportsFromDirCapturesPerFileErrors(t *testing.T) {
 	}
 }
 
-func TestSummaryAndSuspiciousSources(t *testing.T) {
+func TestSummaryAndUnauthenticatedSources(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +161,7 @@ func TestSummaryAndSuspiciousSources(t *testing.T) {
 		t.Fatalf("unexpected begin time %s", summary.BeginTime)
 	}
 
-	suspicious := report.SuspiciousSources("example.com")
+	suspicious := report.UnauthenticatedSources("example.com")
 	if len(suspicious) != 1 {
 		t.Fatalf("got %d suspicious sources, wanted 1", len(suspicious))
 	}
@@ -155,18 +177,18 @@ func TestWriteFeaturesJSONL(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	if err := WriteFeaturesJSONL(&buf, report.Features()[1:]); err != nil {
+	if err := WriteFeaturesJSONL(&buf, report.Rows()); err != nil {
 		t.Fatal(err)
 	}
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
 	if len(lines) != 2 {
 		t.Fatalf("got %d JSONL lines, wanted 2", len(lines))
 	}
-	var row DmarcReportFeatures
+	var row FeatureRow
 	if err := json.Unmarshal([]byte(lines[0]), &row); err != nil {
 		t.Fatal(err)
 	}
-	if row.SrcIp == "" {
+	if row.SourceIP == "" {
 		t.Fatal("expected source IP in JSONL row")
 	}
 }
@@ -204,7 +226,7 @@ func writeGzipFile(t *testing.T, path string, payload []byte) {
 	}
 }
 
-func TestLoadReportBytesSupportsZipAndZlib(t *testing.T) {
+func TestLoadBytesSupportsZipAndZlib(t *testing.T) {
 	var zipBuf bytes.Buffer
 	zipWriter := zip.NewWriter(&zipBuf)
 	entry, err := zipWriter.Create("report.xml")
@@ -217,7 +239,7 @@ func TestLoadReportBytesSupportsZipAndZlib(t *testing.T) {
 	if err := zipWriter.Close(); err != nil {
 		t.Fatal(err)
 	}
-	zipReport, err := LoadReportBytes(zipBuf.Bytes())
+	zipReport, err := LoadBytes(zipBuf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +255,7 @@ func TestLoadReportBytesSupportsZipAndZlib(t *testing.T) {
 	if err := zlibWriter.Close(); err != nil {
 		t.Fatal(err)
 	}
-	zlibReport, err := LoadReportBytes(zlibBuf.Bytes())
+	zlibReport, err := LoadBytes(zlibBuf.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +264,7 @@ func TestLoadReportBytesSupportsZipAndZlib(t *testing.T) {
 	}
 }
 
-func TestLoadReportReaderAndOptions(t *testing.T) {
+func TestLoadReaderAndOptions(t *testing.T) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 	if _, err := gz.Write([]byte(helperReportXML)); err != nil {
@@ -252,11 +274,11 @@ func TestLoadReportReaderAndOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := LoadReportReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(20)); err == nil {
+	if _, err := LoadReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(20)); err == nil {
 		t.Fatal("expected size limit error")
 	}
 
-	report, err := LoadReportReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(-1))
+	report, err := LoadReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(-1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,31 +287,31 @@ func TestLoadReportReaderAndOptions(t *testing.T) {
 	}
 }
 
-func TestLoadReportFileConvenience(t *testing.T) {
+func TestLoadFileConvenience(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "report.xml.gz")
 	writeGzipFile(t, path, []byte(helperReportXML))
 
-	report, err := LoadReportFile(path)
+	report, err := LoadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Content.ReportMetadata.ReportID != "helper-report" {
-		t.Fatalf("got report id %q", report.Content.ReportMetadata.ReportID)
+	if report.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", report.ReportMetadata.ReportID)
 	}
 }
 
-func TestLoadReportReaderContext(t *testing.T) {
+func TestLoadReaderContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := LoadReportReaderContext(ctx, strings.NewReader(helperReportXML))
+	_, err := LoadReaderContext(ctx, strings.NewReader(helperReportXML))
 	if err == nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("got %v, wanted context canceled", err)
 	}
 }
 
 func TestReportLoadError(t *testing.T) {
-	_, err := LoadReportFile("")
+	_, err := LoadFile("")
 	var loadErr *ReportLoadError
 	if !errors.As(err, &loadErr) {
 		t.Fatalf("got %T, wanted ReportLoadError", err)

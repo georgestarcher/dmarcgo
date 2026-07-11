@@ -83,19 +83,29 @@ func applyLoadOptions(options []LoadOption) loadConfig {
 	return config
 }
 
-// LoadReportFile loads a DMARC aggregate report archive from path.
-func LoadReportFile(path string, options ...LoadOption) (*Report, error) {
+// LoadFile loads a DMARC aggregate report archive from path.
+func LoadFile(path string, options ...LoadOption) (*AggregateReport, error) {
+	fileReport, err := LoadReportFile(path, options...)
+	if err != nil {
+		return nil, err
+	}
+	return &fileReport.Content, nil
+}
+
+// LoadReportFile loads a DMARC aggregate report archive from path and returns
+// file-loading metadata. Prefer LoadFile for new code.
+func LoadReportFile(path string, options ...LoadOption) (*FileReport, error) {
 	config := applyLoadOptions(options)
-	report := &Report{MaxDecompressedBytes: config.maxDecompressedBytes}
-	if err := report.LoadReportFileFromPath(path); err != nil {
+	report := &FileReport{MaxDecompressedBytes: config.maxDecompressedBytes}
+	if err := report.LoadFile(path); err != nil {
 		return nil, &ReportLoadError{Path: path, Err: err}
 	}
 	return report, nil
 }
 
 // ParseBytes parses raw XML DMARC aggregate report bytes.
-func ParseBytes(payload []byte) (*DmarcReport, error) {
-	var report DmarcReport
+func ParseBytes(payload []byte) (*AggregateReport, error) {
+	var report AggregateReport
 	if err := decodeDMARCXML(payload, &report); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrMalformedXML, err)
 	}
@@ -103,7 +113,7 @@ func ParseBytes(payload []byte) (*DmarcReport, error) {
 }
 
 // ParseReader parses raw XML DMARC aggregate report data from reader.
-func ParseReader(reader io.Reader, options ...LoadOption) (*DmarcReport, error) {
+func ParseReader(reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
 	config := applyLoadOptions(options)
 	payload, err := readAllLimited(reader, config.maxDecompressedBytes)
 	if err != nil {
@@ -112,9 +122,9 @@ func ParseReader(reader io.Reader, options ...LoadOption) (*DmarcReport, error) 
 	return ParseBytes(payload)
 }
 
-// LoadReportBytes loads a DMARC aggregate report from gzip, zip, zlib, or raw XML
+// LoadBytes loads a DMARC aggregate report from gzip, zip, zlib, or raw XML
 // bytes. Archive formats are attempted before raw XML.
-func LoadReportBytes(payload []byte, options ...LoadOption) (*DmarcReport, error) {
+func LoadBytes(payload []byte, options ...LoadOption) (*AggregateReport, error) {
 	config := applyLoadOptions(options)
 	readers := []func([]byte, int64) ([]byte, error){
 		readGzipBytes,
@@ -122,7 +132,7 @@ func LoadReportBytes(payload []byte, options ...LoadOption) (*DmarcReport, error
 		readZlibBytes,
 	}
 
-	var parseError error
+	var decodedParseError error
 	for _, reader := range readers {
 		decoded, err := reader(payload, config.maxDecompressedBytes)
 		if err != nil {
@@ -130,7 +140,9 @@ func LoadReportBytes(payload []byte, options ...LoadOption) (*DmarcReport, error
 		}
 		report, err := ParseBytes(decoded)
 		if err != nil {
-			parseError = err
+			if decodedParseError == nil {
+				decodedParseError = err
+			}
 			continue
 		}
 		return report, nil
@@ -139,24 +151,32 @@ func LoadReportBytes(payload []byte, options ...LoadOption) (*DmarcReport, error
 	if report, err := ParseBytes(payload); err == nil {
 		return report, nil
 	} else {
-		parseError = err
+		if decodedParseError != nil {
+			return nil, decodedParseError
+		}
+		return nil, err
 	}
-
-	if parseError != nil {
-		return nil, parseError
-	}
-	return nil, ErrUnsupportedReportFormat
 }
 
-// LoadReportReader loads a DMARC aggregate report from gzip, zip, zlib, or raw
+// LoadReportBytes is a deprecated alias for LoadBytes.
+func LoadReportBytes(payload []byte, options ...LoadOption) (*AggregateReport, error) {
+	return LoadBytes(payload, options...)
+}
+
+// LoadReader loads a DMARC aggregate report from gzip, zip, zlib, or raw
 // XML data read from reader.
-func LoadReportReader(reader io.Reader, options ...LoadOption) (*DmarcReport, error) {
-	return LoadReportReaderContext(context.Background(), reader, options...)
+func LoadReader(reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
+	return LoadReaderContext(context.Background(), reader, options...)
 }
 
-// LoadReportReaderContext loads a DMARC aggregate report from reader and checks
+// LoadReportReader is a deprecated alias for LoadReader.
+func LoadReportReader(reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
+	return LoadReader(reader, options...)
+}
+
+// LoadReaderContext loads a DMARC aggregate report from reader and checks
 // ctx while reading. It is useful for request-scoped server work.
-func LoadReportReaderContext(ctx context.Context, reader io.Reader, options ...LoadOption) (*DmarcReport, error) {
+func LoadReaderContext(ctx context.Context, reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -165,13 +185,18 @@ func LoadReportReaderContext(ctx context.Context, reader io.Reader, options ...L
 	if err != nil {
 		return nil, err
 	}
-	return LoadReportBytes(payload, options...)
+	return LoadBytes(payload, options...)
+}
+
+// LoadReportReaderContext is a deprecated alias for LoadReaderContext.
+func LoadReportReaderContext(ctx context.Context, reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
+	return LoadReaderContext(ctx, reader, options...)
 }
 
 // ReportFileResult is the per-file result returned by LoadReportsFromDir.
 type ReportFileResult struct {
 	Path   string
-	Report *Report
+	Report *AggregateReport
 	Err    error
 }
 
@@ -187,14 +212,14 @@ func LoadReportsFromDir(dir string, options ...LoadOption) ([]ReportFileResult, 
 	results := make([]ReportFileResult, 0, len(files))
 	for _, name := range files {
 		path := filepath.Join(dir, name)
-		report, err := LoadReportFile(path, options...)
+		report, err := LoadFile(path, options...)
 		results = append(results, ReportFileResult{Path: path, Report: report, Err: err})
 	}
 	return results, nil
 }
 
 // WriteFeaturesJSONL writes flattened feature rows as JSON Lines.
-func WriteFeaturesJSONL(writer io.Writer, features []DmarcReportFeatures) error {
+func WriteFeaturesJSONL(writer io.Writer, features []FeatureRow) error {
 	for _, feature := range features {
 		if err := writeJSONLine(writer, feature); err != nil {
 			return err

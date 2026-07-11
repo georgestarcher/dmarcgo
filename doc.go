@@ -6,12 +6,12 @@
 // 9990 namespace.
 //
 // Supported inputs are gzip, zip, and zlib encoded payloads containing XML DMARC
-// aggregate report data. Use Report.LoadReportFile(), LoadReportFile(),
-// LoadReportBytes(), or LoadReportReader() to deserialize report artifacts.
-// Use ParseBytes() or ParseReader() when the input is already raw XML. Use LoadReportReaderContext() when caller cancellation should be honored while reading.
-// Use DmarcReport.Features() for flattened records, DmarcReport.Summary()
-// for aggregate counts, DmarcReport.Validate() or DmarcReport.ValidateStrictRFC9990() for data-quality findings,
-// SummarizeReports() for multi-report counts, and DmarcReport.SuspiciousSources()
+// aggregate report data. Use LoadFile(), FileReport.LoadFile(),
+// LoadBytes(), or LoadReader() to deserialize report artifacts.
+// Use ParseBytes() or ParseReader() when the input is already raw XML. Use LoadReaderContext() when caller cancellation should be honored while reading.
+// Use AggregateReport.Rows() for flattened records, AggregateReport.Summary()
+// for aggregate counts, AggregateReport.Validate() or AggregateReport.ValidateStrict() for data-quality findings,
+// SummarizeReports() for multi-report counts, and AggregateReport.UnauthenticatedSources()
 // for unauthenticated source-IP summaries.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by

@@ -11,10 +11,10 @@ func FuzzParseBytes(f *testing.F) {
 	})
 }
 
-func FuzzLoadReportBytes(f *testing.F) {
+func FuzzLoadBytes(f *testing.F) {
 	f.Add([]byte(helperReportXML))
 	f.Add([]byte("not archive or xml"))
 	f.Fuzz(func(t *testing.T, payload []byte) {
-		_, _ = LoadReportBytes(payload)
+		_, _ = LoadBytes(payload)
 	})
 }

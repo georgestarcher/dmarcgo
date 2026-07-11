@@ -1,29 +1,287 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/georgestarcher/dmarcgo/schemas/output/v1.json",
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json",
   "title": "dmarcgo automation output envelope v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "schema_version", "mode", "profile", "generated_at", "status", "scope", "input", "summary", "findings", "data", "recommended_actions", "warnings", "errors", "limitations", "provenance", "redaction", "truncation"],
+  "required": ["schema", "schema_version", "mode", "profile", "detail", "generated_at", "status", "evaluation", "scope", "input", "summary", "findings", "data", "recommended_actions", "warnings", "errors", "limitations", "provenance", "redaction", "truncation"],
   "properties": {
-    "schema": {"const": "https://github.com/georgestarcher/dmarcgo/schemas/output/v1.json"},
+    "schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json"},
     "schema_version": {"const": "1"},
     "module_version": {"type": "string"},
     "mode": {"enum": ["report_validation", "report_summary", "aggregate_summary", "report_rows", "source_review"]},
     "profile": {"enum": ["automation", "agent"]},
+    "detail": {"enum": ["summary", "standard", "full"]},
     "generated_at": {"type": "string", "format": "date-time"},
     "status": {"enum": ["completed", "completed_with_findings", "failed"]},
-    "scope": {"type": "object", "required": ["target_domains"], "properties": {"target_domains": {"type": "array", "items": {"type": "string"}}}},
-    "input": {"type": "object", "required": ["report_count", "record_count", "message_count"], "properties": {"report_count": {"type": "integer", "minimum": 0}, "record_count": {"type": "integer", "minimum": 0}, "message_count": {"type": "integer", "minimum": 0}}},
-    "summary": {"type": "object"},
-    "findings": {"type": "array", "items": {"type": "object"}},
+    "evaluation": {"$ref": "#/$defs/evaluation"},
+    "scope": {"$ref": "#/$defs/scope"},
+    "input": {"$ref": "#/$defs/input"},
+    "summary": {"$ref": "#/$defs/summary"},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
     "data": {},
-    "recommended_actions": {"type": "array", "items": {"type": "object"}},
-    "warnings": {"type": "array", "items": {"type": "object"}},
-    "errors": {"type": "array", "items": {"type": "object"}},
+    "recommended_actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+    "warnings": {"type": "array", "items": {"$ref": "#/$defs/message"}},
+    "errors": {"type": "array", "items": {"$ref": "#/$defs/message"}},
     "limitations": {"type": "array", "items": {"type": "string"}},
-    "provenance": {"type": "array", "items": {"type": "object"}},
-    "redaction": {"type": "object"},
-    "truncation": {"type": "object"}
+    "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}},
+    "redaction": {"$ref": "#/$defs/redaction"},
+    "truncation": {"$ref": "#/$defs/truncation"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"detail": {"const": "summary"}}, "required": ["detail"]},
+      "then": {"properties": {"data": {"type": "object", "maxProperties": 0}}}
+    },
+    {
+      "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_validation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
+      "then": {"properties": {"data": {"type": "array", "items": {"$ref": "#/$defs/validationFinding"}}}}
+    },
+    {
+      "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_summary"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
+      "then": {"properties": {"data": {"$ref": "#/$defs/reportSummary"}}}
+    },
+    {
+      "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "aggregate_summary"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
+      "then": {"properties": {"data": {"$ref": "#/$defs/aggregateSummary"}}}
+    },
+    {
+      "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_rows"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
+      "then": {"properties": {"data": {"type": "array", "items": {"$ref": "#/$defs/featureRow"}}}}
+    },
+    {
+      "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "source_review"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
+      "then": {"properties": {"data": {"$ref": "#/$defs/sourceReview"}}}
+    }
+  ],
+  "$defs": {
+    "nonNegativeInteger": {"type": "integer", "minimum": 0},
+    "rate": {"type": "number", "minimum": 0, "maximum": 1},
+    "countMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/nonNegativeInteger"}},
+    "evaluationState": {"enum": ["evaluated", "not_evaluated", "unknown", "not_applicable"]},
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {"state": {"$ref": "#/$defs/evaluationState"}, "reason": {"type": "string"}}
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_domains"],
+      "properties": {"target_domains": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}}
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report_count", "record_count", "message_count"],
+      "properties": {
+        "report_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "record_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "message_count": {"$ref": "#/$defs/nonNegativeInteger"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headline", "severity", "confidence"],
+      "properties": {
+        "headline": {"type": "string"},
+        "severity": {"enum": ["info", "low", "medium", "high", "critical"]},
+        "confidence": {"enum": ["low", "medium", "high"]}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "category", "severity", "confidence", "title", "explanation", "subject", "evidence", "limitations", "action_codes"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1},
+        "severity": {"enum": ["info", "low", "medium", "high", "critical"]},
+        "confidence": {"enum": ["low", "medium", "high"]},
+        "title": {"type": "string"},
+        "explanation": {"type": "string"},
+        "subject": {"type": "object", "additionalProperties": {"type": "string"}},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "limitations": {"type": "array", "items": {"type": "string"}},
+        "action_codes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source", "value", "state", "sensitivity"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "path": {"type": "string"},
+        "value": {},
+        "state": {"$ref": "#/$defs/evaluationState"},
+        "provenance": {"type": "string"},
+        "sensitivity": {"type": "string", "minLength": 1}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "priority", "title", "reason", "target", "automation"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "priority": {"type": "integer", "minimum": 1},
+        "title": {"type": "string"},
+        "reason": {"type": "string"},
+        "target": {"type": "object", "additionalProperties": {"type": "string"}},
+        "automation": {"$ref": "#/$defs/automation"}
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligible", "reason"],
+      "properties": {"eligible": {"type": "boolean"}, "reason": {"type": "string"}}
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "category", "message", "retryable"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1},
+        "message": {"type": "string"},
+        "path": {"type": "string"},
+        "retryable": {"type": "boolean"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {"id": {"type": "string", "minLength": 1}, "type": {"type": "string", "minLength": 1}, "key": {"type": "string"}}
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "operational_fields_changed"],
+      "properties": {
+        "profile": {"enum": ["public", "operational", "restricted"]},
+        "operational_fields_changed": {"type": "boolean"}
+      }
+    },
+    "collectionTruncation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "total_items", "returned_items"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "total_items": {"$ref": "#/$defs/nonNegativeInteger"},
+        "returned_items": {"$ref": "#/$defs/nonNegativeInteger"}
+      }
+    },
+    "truncation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["truncated", "collections"],
+      "properties": {
+        "truncated": {"type": "boolean"},
+        "collections": {"type": "array", "items": {"$ref": "#/$defs/collectionTruncation"}}
+      }
+    },
+    "validationFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "path", "message"],
+      "properties": {"severity": {"enum": ["error", "warning"]}, "path": {"type": "string"}, "message": {"type": "string"}}
+    },
+    "sourceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ip", "records", "messages", "rejected_messages", "quarantined_messages", "none_messages", "passed_messages", "failed_messages", "dkim_fail_messages", "spf_fail_messages", "pass_rate", "failure_rate"],
+      "properties": {
+        "source_ip": {"type": "string"}, "records": {"$ref": "#/$defs/nonNegativeInteger"}, "messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "rejected_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "quarantined_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "none_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "passed_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "failed_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "dkim_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "spf_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "pass_rate": {"$ref": "#/$defs/rate"}, "failure_rate": {"$ref": "#/$defs/rate"},
+        "header_from": {"$ref": "#/$defs/countMap"}, "dkim_domains": {"$ref": "#/$defs/countMap"}, "spf_domains": {"$ref": "#/$defs/countMap"}, "reporters": {"$ref": "#/$defs/countMap"}
+      }
+    },
+    "reportSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report_id", "reporting_org", "target_domain", "begin", "end", "begin_time", "end_time", "total_records", "invalid_records", "total_messages", "passed_messages", "failed_messages", "rejected_messages", "quarantined_messages", "none_messages", "dkim_pass_messages", "dkim_fail_messages", "spf_pass_messages", "spf_fail_messages", "pass_rate", "failure_rate"],
+      "properties": {
+        "report_id": {"type": "string"}, "reporting_org": {"type": "string"}, "target_domain": {"type": "string"}, "begin": {"type": "string"}, "end": {"type": "string"},
+        "begin_time": {"type": "string", "format": "date-time"}, "end_time": {"type": "string", "format": "date-time"}, "total_records": {"$ref": "#/$defs/nonNegativeInteger"},
+        "invalid_records": {"$ref": "#/$defs/nonNegativeInteger"}, "total_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "passed_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "failed_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "rejected_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "quarantined_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "none_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "dkim_pass_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "dkim_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "spf_pass_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "spf_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "pass_rate": {"$ref": "#/$defs/rate"}, "failure_rate": {"$ref": "#/$defs/rate"},
+        "by_source_ip": {"type": "array", "items": {"$ref": "#/$defs/sourceSummary"}}, "by_disposition": {"$ref": "#/$defs/countMap"}, "by_header_from": {"$ref": "#/$defs/countMap"}
+      }
+    },
+    "aggregateSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reports", "total_records", "invalid_records", "total_messages", "passed_messages", "failed_messages", "rejected_messages", "quarantined_messages", "none_messages", "dkim_pass_messages", "dkim_fail_messages", "spf_pass_messages", "spf_fail_messages", "pass_rate", "failure_rate"],
+      "properties": {
+        "reports": {"$ref": "#/$defs/nonNegativeInteger"}, "total_records": {"$ref": "#/$defs/nonNegativeInteger"}, "invalid_records": {"$ref": "#/$defs/nonNegativeInteger"},
+        "total_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "passed_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "failed_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "rejected_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "quarantined_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "none_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "dkim_pass_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "dkim_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "spf_pass_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "spf_fail_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "pass_rate": {"$ref": "#/$defs/rate"}, "failure_rate": {"$ref": "#/$defs/rate"},
+        "by_reporter": {"$ref": "#/$defs/countMap"}, "by_target_domain": {"$ref": "#/$defs/countMap"}, "by_disposition": {"$ref": "#/$defs/countMap"},
+        "by_header_from": {"$ref": "#/$defs/countMap"}, "by_source_ip": {"type": "array", "items": {"$ref": "#/$defs/sourceSummary"}}
+      }
+    },
+    "langString": {
+      "type": "object", "additionalProperties": false,
+      "properties": {"lang": {"type": "string"}, "value": {"type": "string"}}
+    },
+    "dkimAuthResult": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "result"],
+      "properties": {"domain": {"type": "string"}, "selector": {"type": "string"}, "result": {"type": "string"}, "human_result": {"$ref": "#/$defs/langString"}}
+    },
+    "spfAuthResult": {
+      "type": "object", "additionalProperties": false, "required": ["domain", "result"],
+      "properties": {"domain": {"type": "string"}, "scope": {"type": "string"}, "result": {"type": "string"}, "human_result": {"$ref": "#/$defs/langString"}}
+    },
+    "policyOverrideReason": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "properties": {"type": {"type": "string"}, "comment": {"$ref": "#/$defs/langString"}}
+    },
+    "featureRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reporting_org", "reporting_addr", "report_id", "begin_date", "end_date", "target_domain", "spf_policy_published", "dkim_policy_published", "requested_handling_policy", "mail_count"],
+      "properties": {
+        "reporting_org": {"type": "string"}, "reporting_addr": {"type": "string"}, "extra_contact_info": {"type": "string"}, "extra_contact_info_lang": {"type": "string"},
+        "report_id": {"type": "string"}, "report_version": {"type": "string"}, "report_error": {"type": "string"}, "report_error_lang": {"type": "string"}, "report_generator": {"type": "string"},
+        "begin_date": {"type": "string"}, "end_date": {"type": "string"}, "target_domain": {"type": "string"}, "spf_policy_published": {"type": "string"}, "dkim_policy_published": {"type": "string"},
+        "requested_handling_policy": {"type": "string"}, "subdomain_policy_published": {"type": "string"}, "nonexistent_subdomain_policy": {"type": "string"}, "sampling_percentage": {"type": "string"},
+        "failure_reporting_options": {"type": "string"}, "policy_discovery_method": {"type": "string"}, "testing": {"type": "string"}, "source_ip": {"type": "string"}, "mail_count": {"type": "integer", "minimum": -1},
+        "vendor_action": {"type": "string"}, "dkim_policy_evaluated": {"type": "string"}, "spf_policy_evaluated": {"type": "string"}, "type": {"type": "string"}, "comment": {"type": "string"},
+        "header_from": {"type": "string"}, "envelope_from": {"type": "string"}, "envelope_to": {"type": "string"}, "dkim_domain": {"type": "string"}, "dkim_selector": {"type": "string"},
+        "dkim_result": {"type": "string"}, "dkim_human_result": {"type": "string"}, "spf_domain": {"type": "string"}, "spf_scope": {"type": "string"}, "spf_result": {"type": "string"}, "spf_human_result": {"type": "string"},
+        "dkim_auth_results": {"type": "array", "items": {"$ref": "#/$defs/dkimAuthResult"}}, "spf_auth_result": {"$ref": "#/$defs/spfAuthResult"},
+        "policy_override_reasons": {"type": "array", "items": {"$ref": "#/$defs/policyOverrideReason"}}, "extension_count": {"$ref": "#/$defs/nonNegativeInteger"}
+      }
+    },
+    "suspiciousSource": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_ip", "messages", "records", "rejected_messages", "quarantined_messages", "none_messages"],
+      "properties": {
+        "source_ip": {"type": "string"}, "messages": {"$ref": "#/$defs/nonNegativeInteger"}, "records": {"$ref": "#/$defs/nonNegativeInteger"},
+        "rejected_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "quarantined_messages": {"$ref": "#/$defs/nonNegativeInteger"}, "none_messages": {"$ref": "#/$defs/nonNegativeInteger"},
+        "header_from": {"$ref": "#/$defs/countMap"}, "spf_domains": {"$ref": "#/$defs/countMap"}, "dkim_domains": {"$ref": "#/$defs/countMap"}
+      }
+    },
+    "sourceReview": {
+      "type": "object", "additionalProperties": false,
+      "required": ["domain", "unauthenticated", "rejected_unauthenticated", "passing"],
+      "properties": {
+        "domain": {"type": "string"}, "unauthenticated": {"type": "array", "items": {"$ref": "#/$defs/suspiciousSource"}},
+        "rejected_unauthenticated": {"type": "array", "items": {"$ref": "#/$defs/suspiciousSource"}}, "passing": {"type": "array", "items": {"$ref": "#/$defs/sourceSummary"}}
+      }
+    }
   }
 }

@@ -20,10 +20,11 @@
 // DeduplicateReports(), AnonymizeReport(), and top-N helpers for practical
 // report-consumer workflows. BuildReportSummaryOutput(),
 // BuildAggregateSummaryOutput(), BuildValidationOutput(),
-// BuildReportRowsOutput(), and BuildSourceReviewOutput() create versioned,
-// deterministic envelopes for automation and AI consumers. Output profiles
-// change representation only; they never trigger parsing, analysis, or network
-// access.
+// BuildReportRowsOutput(), BuildSourceReviewOutput(), and BuildFailureOutput()
+// create versioned, deterministic envelopes for automation and AI consumers.
+// Output profiles change representation only; they never trigger parsing,
+// analysis, or network access. Use OutputSchemaForVersion() and
+// SupportedOutputModes() for contract discovery.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally

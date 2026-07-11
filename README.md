@@ -100,9 +100,15 @@ Output choices are orthogonal:
 
 - `OutputProfileAutomation` keeps explanations terse for deterministic processing.
 - `OutputProfileAgent` adds grounded headlines and explanations without chain-of-thought.
-- `OutputDetailSummary`, `OutputDetailStandard`, and `OutputDetailFull` control result detail.
-- `OutputRedactionPublic`, `OutputRedactionOperational`, and `OutputRedactionRestricted` control operational identifier exposure.
-- `MaxItems` bounds record-shaped output and reports explicit truncation counts.
+- `OutputDetailSummary` omits mode data, `OutputDetailStandard` omits bulky
+  per-source or nested authentication detail, and `OutputDetailFull` retains it.
+- `OutputRedactionPublic` replaces operational identifiers with stable
+  pseudonymous tokens and removes restricted report text.
+- `OutputRedactionOperational` retains identifiers needed for defensive work but
+  removes free-form contact, error, comment, and human-result text from rows.
+- `OutputRedactionRestricted` retains the complete current mode data.
+- `MaxItems` bounds each named collection independently. The envelope reports
+  total and returned counts for every collection under `truncation.collections`.
 
 Profiles change representation only. They never load reports, rerun analysis,
 perform DNS lookups, or access the network. Pass already computed values to the
@@ -129,8 +135,7 @@ func main() {
 		Profile:       dmarcgo.OutputProfileAgent,
 		Detail:        dmarcgo.OutputDetailStandard,
 		Redaction:     dmarcgo.OutputRedactionOperational,
-		GeneratedAt:   time.Now(),
-		ModuleVersion: "v2",
+		GeneratedAt: time.Now(),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -152,15 +157,70 @@ Use these mode-specific builders:
 | `report_rows` | `BuildReportRowsOutput` | `[]FeatureRow` |
 | `source_review` | `BuildSourceReviewOutput` | `SourceReview` |
 
-Every JSONL line written by `WriteOutputJSONL` is a complete envelope. The
-embedded schema is available through `OutputSchema()`, and its identifier and
-version are available through `OutputSchemaID` and `OutputSchemaVersion`.
+Use `BuildFailureOutput` when loading, parsing, or another prerequisite failed
+before a mode could be evaluated. Failed envelopes use `status: "failed"`,
+`evaluation.state: "not_evaluated"`, and stable error codes and categories. Use
+`OutputMessageForError` to classify wrapped loader errors without copying path
+context or raw error text into the envelope.
+
+```json
+{
+  "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json",
+  "schema_version": "1",
+  "mode": "report_summary",
+  "profile": "agent",
+  "detail": "summary",
+  "generated_at": "2026-07-11T12:00:00Z",
+  "status": "completed",
+  "evaluation": {"state": "evaluated"},
+  "scope": {"target_domains": ["example.test"]},
+  "input": {"report_count": 1, "record_count": 2, "message_count": 27},
+  "summary": {
+    "headline": "No authentication failures or invalid records were present in the supplied summary.",
+    "severity": "info",
+    "confidence": "high"
+  },
+  "findings": [],
+  "data": {},
+  "recommended_actions": [],
+  "warnings": [],
+  "errors": [],
+  "limitations": [],
+  "provenance": [{"id": "report-1", "type": "aggregate_report", "key": "synthetic-report-id"}],
+  "redaction": {"profile": "operational", "operational_fields_changed": false},
+  "truncation": {
+    "truncated": false,
+    "collections": [
+      {"name": "data.by_source_ip", "total_items": 0, "returned_items": 0},
+      {"name": "data.by_disposition", "total_items": 0, "returned_items": 0},
+      {"name": "data.by_header_from", "total_items": 0, "returned_items": 0}
+    ]
+  }
+}
+```
+
+Every JSONL line written by `WriteOutputJSONL` is a complete envelope. Use
+`OutputSchemaForVersion`, `OutputSchemaVersions`, and `SupportedOutputModes`
+for discovery. `OutputSchema()` remains the version-1 convenience accessor.
+`ModuleVersion` is caller supplied and omitted when unavailable; do not insert
+an imprecise value when reproducibility matters.
+
+Schema v1 becomes immutable at the v2.1.0 release boundary. Additive optional
+fields and new modes require a new published schema when they are not accepted
+by v1; removing fields, changing meanings, or changing stable codes requires a
+new schema version. The output schema version is independent of the Go module
+version.
 
 The agent profile treats report-provided text as untrusted structured data. It
 does not turn reporter comments, domains, extension XML, or other input values
 into instructions. Recommendations are advisory and are never automatically
 executed. Authentication failure does not by itself establish spoofing or
 malicious intent.
+
+Public redaction tokens are deterministic 128-bit pseudonyms so a consumer can
+correlate repeated values. They are not encryption: low-entropy values such as
+IPv4 addresses and common domains remain susceptible to dictionary enumeration.
+Do not publish public output when that correlation risk is unacceptable.
 
 ## Sample outputs
 

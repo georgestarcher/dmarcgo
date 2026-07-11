@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check ci
 
 build:
 	go build ./...
@@ -37,6 +37,9 @@ release-notes-check:
 api-check:
 	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange|TestBuildReportSummaryOutput|TestOutput|TestSourceReviewOutput|TestReportRowsOutput' ./...
 
+output-contract-check:
+	go test -run 'Test.*Output|Test.*Schema|Test.*Redaction|Test.*Truncation' ./...
+
 mod-verify:
 	go mod tidy
 	@if [ -f go.sum ]; then \
@@ -59,11 +62,12 @@ format-check:
 fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzOutputEnvelopeSerialization -fuzztime=5s -timeout=2m .
 
 bench-smoke:
 	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

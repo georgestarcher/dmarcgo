@@ -7,6 +7,11 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+## [2.1.0] - 2026-07-11
+
+Version 2.1 adds a versioned, privacy-aware output contract for automation and
+AI-agent consumers while keeping report-provided content isolated as data.
+
 ### Added
 
 - Versioned automation and AI-agent output envelopes for report validation,

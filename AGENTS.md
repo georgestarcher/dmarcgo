@@ -15,14 +15,15 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 Use the Go module normally:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo@latest
+go get github.com/georgestarcher/dmarcgo/v2@latest
 ```
 
-Before the first stable `v1.0.0` release, prefer pinning a tag or commit for production use once one is available.
+Version 2 is the supported API line. Import
+`github.com/georgestarcher/dmarcgo/v2`; the historical v1 API is not maintained.
 
 ## Choose the right API
 
-- Local report archive path: `dmarcgo.LoadFile(path)`
+- Local report artifact path, including raw XML: `dmarcgo.LoadFile(path)`
 - Attachment bytes, object bytes, or upload bytes: `dmarcgo.LoadBytes(data)`
 - `io.Reader`: `dmarcgo.LoadReader(reader)`
 - Request-scoped `io.Reader`: `dmarcgo.LoadReaderContext(ctx, reader)`
@@ -69,6 +70,9 @@ Important exported errors:
 - `dmarcgo.ErrMalformedXML`
 - `dmarcgo.ErrUnsupportedReportFormat`
 - `utilities.ErrPayloadTooLarge`
+
+`LoadFile`, `LoadBytes`, and `LoadReader` preserve these sentinel errors. File
+errors also expose `*dmarcgo.ReportLoadError` through `errors.As` with path context.
 
 Example:
 

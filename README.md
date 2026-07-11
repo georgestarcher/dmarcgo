@@ -1,4 +1,4 @@
-# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
+# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v2.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v2)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v2) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
 `dmarcgo` is a Go library for parsing DMARC aggregate report files.
 
@@ -15,7 +15,7 @@ All text above must be included in any redistribution.
 From another Go module:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo@latest
+go get github.com/georgestarcher/dmarcgo/v2@latest
 ```
 
 Then import the library:
@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -40,7 +40,8 @@ func main() {
 }
 ```
 
-Before the first stable `v1.0.0` release, prefer pinning a tag or commit for production use once one is available.
+Version 2 is the supported API line. The historical `v1.0.0` tag contains the
+original API and is retained only for Go module history; it is not maintained.
 
 ## What this package does
 
@@ -69,7 +70,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 
 | Situation | Use | Notes |
 | --- | --- | --- |
-| You have a local report archive path | `dmarcgo.LoadFile(path)` | Returns a parsed `*AggregateReport`. |
+| You have a local report artifact path | `dmarcgo.LoadFile(path)` | Accepts compressed archives or raw XML and returns a parsed `*AggregateReport`. |
 | You need file-loading metadata or a custom size limit on a reusable loader | `FileReport{MaxDecompressedBytes: ...}.LoadFile(path)` | Most callers can use package-level `LoadFile`. |
 | You have attachment bytes from mail, S3, or an upload | `dmarcgo.LoadBytes(data)` | Accepts gzip, zip, tar, zlib, or raw XML bytes. |
 | You have an `io.Reader` for an attachment or object | `dmarcgo.LoadReader(reader)` | Reads with the same decompressed-size protection. |
@@ -306,7 +307,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -337,7 +338,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -383,7 +384,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -415,7 +416,7 @@ package main
 import (
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -447,7 +448,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -478,7 +479,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -510,7 +511,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -535,7 +536,7 @@ package main
 import (
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -561,7 +562,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -591,7 +592,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -614,7 +615,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -642,7 +643,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -668,7 +669,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -704,7 +705,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -731,7 +732,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo"
+	"github.com/georgestarcher/dmarcgo/v2"
 )
 
 func main() {
@@ -765,8 +766,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo"
-	"github.com/georgestarcher/dmarcgo/utilities"
+	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v2/utilities"
 )
 
 func main() {
@@ -790,13 +791,13 @@ func main() {
 
 ## Behavior and safety notes
 
-- `LoadFile()` tries gzip XML, gzip-compressed tar, zip, tar, then zlib.
+- `LoadFile()` accepts the same gzip XML, gzip-compressed tar, zip, tar, zlib, and raw XML formats as `LoadReader()`.
 - `LoadBytes()`, `LoadReader()`, and `LoadReaderContext()` accept gzip XML, gzip-compressed tar, zip, tar, zlib, or raw XML.
 - `ParseBytes()` and `ParseReader()` parse raw XML only.
 - Decompressed payload reads are size-limited to `50 MiB` by default to reduce archive-bomb risk.
 - Set `FileReport.MaxDecompressedBytes` or use `WithMaxDecompressedBytes` if your deployment needs a different decompressed-size limit.
 - Malformed XML returns a parse-specific error.
-- Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
+- Invalid or negative `<count>` values are surfaced as `dmarcgo.InvalidMailCount` in rows. Summaries count them in `InvalidRecords` but exclude them from message totals and source groupings.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
 - `Summary()`, `SummarizeReports()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide lightweight analysis helpers without turning the package into an ingest system.
 - `ReportKey()`, `FilenameReportKey()`, `SameReport()`, and `DeduplicateReports()` support duplicate-safe importing without adding storage.

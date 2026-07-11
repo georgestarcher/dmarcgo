@@ -2,7 +2,12 @@
 
 ## Supported versions
 
-Security fixes are applied to the current development line. After tagged releases begin, supported versions will be documented here.
+Security fixes are applied to the current major release line.
+
+| Version | Supported |
+| --- | --- |
+| 2.x | Yes |
+| 1.x | No |
 
 ## Reporting a vulnerability
 

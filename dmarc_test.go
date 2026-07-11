@@ -4,10 +4,12 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/georgestarcher/dmarcgo/v2/utilities"
 )
 
 func TestLoadReport(t *testing.T) {
@@ -48,9 +50,52 @@ func TestLoadFileMalformedXML(t *testing.T) {
 	report.FilePath = reportFile
 	if err := report.Load(); err == nil {
 		t.Fatal("expected XML parse error, got nil")
-	} else if !strings.Contains(err.Error(), "failed to parse DMARC XML") {
-		t.Fatalf("got error %q, wanted parse-specific failure", err.Error())
+	} else if !errors.Is(err, ErrMalformedXML) {
+		t.Fatalf("got error %q, wanted ErrMalformedXML", err.Error())
 	}
+}
+
+func TestLoadFileSupportsRawXML(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "report.xml")
+	if err := os.WriteFile(path, []byte(helperReportXML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", report.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadFilePreservesSentinelErrors(t *testing.T) {
+	t.Run("payload too large", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "report.xml")
+		if err := os.WriteFile(path, []byte(helperReportXML), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := LoadFile(path, WithMaxDecompressedBytes(16))
+		if !errors.Is(err, utilities.ErrPayloadTooLarge) {
+			t.Fatalf("got %v, wanted ErrPayloadTooLarge", err)
+		}
+	})
+
+	t.Run("unsupported format", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "report.bin")
+		if err := os.WriteFile(path, []byte{0, 1, 2, 3}, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := LoadFile(path)
+		if !errors.Is(err, ErrUnsupportedReportFormat) {
+			t.Fatalf("got %v, wanted ErrUnsupportedReportFormat", err)
+		}
+		var loadErr *ReportLoadError
+		if !errors.As(err, &loadErr) || loadErr.Path != path {
+			t.Fatalf("got %v, wanted path-aware ReportLoadError", err)
+		}
+	})
 }
 
 func TestFeaturesMailCountParsing(t *testing.T) {
@@ -101,6 +146,14 @@ func TestFeaturesMailCountParsing(t *testing.T) {
 	if features[0].MailCount != InvalidMailCount {
 		t.Fatalf("got MailCount %d, wanted %d", features[0].MailCount, InvalidMailCount)
 	}
+	summary := report.Summary()
+	if summary.TotalRecords != 1 || summary.InvalidRecords != 1 || summary.TotalMessages != 0 || len(summary.BySourceIP) != 0 {
+		t.Fatalf("invalid count affected summary: %+v", summary)
+	}
+	report.Record[0].Row.Count = "-2"
+	if got := report.Rows()[0].MailCount; got != InvalidMailCount {
+		t.Fatalf("negative MailCount got %d, wanted %d", got, InvalidMailCount)
+	}
 }
 
 func TestLoadFileEmpty(t *testing.T) {
@@ -137,6 +190,33 @@ func TestFixtureReportsParse(t *testing.T) {
 
 	if parsed == 0 {
 		t.Fatal("expected at least one fixture report")
+	}
+}
+
+func TestPrivateCorpusCompatibility(t *testing.T) {
+	const dir = "test_dmarc_reports"
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		t.Skip("private corpus is not present")
+	} else if err != nil {
+		t.Fatal(err)
+	}
+
+	results, err := LoadReportsFromDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) == 0 {
+		t.Fatal("private corpus contains no regular files")
+	}
+	t.Logf("validated %d private report artifacts", len(results))
+	for _, result := range results {
+		if result.Err != nil {
+			t.Errorf("%s: %v", result.Path, result.Err)
+			continue
+		}
+		if findings := result.Report.ValidateCompatibility(); len(findings) != 0 {
+			t.Errorf("%s: compatibility findings: %+v", result.Path, findings)
+		}
 	}
 }
 

@@ -17,6 +17,7 @@ type ReportSummary struct {
 	BeginTime           time.Time       `json:"begin_time,omitempty"`
 	EndTime             time.Time       `json:"end_time,omitempty"`
 	TotalRecords        int             `json:"total_records"`
+	InvalidRecords      int             `json:"invalid_records"`
 	TotalMessages       int             `json:"total_messages"`
 	PassedMessages      int             `json:"passed_messages"`
 	FailedMessages      int             `json:"failed_messages"`
@@ -68,6 +69,8 @@ type SuspiciousSource struct {
 }
 
 // Summary returns message counts and grouped source-IP information for a report.
+// Records with invalid or negative counts are included in TotalRecords and
+// InvalidRecords but excluded from all message totals and source groupings.
 func (r AggregateReport) Summary() ReportSummary {
 	summary := ReportSummary{
 		ReportID:      r.ReportMetadata.ReportID,
@@ -85,6 +88,10 @@ func (r AggregateReport) Summary() ReportSummary {
 	for _, record := range r.Record {
 		count := parseCount(record.Row.Count)
 		summary.TotalRecords++
+		if count == InvalidMailCount {
+			summary.InvalidRecords++
+			continue
+		}
 		summary.TotalMessages += count
 		summary.ByDisposition[record.Row.PolicyEvaluated.Disposition] += count
 		summary.ByHeaderFrom[record.Identifiers.HeaderFrom] += count
@@ -186,6 +193,9 @@ func (r AggregateReport) PassingSources(domain string) []SourceSummary {
 			continue
 		}
 		count := parseCount(record.Row.Count)
+		if count == InvalidMailCount {
+			continue
+		}
 		source := byIP[record.Row.SourceIP]
 		if source == nil {
 			source = &SourceSummary{SourceIP: record.Row.SourceIP, HeaderFrom: map[string]int{}, DKIMDomains: map[string]int{}, SPFDomains: map[string]int{}, Reporters: map[string]int{}}
@@ -240,6 +250,9 @@ func (r AggregateReport) unauthenticatedSources(domain, disposition string) []Su
 		}
 
 		count := parseCount(record.Row.Count)
+		if count == InvalidMailCount {
+			continue
+		}
 		source := byIP[record.Row.SourceIP]
 		if source == nil {
 			source = &SuspiciousSource{SourceIP: record.Row.SourceIP, HeaderFrom: map[string]int{}, SPFDomains: map[string]int{}, DKIMDomains: map[string]int{}}
@@ -291,8 +304,8 @@ func (d DateRange) EndTime() (time.Time, error) {
 
 func parseCount(raw string) int {
 	count, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil {
-		return 0
+	if err != nil || count < 0 {
+		return InvalidMailCount
 	}
 	return count
 }

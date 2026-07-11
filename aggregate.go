@@ -6,6 +6,7 @@ import "sort"
 type AggregateSummary struct {
 	Reports             int             `json:"reports"`
 	TotalRecords        int             `json:"total_records"`
+	InvalidRecords      int             `json:"invalid_records"`
 	TotalMessages       int             `json:"total_messages"`
 	PassedMessages      int             `json:"passed_messages"`
 	FailedMessages      int             `json:"failed_messages"`
@@ -50,6 +51,7 @@ func MergeSummaries(summaries []ReportSummary) AggregateSummary {
 	for _, summary := range summaries {
 		agg.Reports++
 		agg.TotalRecords += summary.TotalRecords
+		agg.InvalidRecords += summary.InvalidRecords
 		agg.TotalMessages += summary.TotalMessages
 		agg.PassedMessages += summary.PassedMessages
 		agg.FailedMessages += summary.FailedMessages

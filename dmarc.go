@@ -6,10 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
-
-	"github.com/georgestarcher/dmarcgo/utilities"
 )
 
 // Known DMARC aggregate report XML namespaces.
@@ -224,7 +223,7 @@ func (r AggregateReport) FeatureRows() []FeatureRow {
 		tempReport := baseReport
 		tempReport.SourceIP = record.Row.SourceIP
 		countString := strings.TrimSpace(record.Row.Count)
-		if mailCount, err := strconv.Atoi(countString); err == nil {
+		if mailCount, err := strconv.Atoi(countString); err == nil && mailCount >= 0 {
 			tempReport.MailCount = mailCount
 		} else {
 			tempReport.MailCount = InvalidMailCount
@@ -284,11 +283,8 @@ type FileReport struct {
 }
 
 // Load parses the configured report file as gzip XML, gzip-compressed tar, zip,
-// tar, then zlib.
-//
-// It tries each supported encoding in that order and returns an error if:
-//   - no supported decoder can read the file, or
-//   - the decoder succeeds but the XML payload is invalid.
+// tar, zlib, or raw XML. It uses the same format detection, size limits, and
+// sentinel errors as LoadReader and LoadBytes.
 //
 // For row count parsing behavior, invalid <count> values in record rows are surfaced
 // in Rows() as MailCount == InvalidMailCount instead of being silently converted to zero.
@@ -302,35 +298,18 @@ func (r *FileReport) Load() error {
 		return ErrNoFilePath
 	}
 
-	var parseError error
-	limit := r.MaxDecompressedBytes
-	readers := []func(string, int64) ([]byte, error){
-		utilities.ReadGZWithLimit,
-		utilities.ReadTarGZWithLimit,
-		utilities.ReadZipWithLimit,
-		utilities.ReadTarWithLimit,
-		utilities.ReadZZWithLimit,
+	file, err := os.Open(r.FilePath)
+	if err != nil {
+		return &ReportLoadError{Path: r.FilePath, Err: err}
 	}
+	defer file.Close()
 
-	for _, reader := range readers {
-		s, err := reader(r.FilePath, limit)
-		if err != nil {
-			continue
-		}
-
-		if err := decodeDMARCXML(s, &r.Content); err != nil {
-			parseError = fmt.Errorf("%w: failed to parse DMARC XML from %q: %w", ErrMalformedXML, r.FilePath, err)
-			continue
-		}
-
-		return nil
+	report, err := LoadReader(file, WithMaxDecompressedBytes(r.MaxDecompressedBytes))
+	if err != nil {
+		return &ReportLoadError{Path: r.FilePath, Err: err}
 	}
-
-	if parseError != nil {
-		return parseError
-	}
-
-	return fmt.Errorf("failed to read file: %q", r.FilePath)
+	r.Content = *report
+	return nil
 }
 
 // LoadFile validates file path and loads report contents.

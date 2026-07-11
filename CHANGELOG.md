@@ -7,6 +7,12 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+## [2.0.0] - 2026-07-11
+
+Version 2 replaces the original v1 API and uses the Go module path
+`github.com/georgestarcher/dmarcgo/v2`. The historical v1 release is not
+maintained.
+
 ### Added
 
 - Package documentation and executable examples.
@@ -23,7 +29,8 @@ and this project uses semantic versioning for public API changes.
 
 ### Changed
 
-- Simplified the pre-v1 public API around `AggregateReport`, `FeatureRow`, `FileReport`, `LoadFile`, `LoadBytes`, `LoadReader`, `Rows`, and `ValidateStrict`.
+- Replaced the original API with a focused surface around `AggregateReport`, `FeatureRow`, `FileReport`, `LoadFile`, `LoadBytes`, `LoadReader`, `Rows`, and `ValidateStrict`.
+- Adopted the required `/v2` module and import path for the redesigned public API.
 - Flattened feature JSON now uses consistent snake_case field names such as `begin_date`, `end_date`, and `source_ip`.
 - `Rows()` now returns only record rows, with report metadata copied onto each row; the legacy `Features()` method remains available for callers that need the historical metadata row.
 - Summary pass/fail counts and rates now reflect DMARC policy-evaluated DKIM/SPF pass/fail rather than treating disposition `none` as an authentication pass.
@@ -38,3 +45,6 @@ and this project uses semantic versioning for public API changes.
 - Zip parsing skips directory entries and prefers XML members.
 - Report loading now resets stale content before parsing and returns clearer errors.
 - Decompressed payload reads are size-limited by default to reduce archive-bomb risk.
+- File-path loading now shares the canonical loader, supports raw XML, and preserves typed size, format, and malformed-XML errors.
+- Invalid or negative record counts no longer reduce summary totals; summaries expose them through `InvalidRecords`.
+- Local test runs validate every report in the ignored private corpus when `test_dmarc_reports/` is present.

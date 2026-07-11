@@ -79,6 +79,13 @@ func TestWriteFeaturesCSV(t *testing.T) {
 	}
 }
 
+func TestMergeSummariesTracksInvalidRecords(t *testing.T) {
+	merged := MergeSummaries([]ReportSummary{{TotalRecords: 2, InvalidRecords: 1}, {TotalRecords: 3, InvalidRecords: 2}})
+	if merged.TotalRecords != 5 || merged.InvalidRecords != 3 || merged.TotalMessages != 0 {
+		t.Fatalf("unexpected invalid-record totals: %+v", merged)
+	}
+}
+
 func hasFinding(findings []ValidationFinding, path string) bool {
 	for _, finding := range findings {
 		if finding.Path == path {

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/georgestarcher/dmarcgo/utilities"
+	"github.com/georgestarcher/dmarcgo/v2/utilities"
 )
 
 // ErrMalformedXML is wrapped when a payload is readable but cannot be parsed as
@@ -84,7 +84,7 @@ func applyLoadOptions(options []LoadOption) loadConfig {
 	return config
 }
 
-// LoadFile loads a DMARC aggregate report archive from path.
+// LoadFile loads a DMARC aggregate report artifact from path.
 func LoadFile(path string, options ...LoadOption) (*AggregateReport, error) {
 	fileReport, err := LoadReportFile(path, options...)
 	if err != nil {
@@ -99,6 +99,10 @@ func LoadReportFile(path string, options ...LoadOption) (*FileReport, error) {
 	config := applyLoadOptions(options)
 	report := &FileReport{MaxDecompressedBytes: config.maxDecompressedBytes}
 	if err := report.LoadFile(path); err != nil {
+		var loadErr *ReportLoadError
+		if errors.As(err, &loadErr) {
+			return nil, err
+		}
 		return nil, &ReportLoadError{Path: path, Err: err}
 	}
 	return report, nil

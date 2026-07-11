@@ -28,7 +28,12 @@ python3 scripts/check_readme_examples.py
 DMARC reports can expose domains, source IP addresses, provider metadata, and authentication behavior. Do not commit live/private reports. Put real report corpora in `test_dmarc_reports/`, which is ignored by Git.
 
 Use anonymized synthetic fixtures under `testdata/fixtures/` for regression coverage.
+When `test_dmarc_reports/` is present locally, the test suite also runs an
+ignored-corpus compatibility check; CI skips it because private reports are not
+committed.
 
 ## API compatibility
 
-This project uses semantic versioning. Until a `v1.0.0` release exists, public APIs may still change, but changes should be deliberate and documented in `CHANGELOG.md`.
+This project uses semantic versioning. Version 2 is the current API line and uses
+the required `/v2` module path. The historical v1 API is not maintained. Public
+API changes must be deliberate and documented in `CHANGELOG.md`.

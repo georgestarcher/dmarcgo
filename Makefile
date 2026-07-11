@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check api-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check ci
 
 build:
 	go build ./...
@@ -31,6 +31,9 @@ vuln:
 readme-check:
 	python3 scripts/check_readme_examples.py
 
+release-notes-check:
+	python3 scripts/extract_changelog.py >/dev/null
+
 api-check:
 	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange' ./...
 
@@ -54,13 +57,13 @@ format-check:
 	fi
 
 fuzz-smoke:
-	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=2s .
-	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=2s .
+	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=5s -timeout=2m .
 
 bench-smoke:
 	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check api-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

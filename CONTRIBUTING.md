@@ -44,7 +44,7 @@ Go publishes this module when a semantic version tag is pushed. The release
 workflow accepts only `v2.x.x` tags, verifies the `/v2` module path and matching
 dated changelog entry, requires a GitHub-verified signed annotated tag pointing
 to a commit on `main`, runs `make ci`, and then creates the GitHub Release with
-generated notes. It does not publish binaries because this repository is a
+the matching `CHANGELOG.md` section as its notes. It does not publish binaries because this repository is a
 library. Both CI and release workflows can also be rerun manually from GitHub
 Actions; release validation still requires the selected ref to be a valid tag.
 

@@ -846,6 +846,14 @@ The package preserves RFC 9990 fields including:
 
 DMARC failure reports are separate. They are described by [RFC 9991](https://www.rfc-editor.org/rfc/rfc9991.html), use an ARF/MARF email feedback format, and can include message headers, message bodies, and personally identifiable information. They are intentionally out of scope for this package.
 
+## Support and contributing
+
+- Read [SUPPORT.md](SUPPORT.md) before opening a usage or bug report.
+- Use the structured GitHub issue forms and never attach a live DMARC report.
+- Follow [CONTRIBUTING.md](CONTRIBUTING.md) for development and release checks.
+- Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+- Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 ## Development
 
 Run the full local check suite:

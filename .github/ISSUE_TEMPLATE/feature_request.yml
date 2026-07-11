@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose a focused addition to the reusable DMARC aggregate-report library.
+title: "Feature: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        dmarcgo is intentionally a library, not a mailbox ingester, scheduler, database, dashboard, DNS resolver, or RFC 9991 forensic-report parser.
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Consumer use case
+      description: Explain what application code needs to accomplish and why existing APIs are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: Include a small Go usage example when possible.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include caller-owned solutions or composition with standard-library interfaces.
+    validations:
+      required: true
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      options:
+        - Additive public API
+        - Behavioral change
+        - Breaking public API
+        - Documentation or tooling only
+        - Unsure
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope confirmation
+      options:
+        - label: This belongs in a reusable DMARC aggregate-report library rather than an application.
+          required: true
+        - label: The request does not require committing a live/private DMARC report.
+          required: true

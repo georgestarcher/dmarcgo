@@ -1,0 +1,69 @@
+name: Bug report
+description: Report reproducible incorrect behavior in dmarcgo.
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DMARC reports can contain private domains, source IPs, contact details, and authentication behavior. Do not attach a live report. Use a minimal synthetic or anonymized sample.
+  - type: input
+    id: version
+    attributes:
+      label: dmarcgo version
+      description: Include the exact module version or commit.
+      placeholder: v2.0.0
+    validations:
+      required: true
+  - type: input
+    id: go-version
+    attributes:
+      label: Go version
+      placeholder: go1.26.5
+    validations:
+      required: true
+  - type: dropdown
+    id: input-format
+    attributes:
+      label: Input format
+      options:
+        - Raw XML
+        - Gzip XML (.xml.gz)
+        - Zip
+        - Tar
+        - Gzip tar (.tar.gz or .tgz)
+        - Zlib
+        - Not input-related
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide compilable Go code and a synthetic or anonymized report fragment when relevant.
+      render: go
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the complete error chain and validation findings, but remove private report data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data-safety confirmation
+      options:
+        - label: I removed or anonymized domains, source IPs, report IDs, email addresses, and extension XML.
+          required: true
+        - label: I verified that this concerns an aggregate report, not an RFC 9991 failure/forensic report.
+          required: true

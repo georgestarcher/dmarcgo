@@ -47,13 +47,11 @@ jobs:
 
       - name: Fuzz smoke tests
         if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26.x'
-        run: |
-          go test -run=^$ -fuzz=FuzzParseBytes -fuzztime=2s .
-          go test -run=^$ -fuzz=FuzzLoadBytes -fuzztime=2s .
+        run: make fuzz-smoke
 
       - name: Benchmark smoke tests
         if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.26.x'
-        run: go test -run=^$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
+        run: make bench-smoke
 
       - name: Build
         run: go build -v ./...

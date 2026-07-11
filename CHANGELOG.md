@@ -7,6 +7,12 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+### Added
+
+- Structured privacy-aware issue forms, pull request guidance, support information, and contributor conduct expectations.
+- Reusable changelog extraction so future GitHub Releases publish complete version notes.
+- Centralized, longer-running fuzz and benchmark smoke gates to reduce timing-dependent CI failures.
+
 ## [2.0.0] - 2026-07-11
 
 Version 2 replaces the original v1 API and uses the Go module path

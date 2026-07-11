@@ -22,3 +22,19 @@ func TestTopHelpers(t *testing.T) {
 		t.Fatalf("unexpected top counts: %+v", got)
 	}
 }
+
+func TestTopHelpersHandleEmptyAndTieCases(t *testing.T) {
+	if got := TopSources([]SourceSummary{{SourceIP: "203.0.113.10", Messages: 1}}, 0); got != nil {
+		t.Fatalf("expected nil top sources for zero limit, got %+v", got)
+	}
+	tied := []SourceSummary{{SourceIP: "203.0.113.20", Messages: 1}, {SourceIP: "203.0.113.10", Messages: 1}}
+	if got := TopSources(tied, 5); len(got) != 2 || got[0].SourceIP != "203.0.113.10" {
+		t.Fatalf("unexpected tied source order: %+v", got)
+	}
+	if got := TopUnauthenticatedSources(nil, 1); got != nil {
+		t.Fatalf("expected nil top unauthenticated sources, got %+v", got)
+	}
+	if got := TopCounts(map[string]int{"b": 1, "a": 1}, 5); len(got) != 2 || got[0].Value != "a" {
+		t.Fatalf("unexpected tied count order: %+v", got)
+	}
+}

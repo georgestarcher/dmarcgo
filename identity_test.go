@@ -29,6 +29,12 @@ func TestFilenameReportKey(t *testing.T) {
 	}
 }
 
+func TestFilenameReportKeyRejectsInvalidName(t *testing.T) {
+	if _, err := FilenameReportKey("invalid.xml.gz"); err == nil {
+		t.Fatal("expected invalid filename error")
+	}
+}
+
 func TestDeduplicateReports(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
@@ -37,5 +43,14 @@ func TestDeduplicateReports(t *testing.T) {
 	unique := DeduplicateReports([]*AggregateReport{report, nil, report})
 	if len(unique) != 1 {
 		t.Fatalf("got %d unique reports, wanted 1", len(unique))
+	}
+}
+
+func TestDeduplicateReportsKeepsZeroIdentityReports(t *testing.T) {
+	left := &AggregateReport{}
+	right := &AggregateReport{}
+	unique := DeduplicateReports([]*AggregateReport{left, right})
+	if len(unique) != 2 {
+		t.Fatalf("got %d unique reports, wanted zero-identity reports kept", len(unique))
 	}
 }

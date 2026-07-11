@@ -1,6 +1,9 @@
 package dmarcgo
 
-import "testing"
+import (
+	"encoding/xml"
+	"testing"
+)
 
 func TestAnonymizeReport(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
@@ -23,4 +26,64 @@ func TestAnonymizeReport(t *testing.T) {
 	if report.Record[0].Row.SourceIP == anonymized.Record[0].Row.SourceIP {
 		t.Fatal("original report was modified")
 	}
+}
+
+func TestAnonymizeReportCustomOptionsAndCopies(t *testing.T) {
+	report := AggregateReport{
+		ReportMetadata: ReportMetadata{
+			OrgName:          "Original Reporter",
+			Email:            "real@example.test",
+			ExtraContactInfo: LangString{Value: "https://reporter.example.test/contact"},
+			Error:            LangString{Value: "real error"},
+		},
+		PolicyPublished: PolicyPublished{Domain: "real.example"},
+		Extension:       Extension{Elements: []RawElement{{XMLName: xmlName("urn:test", "file-ext"), InnerXML: "secret"}}},
+		Record: []Record{{
+			Row: Row{SourceIP: "2001:db8:abcd::1", Count: "1", PolicyEvaluated: PolicyEvaluated{
+				Disposition: "none",
+				DKIM:        "pass",
+				SPF:         "fail",
+				Reasons:     []PolicyOverrideReason{{Type: "other", Comment: LangString{Value: "kept"}}},
+			}},
+			Identifiers: Identifiers{HeaderFrom: "real.example", EnvelopeFrom: "bounce.real.example", EnvelopeTo: "receiver.example"},
+			AuthResults: AuthResults{
+				DKIM: []DKIMAuthResult{{Domain: "signer.example", Selector: "s1", Result: "pass"}},
+				SPF:  &SPFAuthResult{Domain: "bounce.real.example", Result: "fail"},
+			},
+			Extensions: []RawElement{{XMLName: xmlName("urn:test", "record-ext"), InnerXML: "secret"}},
+		}},
+	}
+
+	anonymized := AnonymizeReport(report, AnonymizeOptions{
+		PolicyDomain: "safe.example",
+		ReportingOrg: "Safe Reporter",
+		ReportEmail:  "safe@example.net",
+	})
+	if anonymized.ReportMetadata.OrgName != "Safe Reporter" || anonymized.ReportMetadata.Email != "safe@example.net" {
+		t.Fatalf("unexpected reporter metadata: %+v", anonymized.ReportMetadata)
+	}
+	if anonymized.ReportMetadata.ExtraContactInfo.Value != "" || anonymized.ReportMetadata.Error.Value != "" {
+		t.Fatalf("sensitive metadata was not cleared: %+v", anonymized.ReportMetadata)
+	}
+	if anonymized.Record[0].Row.SourceIP != "2001:db8::1" {
+		t.Fatalf("unexpected IPv6 anonymization: %s", anonymized.Record[0].Row.SourceIP)
+	}
+	if anonymized.Record[0].Identifiers.HeaderFrom != "safe.example" {
+		t.Fatalf("policy domain was not mapped to safe domain: %+v", anonymized.Record[0].Identifiers)
+	}
+	if anonymized.Record[0].AuthResults.DKIM[0].Domain == "signer.example" {
+		t.Fatal("DKIM domain was not anonymized")
+	}
+	anonymized.Record[0].Row.PolicyEvaluated.Reasons[0].Type = "mutated"
+	if report.Record[0].Row.PolicyEvaluated.Reasons[0].Type == "mutated" {
+		t.Fatal("policy override reasons were not deep-copied")
+	}
+	anonymized.Extension.Elements[0].InnerXML = "changed"
+	if report.Extension.Elements[0].InnerXML == "changed" {
+		t.Fatal("file extensions were not copied")
+	}
+}
+
+func xmlName(space, local string) xml.Name {
+	return xml.Name{Space: space, Local: local}
 }

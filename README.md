@@ -324,13 +324,105 @@ func main() {
 
 Use `ValidateReportFilename` when you want to distinguish practical compatibility from strict RFC 9990 filename expectations. Compatibility mode accepts common real-world zip reports; strict mode expects `.xml` or `.xml.gz`.
 
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	info, err := dmarcgo.ParseReportFilename("google.com!example.com!1700000000!1700086399.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, finding := range dmarcgo.ValidateReportFilename(info, dmarcgo.ValidationModeCompatibility) {
+		log.Printf("%s %s: %s", finding.Severity, finding.Path, finding.Message)
+	}
+}
+```
+
 ## Deduplication and safe fixtures
 
 Use `ReportKey`, `FilenameReportKey`, `SameReport`, and `DeduplicateReports` when importing reports from email or object storage where retransmission can create duplicates.
 
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	results, err := dmarcgo.LoadReportsFromDir("reports/dmarc")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var reports []*dmarcgo.AggregateReport
+	for _, result := range results {
+		if result.Err == nil {
+			reports = append(reports, result.Report)
+		}
+	}
+
+	reports = dmarcgo.DeduplicateReports(reports)
+	fmt.Println(dmarcgo.SummarizeReports(reports).Reports)
+}
+```
+
 Use `AnonymizeReport` before committing new fixtures derived from real reports. It replaces reporter contact details, domains, and source IPs with documentation-safe values while preserving counts, dispositions, report dates, and DMARC pass/fail shape.
 
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	safe := dmarcgo.AnonymizeReport(*report, dmarcgo.AnonymizeOptions{})
+	fmt.Println(len(safe.Rows()))
+}
+```
+
 Use `TopSources`, `TopUnauthenticatedSources`, and `TopCounts` for dashboard-oriented summaries without adding storage or alerting policy to the parser.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	summary := report.Summary()
+	fmt.Println(dmarcgo.TopSources(summary.BySourceIP, 10))
+	fmt.Println(dmarcgo.TopCounts(summary.ByHeaderFrom, 10))
+}
+```
 
 ## Validation
 
@@ -498,13 +590,17 @@ func main() {
 - `LoadFile()` tries gzip, zip, then zlib.
 - `LoadBytes()`, `LoadReader()`, and `LoadReaderContext()` accept gzip, zip, zlib, or raw XML.
 - `ParseBytes()` and `ParseReader()` parse raw XML only.
-- Decompressed payload reads are size-limited by default to reduce archive-bomb risk.
+- Decompressed payload reads are size-limited to `50 MiB` by default to reduce archive-bomb risk.
 - Set `FileReport.MaxDecompressedBytes` or use `WithMaxDecompressedBytes` if your deployment needs a different decompressed-size limit.
 - Malformed XML returns a parse-specific error.
 - Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
 - `Summary()`, `SummarizeReports()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide lightweight analysis helpers without turning the package into an ingest system.
+- `ReportKey()`, `FilenameReportKey()`, `SameReport()`, and `DeduplicateReports()` support duplicate-safe importing without adding storage.
+- `AnonymizeReport()` creates deterministic fixture-safe report copies using documentation IP/domain ranges.
+- `TopSources()`, `TopUnauthenticatedSources()`, and `TopCounts()` return sorted top-N lists for dashboards and summaries.
 - `Validate()` reports compatibility-mode data-quality findings after parsing; `ValidateStrict()` adds stricter current-standard checks.
+- `ValidateReportFilename()` checks parsed filename metadata in compatibility or strict RFC 9990 mode.
 - `WriteFeaturesJSONL()` and `WriteFeaturesCSV()` provide simple pipeline and spreadsheet output formats. `FeatureCSVHeaders()` exposes the CSV header order.
 - Parsing does not perform DNS lookups or network access.
 

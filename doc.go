@@ -14,7 +14,9 @@
 // SummarizeReports() for multi-report counts, and AggregateReport.UnauthenticatedSources()
 // for unauthenticated source-IP summaries. Use ParseReportFilename() for common
 // bang-separated attachment names and ExcludeUnauthenticatedSources() for
-// caller-owned exact-IP or CIDR suppression lists.
+// caller-owned exact-IP or CIDR suppression lists. Use ReportKey(),
+// DeduplicateReports(), AnonymizeReport(), and top-N helpers for practical
+// report-consumer workflows.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally

@@ -81,6 +81,9 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
+| You want duplicate-safe importing | `dmarcgo.ReportKey(report)` and `dmarcgo.DeduplicateReports(reports)` | Uses report ID, reporter, policy domain, and date range. |
+| You want safe regression fixtures | `dmarcgo.AnonymizeReport(report, options)` | Preserves report shape while replacing domains, source IPs, and reporter contact details. |
+| You want dashboard-ready top lists | `dmarcgo.TopSources`, `dmarcgo.TopUnauthenticatedSources`, or `dmarcgo.TopCounts` | Returns sorted top-N slices without storage or scoring policy. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 
@@ -318,6 +321,16 @@ func main() {
 	)
 }
 ```
+
+Use `ValidateReportFilename` when you want to distinguish practical compatibility from strict RFC 9990 filename expectations. Compatibility mode accepts common real-world zip reports; strict mode expects `.xml` or `.xml.gz`.
+
+## Deduplication and safe fixtures
+
+Use `ReportKey`, `FilenameReportKey`, `SameReport`, and `DeduplicateReports` when importing reports from email or object storage where retransmission can create duplicates.
+
+Use `AnonymizeReport` before committing new fixtures derived from real reports. It replaces reporter contact details, domains, and source IPs with documentation-safe values while preserving counts, dispositions, report dates, and DMARC pass/fail shape.
+
+Use `TopSources`, `TopUnauthenticatedSources`, and `TopCounts` for dashboard-oriented summaries without adding storage or alerting policy to the parser.
 
 ## Validation
 

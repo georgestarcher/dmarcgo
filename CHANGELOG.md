@@ -15,6 +15,7 @@ and this project uses semantic versioning for public API changes.
 - Validation findings, multi-report aggregate summaries, CSV output, parser fuzz targets, and helper API benchmarks.
 - Strict RFC 9990 validation mode, context-aware reader loading, typed load errors, explicit unauthenticated/passing source helpers, CSV header metadata, and release-tag verification workflow.
 - Attachment filename parsing and exact-IP/CIDR source exclusion helpers.
+- Report identity/deduplication helpers, filename validation, deterministic anonymization, and top-N summary helpers.
 - Repository metadata for editor configuration, text normalization, contributing guidance, and security reporting.
 - Tests for malformed XML, invalid row counts, nil receivers, empty paths, sorted directory reads, and zip member selection.
 - CI checks for formatting, module tidiness, vet, Staticcheck, tests, race tests, README examples, vulnerability checks, coverage, and build.

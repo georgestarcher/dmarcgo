@@ -250,6 +250,42 @@ func ExampleParseReportFilename() {
 	// Output: google.com example.com zip
 }
 
+// ExampleDeduplicateReports demonstrates keeping the first report per identity.
+func ExampleDeduplicateReports() {
+	report, err := ParseBytes([]byte(exampleReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	reports := DeduplicateReports([]*AggregateReport{report, report})
+	fmt.Println(len(reports))
+	// Output: 1
+}
+
+// ExampleAnonymizeReport demonstrates creating a safe synthetic report copy.
+func ExampleAnonymizeReport() {
+	report, err := ParseBytes([]byte(exampleReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	anonymized := AnonymizeReport(*report, AnonymizeOptions{})
+	fmt.Printf("%s %s\n", anonymized.ReportMetadata.OrgName, anonymized.Record[0].Row.SourceIP)
+	// Output: Example Reporter 192.0.2.1
+}
+
+// ExampleTopSources demonstrates selecting the highest-volume sources.
+func ExampleTopSources() {
+	report, err := ParseBytes([]byte(exampleReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	top := TopSources(report.Summary().BySourceIP, 1)
+	fmt.Println(top[0].SourceIP)
+	// Output: 203.0.113.7
+}
+
 // ExampleWriteFeaturesJSONL demonstrates writing flattened feature rows as JSON Lines.
 func ExampleWriteFeaturesJSONL() {
 	var report AggregateReport

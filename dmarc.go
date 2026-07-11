@@ -21,7 +21,7 @@ const (
 // InvalidMailCount is used when a DMARC row has a non-numeric or malformed <count>.
 const InvalidMailCount = -1
 
-var errNoFilePath = errors.New("report file path is empty")
+var ErrNoFilePath = errors.New("report file path is empty")
 
 // DmarcReport is a DMARC aggregate feedback report.
 //
@@ -288,7 +288,7 @@ func (r *Report) LoadReportFile() error {
 	r.Content = DmarcReport{}
 
 	if r.FilePath == "" {
-		return errNoFilePath
+		return ErrNoFilePath
 	}
 
 	var parseError error
@@ -306,7 +306,7 @@ func (r *Report) LoadReportFile() error {
 		}
 
 		if err := decodeDMARCXML(s, &r.Content); err != nil {
-			parseError = fmt.Errorf("failed to parse DMARC XML from %q: %w", r.FilePath, err)
+			parseError = fmt.Errorf("%w: failed to parse DMARC XML from %q: %w", ErrMalformedXML, r.FilePath, err)
 			continue
 		}
 
@@ -326,7 +326,7 @@ func (r *Report) LoadReportFileFromPath(filePath string) error {
 		return fmt.Errorf("report receiver is nil")
 	}
 	if filePath == "" {
-		return errNoFilePath
+		return ErrNoFilePath
 	}
 	r.FilePath = filePath
 	return r.LoadReportFile()

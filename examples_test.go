@@ -1,6 +1,7 @@
 package dmarcgo
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/xml"
 	"fmt"
@@ -160,4 +161,36 @@ func ExampleDmarcReportFeatures_invalidCount() {
 	features := report.Features()
 	fmt.Println(features[1].MailCount)
 	// Output: -1
+}
+
+// ExampleLoadReportBytes demonstrates parsing a compressed attachment already in memory.
+func ExampleLoadReportBytes() {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	if _, err := gz.Write([]byte(exampleReportXML)); err != nil {
+		log.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	report, err := LoadReportBytes(buf.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(report.ReportMetadata.ReportID)
+	// Output: example-report-id
+}
+
+// ExampleDmarcReport_Summary demonstrates aggregate message counts.
+func ExampleDmarcReport_Summary() {
+	var report DmarcReport
+	if err := xml.Unmarshal([]byte(exampleReportXML), &report); err != nil {
+		log.Fatal(err)
+	}
+
+	summary := report.Summary()
+	fmt.Printf("messages=%d passed=%d\n", summary.TotalMessages, summary.PassedMessages)
+	// Output: messages=27 passed=27
 }

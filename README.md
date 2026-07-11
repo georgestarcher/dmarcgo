@@ -146,46 +146,125 @@ func main() {
 }
 ```
 
-## Processing a directory
+## Parse bytes or readers
 
-The `utilities` subpackage includes small file/archive helpers. You can use it to process a local directory of report archives.
+Use `LoadReportBytes` or `LoadReportReader` when report data comes from an email attachment, object storage, upload, or test fixture instead of a local path. These helpers accept gzip, zip, zlib, or raw XML bytes.
 
 ```go
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/georgestarcher/dmarcgo"
-	"github.com/georgestarcher/dmarcgo/utilities"
 )
 
 func main() {
-	reportDirectory := "reports/dmarc"
-
-	reportFiles, err := utilities.GetFiles(reportDirectory)
+	attachmentBytes, err := os.ReadFile("reports/example-dmarc-report.xml.gz")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
-	for _, name := range reportFiles {
-		var report dmarcgo.Report
-		if err := report.LoadReportFileFromPath(filepath.Join(reportDirectory, name)); err != nil {
-			log.Fatal(err)
-		}
+	report, err := dmarcgo.LoadReportBytes(attachmentBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		for i, feature := range report.Content.Features() {
-			if i == 0 {
-				continue // metadata-only row
-			}
-			if err := encoder.Encode(feature); err != nil {
-				log.Fatal(err)
-			}
+	fmt.Println(report.ReportMetadata.ReportID)
+}
+```
+
+Use `ParseBytes` or `ParseReader` only when the input is already raw XML.
+
+## Processing a directory
+
+`LoadReportsFromDir` processes a local directory and returns one result per file. Per-file errors are stored on the result, so one malformed report does not abort the whole batch.
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	results, err := dmarcgo.LoadReportsFromDir("reports/dmarc")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, result := range results {
+		if result.Err != nil {
+			log.Printf("skipping %s: %v", result.Path, result.Err)
+			continue
 		}
+		log.Printf("%s: %d records", result.Path, len(result.Report.Content.Record))
+	}
+}
+```
+
+## Summaries and suspicious sources
+
+`Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops.
+
+`SuspiciousSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadReportFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	summary := report.Content.Summary()
+	fmt.Printf("messages=%d rejected=%d passed=%d\n",
+		summary.TotalMessages,
+		summary.RejectedMessages,
+		summary.PassedMessages,
+	)
+
+	for _, source := range report.Content.SuspiciousSources("example.com") {
+		fmt.Printf("source=%s rejected=%d\n", source.SourceIP, source.RejectedMessages)
+	}
+}
+```
+
+## JSON Lines output
+
+Use `WriteFeaturesJSONL` when sending flattened rows into logs, queues, data lakes, or SIEM-style tooling.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadReportFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	features := report.Content.Features()
+	if err := dmarcgo.WriteFeaturesJSONL(os.Stdout, features[1:]); err != nil {
+		log.Fatal(err)
 	}
 }
 ```
@@ -193,11 +272,14 @@ func main() {
 ## Behavior and safety notes
 
 - `LoadReportFile()` tries gzip, zip, then zlib.
+- `LoadReportBytes()` and `LoadReportReader()` accept gzip, zip, zlib, or raw XML.
+- `ParseBytes()` and `ParseReader()` parse raw XML only.
 - Decompressed payload reads are size-limited by default to reduce archive-bomb risk.
 - Set `Report.MaxDecompressedBytes` if your deployment needs a different decompressed-size limit.
 - Malformed XML returns a parse-specific error.
 - Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
+- `Summary()` and `SuspiciousSources()` provide lightweight analysis helpers without turning the package into an ingest system.
 - Parsing does not perform DNS lookups or network access.
 
 ## Standards coverage

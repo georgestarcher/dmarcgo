@@ -38,6 +38,9 @@ jobs:
       - name: Test
         run: go test -v ./...
 
+      - name: Public helper API tests
+        run: go test -run TestParse|TestLoadReportBytes|TestLoadReportReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestDateRange ./...
+
       - name: Race detector
         run: go test -race ./...
 
@@ -94,4 +97,4 @@ jobs:
       - name: Coverage
         run: |
           go test -covermode=atomic -coverprofile=coverage.out ./...
-          go tool cover -func=coverage.out
+          python3 scripts/check_coverage.py --profile coverage.out --min 75.0

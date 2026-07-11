@@ -1,8 +1,10 @@
 package dmarcgo
 
 import (
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"compress/zlib"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -197,5 +199,80 @@ func writeGzipFile(t *testing.T, path string, payload []byte) {
 	}
 	if err := file.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLoadReportBytesSupportsZipAndZlib(t *testing.T) {
+	var zipBuf bytes.Buffer
+	zipWriter := zip.NewWriter(&zipBuf)
+	entry, err := zipWriter.Create("report.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := entry.Write([]byte(helperReportXML)); err != nil {
+		t.Fatal(err)
+	}
+	if err := zipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	zipReport, err := LoadReportBytes(zipBuf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if zipReport.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", zipReport.ReportMetadata.ReportID)
+	}
+
+	var zlibBuf bytes.Buffer
+	zlibWriter := zlib.NewWriter(&zlibBuf)
+	if _, err := zlibWriter.Write([]byte(helperReportXML)); err != nil {
+		t.Fatal(err)
+	}
+	if err := zlibWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	zlibReport, err := LoadReportBytes(zlibBuf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if zlibReport.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", zlibReport.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadReportReaderAndOptions(t *testing.T) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	if _, err := gz.Write([]byte(helperReportXML)); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := LoadReportReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(20)); err == nil {
+		t.Fatal("expected size limit error")
+	}
+
+	report, err := LoadReportReader(bytes.NewReader(buf.Bytes()), WithMaxDecompressedBytes(-1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", report.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadReportFileConvenience(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "report.xml.gz")
+	writeGzipFile(t, path, []byte(helperReportXML))
+
+	report, err := LoadReportFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Content.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", report.Content.ReportMetadata.ReportID)
 	}
 }

@@ -1,0 +1,150 @@
+# Agent guide for dmarcgo
+
+This repository is a Go library for parsing and analyzing DMARC aggregate reports. Use this guide when an automated coding agent is adding `dmarcgo` to an application project or modifying this repository.
+
+## Scope
+
+- This module parses DMARC aggregate reports.
+- It supports legacy/no-namespace aggregate XML, the historical dmarc.org aggregate XML namespace, and RFC 9990 aggregate reports.
+- It accepts gzip, zip, zlib, and raw XML payloads through the public loading helpers.
+- It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, DNS policy parser, or spoofing-risk scoring engine.
+- It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
+
+## Install in an application project
+
+Use the Go module normally:
+
+```shell
+go get github.com/georgestarcher/dmarcgo@latest
+```
+
+Before the first stable `v1.0.0` release, prefer pinning a tag or commit for production use once one is available.
+
+## Choose the right API
+
+- Local report archive path: `dmarcgo.LoadFile(path)`
+- Attachment bytes, object bytes, or upload bytes: `dmarcgo.LoadBytes(data)`
+- `io.Reader`: `dmarcgo.LoadReader(reader)`
+- Request-scoped `io.Reader`: `dmarcgo.LoadReaderContext(ctx, reader)`
+- Raw XML bytes: `dmarcgo.ParseBytes(data)`
+- Raw XML reader: `dmarcgo.ParseReader(reader)`
+- Local directory corpus: `dmarcgo.LoadReportsFromDir(dir)`
+- Flattened rows: `report.Rows()`
+- Full structured model: `report.Record`, `report.ReportMetadata`, `report.PolicyPublished`
+- One-report summary: `report.Summary()`
+- Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
+- JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
+- CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
+
+## Recommended app integration flow
+
+1. Load reports with `LoadFile`, `LoadBytes`, or `LoadReader`.
+2. Check returned errors with `errors.Is` where behavior matters.
+3. Run `report.Validate()` for compatibility-mode data-quality findings.
+4. Use `ValidateStrict()` only for RFC 9990 producer conformance checks or strict fixtures.
+5. Deduplicate imports with `ReportKey`, `FilenameReportKey`, `SameReport`, or `DeduplicateReports`.
+6. Use `Summary` and `SummarizeReports` for counts and rates.
+7. Use `UnauthenticatedSources`, `RejectedUnauthenticatedSources`, and `PassingSources` for source review.
+8. Apply caller-owned source suppressions with `ExcludeUnauthenticatedSources`.
+9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
+10. Use `AnonymizeReport` before turning any real report into a committed fixture.
+
+## Defaults and safety
+
+- The default decompressed payload limit is 50 MiB.
+- Use `dmarcgo.WithMaxDecompressedBytes(n)` to raise or lower the limit.
+- Use `dmarcgo.WithMaxDecompressedBytes(-1)` only when the caller has another archive-bomb control.
+- Real DMARC reports can expose domains, source IPs, provider metadata, authentication behavior, and contact details.
+- Do not commit real report corpora. Use `testdata/fixtures` only for synthetic or anonymized fixtures.
+- The repository intentionally ignores `test_dmarc_reports/`.
+- Parsing does not perform DNS lookups or network access.
+
+## Error handling
+
+Use `errors.Is` because errors may wrap path or parser context.
+
+Important exported errors:
+
+- `dmarcgo.ErrNoFilePath`
+- `dmarcgo.ErrMalformedXML`
+- `dmarcgo.ErrUnsupportedReportFormat`
+- `utilities.ErrPayloadTooLarge`
+
+Example:
+
+```go
+report, err := dmarcgo.LoadBytes(data)
+if err != nil {
+    switch {
+    case errors.Is(err, utilities.ErrPayloadTooLarge):
+        // ask caller to raise the configured decompressed-size limit
+    case errors.Is(err, dmarcgo.ErrMalformedXML):
+        // readable payload, invalid XML/report shape
+    default:
+        // unsupported format, I/O, context cancellation, etc.
+    }
+}
+_ = report
+```
+
+## Source-review semantics
+
+- DMARC pass/fail is based on policy-evaluated DKIM/SPF values.
+- Do not treat disposition `none` as authentication pass.
+- Use `PassedMessages`, `FailedMessages`, `PassRate`, and `FailureRate` for authentication outcome reporting.
+- Use `RejectedMessages`, `QuarantinedMessages`, and `NoneMessages` for policy action reporting.
+- `UnauthenticatedSources(domain)` means `header_from` matches the domain and both DMARC DKIM and SPF evaluation failed.
+- `RejectedUnauthenticatedSources(domain)` narrows that to rejected traffic.
+- `PassingSources(domain)` shows sources that passed at least one DMARC alignment mechanism.
+
+## Filename metadata
+
+Use `ParseReportFilename` for common bang-separated aggregate report attachment names.
+
+Use `ValidateReportFilename(info, dmarcgo.ValidationModeCompatibility)` for real-world imports. Compatibility mode accepts common zip reports.
+
+Use `ValidateReportFilename(info, dmarcgo.ValidationModeStrictRFC9990)` for strict RFC 9990 filename expectations. Strict mode expects `.xml` or `.xml.gz`.
+
+## Anonymized fixture workflow
+
+When adding a regression fixture derived from a real report:
+
+1. Load the real report locally.
+2. Call `AnonymizeReport`.
+3. Confirm no real source IPs, domains, reporter emails, or contact metadata remain.
+4. Write the anonymized XML or derived rows under `testdata/fixtures`.
+5. Do not commit files from `test_dmarc_reports/`.
+
+## Common mistakes to avoid
+
+- Do not use deprecated aliases in new code.
+- Do not use `Features()` for new record exports; use `Rows()`.
+- Do not assume `LoadFile` returns file metadata; it returns `*AggregateReport`. Use `LoadReportFile` or `FileReport` only when file-loader metadata is needed.
+- Do not parse already-decompressed XML with `LoadBytes` if you specifically want raw XML validation; use `ParseBytes`.
+- Do not add mailbox, database, dashboard, DNS, or scheduling behavior to this library unless the project scope changes.
+- Do not add RFC 9991 failure-report parsing to the aggregate-report parser.
+
+## Repository development checks
+
+Run the full local suite before committing repository changes:
+
+```shell
+make ci
+```
+
+If the Go proxy times out fetching staticcheck or govulncheck during local validation, retry with direct module fetch:
+
+```shell
+GOPROXY=direct make ci
+```
+
+Useful targeted checks:
+
+```shell
+go test ./...
+go test -race ./...
+python3 scripts/check_readme_examples.py
+make cover-check
+make fuzz-smoke
+make bench-smoke
+```

@@ -1,50 +1,74 @@
 # dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
-A Go module for parsing [DMARC](https://dmarc.org) aggregate report files. It supports legacy aggregate reports and the current RFC 9990 aggregate-report shape while intentionally excluding RFC 9991 failure/forensic reports.
+`dmarcgo` is a Go library for parsing DMARC aggregate report files.
 
-Written by George Starcher
+It supports older real-world aggregate reports, legacy DMARC RUA XML output, and the current [RFC 9990](https://www.rfc-editor.org/rfc/rfc9990.html) aggregate-report shape. It intentionally does not parse [RFC 9991](https://www.rfc-editor.org/rfc/rfc9991.html) DMARC failure/forensic reports.
 
-MIT license, check [LICENSE](LICENSE) for more information.
+Written by George Starcher.
 
-All text above must be included in any redistribution
+MIT license. See [LICENSE](LICENSE) for details.
 
+All text above must be included in any redistribution.
 
-## Module status and versioning
+## Install
 
-`dmarcgo` is a library package, not an ingest pipeline or reporting application.
-It is intended to be imported by other Go code that wants to parse DMARC
-aggregate report artifacts and decide for itself how to ingest, store, summarize,
-or display the results.
-
-This project follows semantic versioning. Before `v1.0.0`, public APIs may still
-change as the aggregate-report model settles around RFC 9990 and real-world
-legacy report compatibility. Prefer a tagged release for downstream use once one
-is available.
-
-## Installation
+From another Go module:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo
+go get github.com/georgestarcher/dmarcgo@latest
 ```
 
-## Supported inputs
+Then import the library:
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	var report dmarcgo.Report
+	if err := report.LoadReportFileFromPath("reports/example-dmarc-report.xml.gz"); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(report.Content.ReportMetadata.OrgName)
+}
+```
+
+Before the first stable `v1.0.0` release, prefer pinning a tag or commit for production use once one is available.
+
+## What this package does
+
+`dmarcgo` is a parser library. It is meant to be imported by other Go code that wants to parse DMARC aggregate report artifacts and then decide how to ingest, store, summarize, or display the results.
+
+It does not provide a mailbox ingester, directory watcher, database, CLI, dashboard, or spoofing-risk scoring engine.
+
+## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
 
-- gzip-compressed XML (`.xml.gz`)
-- zip archives (`.zip`)
+- gzip-compressed XML, usually `.xml.gz`
+- zip archives, usually `.zip`
 - zlib-compressed XML
 
-The parser accepts aggregate XML reports using legacy no-namespace output, the older `http://dmarc.org/dmarc-xml/0.1` namespace, and the RFC 9990 `urn:ietf:params:xml:ns:dmarc-2.0` namespace.
+The parser accepts aggregate XML reports using:
 
-Test fixtures live in `testdata/fixtures`. Local real-world report corpora, such
-as `test_dmarc_reports/`, are intentionally ignored because DMARC reports can
-expose domain, provider, source IP, and mail authentication metadata.
+- no XML namespace, which is common in older real-world reports
+- the historical `http://dmarc.org/dmarc-xml/0.1` namespace
+- the RFC 9990 `urn:ietf:params:xml:ns:dmarc-2.0` namespace
 
-## Usage
+Local real-world report corpora should not be committed. DMARC reports can expose domains, provider metadata, source IPs, and authentication behavior. This repository ignores `test_dmarc_reports/` for that reason. Public regression fixtures belong under `testdata/fixtures/` and should be synthetic or anonymized.
 
-Create a `Report`, load a DMARC report archive, then call `Features()` to get
-flattened rows that are easy to marshal to JSON or send to another system. The flattened output keeps the original single-value fields for compatibility and also exposes newer plural fields, such as all DKIM authentication results and all policy override reasons.
+## Quick start: flattened rows
+
+`Features()` returns a convenient flattened representation that is easy to encode as JSON or feed into another system.
+
+The first returned element contains report-level metadata. Subsequent elements contain one row per DMARC record.
 
 ```go
 package main
@@ -64,7 +88,10 @@ func main() {
 	}
 
 	encoder := json.NewEncoder(os.Stdout)
-	for _, feature := range report.Content.Features() {
+	for i, feature := range report.Content.Features() {
+		if i == 0 {
+			continue // metadata-only row
+		}
 		if err := encoder.Encode(feature); err != nil {
 			log.Fatal(err)
 		}
@@ -72,7 +99,56 @@ func main() {
 }
 ```
 
-To process a directory of report archives:
+The flattened output keeps simple single-value fields such as `DkimDomain` and `SpfResult`, while also exposing complete RFC 9990 data such as `DkimAuthResults`, `SpfAuthResult`, and `PolicyOverrideReasons`.
+
+## Structured report access
+
+For applications that need complete data, use the parsed `DmarcReport` model directly.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	var report dmarcgo.Report
+	if err := report.LoadReportFileFromPath("reports/example-dmarc-report.xml.gz"); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, record := range report.Content.Record {
+		fmt.Printf("source=%s count=%s disposition=%s\n",
+			record.Row.SourceIp,
+			record.Row.Count,
+			record.Row.PolicyEvaluated.Disposition,
+		)
+
+		for _, dkim := range record.AuthResults.Dkim {
+			fmt.Printf("  dkim domain=%s selector=%s result=%s\n",
+				dkim.Domain,
+				dkim.Selector,
+				dkim.Result,
+			)
+		}
+
+		if record.AuthResults.Spf != nil {
+			fmt.Printf("  spf domain=%s result=%s\n",
+				record.AuthResults.Spf.Domain,
+				record.AuthResults.Spf.Result,
+			)
+		}
+	}
+}
+```
+
+## Processing a directory
+
+The `utilities` subpackage includes small file/archive helpers. You can use it to process a local directory of report archives.
 
 ```go
 package main
@@ -102,7 +178,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		for _, feature := range report.Content.Features() {
+		for i, feature := range report.Content.Features() {
+			if i == 0 {
+				continue // metadata-only row
+			}
 			if err := encoder.Encode(feature); err != nil {
 				log.Fatal(err)
 			}
@@ -111,29 +190,54 @@ func main() {
 }
 ```
 
-### Behavior notes
+## Behavior and safety notes
 
-- `LoadReportFile()` tries, in order: gzip, zip, then zlib.
-- Decompressed payload reads are size-limited by default to reduce archive-bomb risk. Set `Report.MaxDecompressedBytes` when a different limit is needed.
-- If parsing succeeds for a supported format but XML is malformed, an error is returned.
-- `Features()` marks invalid `<count>` values as `InvalidMailCount` (`-1`) so malformed row counts are explicit.
-- `LoadReportFileFromPath()` validates the report path and returns a clear error for empty paths.
-- `go test` + `go vet` + pinned `staticcheck` are expected checks; CI also enforces `gofmt` and `go mod tidy` cleanliness.
-- `utilities.ReadZip()` skips directory entries, prefers `.xml` members when available, and returns an error when no regular files are in the archive.
+- `LoadReportFile()` tries gzip, zip, then zlib.
+- Decompressed payload reads are size-limited by default to reduce archive-bomb risk.
+- Set `Report.MaxDecompressedBytes` if your deployment needs a different decompressed-size limit.
+- Malformed XML returns a parse-specific error.
+- Invalid `<count>` values are surfaced as `dmarcgo.InvalidMailCount` instead of silently becoming zero.
+- `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
+- Parsing does not perform DNS lookups or network access.
 
-### Standards coverage
+## Standards coverage
 
-`dmarcgo` is scoped to DMARC aggregate reports. The current standards reference is [RFC 9990](https://www.rfc-editor.org/rfc/rfc9990.html), which replaces the aggregate-report portions of RFC 7489. The parser also keeps compatibility with older real-world reports that still follow RFC 7489-era output or the historical dmarc.org RUA XSD.
+`dmarcgo` is scoped to DMARC aggregate reports. The current aggregate-report standard is [RFC 9990](https://www.rfc-editor.org/rfc/rfc9990.html), which replaces the aggregate-report portions of RFC 7489.
 
-The module preserves RFC 9990 fields such as `version`, `extra_contact_info`, `generator`, `np`, `discovery_method`, `testing`, `envelope_from`, `envelope_to`, DKIM selectors, SPF scope, multiple DKIM authentication results, multiple policy override reasons, and extension elements.
+The package preserves RFC 9990 fields including:
 
-DMARC failure reports are different. They are described by [RFC 9991](https://www.rfc-editor.org/rfc/rfc9991.html), use an ARF/MARF email feedback format, and can include message headers, message bodies, and personally identifiable information. They are intentionally not parsed by this package.
+- `version`
+- `extra_contact_info`
+- `error`
+- `generator`
+- `np`
+- `discovery_method`
+- `testing`
+- `envelope_from`
+- `envelope_to`
+- DKIM selectors
+- SPF scope
+- multiple DKIM authentication results
+- multiple policy override reasons
+- extension XML
+
+DMARC failure reports are separate. They are described by [RFC 9991](https://www.rfc-editor.org/rfc/rfc9991.html), use an ARF/MARF email feedback format, and can include message headers, message bodies, and personally identifiable information. They are intentionally out of scope for this package.
 
 ## Development
+
+Run the full local check suite:
 
 ```shell
 make ci
 ```
 
-The module targets supported Go toolchains starting at Go 1.25. CI currently
-runs on Go 1.25 and Go 1.26.
+Useful individual checks:
+
+```shell
+go test ./...
+go test -race ./...
+go vet ./...
+python3 scripts/check_readme_examples.py
+```
+
+The module targets supported Go toolchains starting at Go 1.25. CI currently runs on Go 1.25 and Go 1.26.

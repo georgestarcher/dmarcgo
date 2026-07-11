@@ -94,6 +94,21 @@ func TestReportRowsOutputTruncation(t *testing.T) {
 	}
 }
 
+func TestReportRowsSummaryDetailReportsZeroReturnedData(t *testing.T) {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := BuildReportRowsOutput(report.Rows(), OutputOptions{Detail: OutputDetailSummary, MaxItems: 1, GeneratedAt: outputTestTime})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := truncationCollection(t, output, "report_rows")
+	if items.TotalItems != 2 || items.ReturnedItems != 0 || !output.Truncation.Truncated {
+		t.Fatalf("summary detail reported supplied data: %+v", output.Truncation)
+	}
+}
+
 func TestSourceReviewOutput(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
@@ -350,7 +365,7 @@ func TestOutputPublicRedactionFailsClosed(t *testing.T) {
 	}
 }
 
-func TestOutputRedactionTokensPreserveDistinctMapEntries(t *testing.T) {
+func TestOutputRedactionTokensPreserveCanonicalMapCounts(t *testing.T) {
 	summary := AggregateSummary{ByHeaderFrom: map[string]int{"Example.COM": 2, "example.com": 3}}
 	first, err := BuildAggregateSummaryOutput(summary, OutputOptions{Detail: OutputDetailFull, Redaction: OutputRedactionPublic, GeneratedAt: outputTestTime})
 	if err != nil {
@@ -366,8 +381,8 @@ func TestOutputRedactionTokensPreserveDistinctMapEntries(t *testing.T) {
 		t.Fatal("public redaction must be deterministic")
 	}
 	data := first.Data.(AggregateSummary)
-	if len(data.ByHeaderFrom) != 2 {
-		t.Fatalf("redaction merged distinct keys: %+v", data.ByHeaderFrom)
+	if len(data.ByHeaderFrom) != 1 {
+		t.Fatalf("case-insensitive domains did not canonicalize: %+v", data.ByHeaderFrom)
 	}
 	total := 0
 	for token, count := range data.ByHeaderFrom {
@@ -378,6 +393,17 @@ func TestOutputRedactionTokensPreserveDistinctMapEntries(t *testing.T) {
 	}
 	if total != 5 {
 		t.Fatalf("redaction lost counts: %+v", data.ByHeaderFrom)
+	}
+}
+
+func TestOutputRedactionCorrelatesMixedCaseDomains(t *testing.T) {
+	output, err := BuildReportSummaryOutput(ReportSummary{TargetDomain: "Example.COM"}, OutputOptions{Detail: OutputDetailFull, Redaction: OutputRedactionPublic, GeneratedAt: outputTestTime})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := output.Data.(ReportSummary)
+	if len(output.Scope.TargetDomains) != 1 || output.Scope.TargetDomains[0] != data.TargetDomain {
+		t.Fatalf("scope and data tokens do not correlate: scope=%v data=%q", output.Scope.TargetDomains, data.TargetDomain)
 	}
 }
 
@@ -465,6 +491,28 @@ func TestSourceReviewOutputTruncationIsPerCollectionAndUsesFullCounts(t *testing
 	evidence := output.Findings[0].Evidence[0].Value.(map[string]int)
 	if evidence["sources"] != 2 || evidence["messages"] != 5 {
 		t.Fatalf("finding used truncated counts: %+v", evidence)
+	}
+}
+
+func TestSummaryOutputSortsSourcesBeforeLimiting(t *testing.T) {
+	sources := []SourceSummary{
+		{SourceIP: "192.0.2.1", Messages: 1},
+		{SourceIP: "192.0.2.2", Messages: 10},
+	}
+	options := OutputOptions{Detail: OutputDetailFull, Redaction: OutputRedactionRestricted, MaxItems: 1, GeneratedAt: outputTestTime}
+	reportOutput, err := BuildReportSummaryOutput(ReportSummary{BySourceIP: sources}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reportOutput.Data.(ReportSummary).BySourceIP[0].SourceIP; got != "192.0.2.2" {
+		t.Fatalf("report summary retained lower-volume source %q", got)
+	}
+	aggregateOutput, err := BuildAggregateSummaryOutput(AggregateSummary{BySourceIP: []SourceSummary{sources[1], sources[0]}}, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := aggregateOutput.Data.(AggregateSummary).BySourceIP[0].SourceIP; got != "192.0.2.2" {
+		t.Fatalf("aggregate summary retained lower-volume source %q", got)
 	}
 }
 

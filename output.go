@@ -596,6 +596,7 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 	sort.SliceStable(out.Provenance, func(i, j int) bool { return canonicalSortKey(out.Provenance[i]) < canonicalSortKey(out.Provenance[j]) })
 	if options.Detail == OutputDetailSummary {
 		out.Data = map[string]any{}
+		omitModeDataCollections(&out)
 	}
 	if options.Profile == OutputProfileAutomation {
 		out.Summary.Headline = ""
@@ -690,7 +691,13 @@ func redactionToken(kind, value string) string {
 }
 
 func canonicalRedactionValue(kind, value string) string {
-	return strings.TrimSpace(value)
+	value = strings.TrimSpace(value)
+	switch kind {
+	case "target_domain", "header_from", "dkim_domain", "spf_domain":
+		return strings.ToLower(value)
+	default:
+		return value
+	}
 }
 
 func redactOptionalText(kind, value string) string {
@@ -733,9 +740,10 @@ func redactCountMap(values map[string]int, kind string) map[string]int {
 	out := make(map[string]int, len(values))
 	used := map[string]string{}
 	for _, key := range keys {
-		token := uniqueRedactionToken(kind, key, used)
-		out[token] = values[key]
-		used[token] = key
+		canonical := canonicalRedactionValue(kind, key)
+		token := uniqueRedactionToken(kind, canonical, used)
+		out[token] += values[key]
+		used[token] = canonical
 	}
 	return out
 }
@@ -1049,6 +1057,18 @@ func addTruncation(out *OutputEnvelope, name string, total, returned int) {
 	}
 }
 
+func omitModeDataCollections(out *OutputEnvelope) {
+	out.Truncation.Truncated = false
+	for i := range out.Truncation.Collections {
+		if out.Truncation.Collections[i].Name != "validation_findings" {
+			out.Truncation.Collections[i].ReturnedItems = 0
+		}
+		if out.Truncation.Collections[i].ReturnedItems < out.Truncation.Collections[i].TotalItems {
+			out.Truncation.Truncated = true
+		}
+	}
+}
+
 func cloneReportSummary(summary ReportSummary) ReportSummary {
 	summary.ByDisposition = cloneCountMap(summary.ByDisposition)
 	summary.ByHeaderFrom = cloneCountMap(summary.ByHeaderFrom)
@@ -1163,6 +1183,7 @@ func applySourceReviewDetail(review *SourceReview, detail OutputDetail) {
 }
 
 func limitReportSummary(out *OutputEnvelope, summary *ReportSummary, max int) {
+	sortSourceSummariesForLimit(summary.BySourceIP)
 	totalSources := len(summary.BySourceIP)
 	summary.BySourceIP = limitSlice(summary.BySourceIP, max)
 	addTruncation(out, "data.by_source_ip", totalSources, len(summary.BySourceIP))
@@ -1171,6 +1192,7 @@ func limitReportSummary(out *OutputEnvelope, summary *ReportSummary, max int) {
 }
 
 func limitAggregateSummary(out *OutputEnvelope, summary *AggregateSummary, max int) {
+	sortSourceSummariesForLimit(summary.BySourceIP)
 	totalSources := len(summary.BySourceIP)
 	summary.BySourceIP = limitSlice(summary.BySourceIP, max)
 	addTruncation(out, "data.by_source_ip", totalSources, len(summary.BySourceIP))
@@ -1178,6 +1200,18 @@ func limitAggregateSummary(out *OutputEnvelope, summary *AggregateSummary, max i
 	summary.ByTargetDomain = limitCountMap(out, "data.by_target_domain", summary.ByTargetDomain, max)
 	summary.ByDisposition = limitCountMap(out, "data.by_disposition", summary.ByDisposition, max)
 	summary.ByHeaderFrom = limitCountMap(out, "data.by_header_from", summary.ByHeaderFrom, max)
+}
+
+func sortSourceSummariesForLimit(sources []SourceSummary) {
+	sort.SliceStable(sources, func(i, j int) bool {
+		if sources[i].Messages != sources[j].Messages {
+			return sources[i].Messages > sources[j].Messages
+		}
+		if sources[i].SourceIP != sources[j].SourceIP {
+			return sources[i].SourceIP < sources[j].SourceIP
+		}
+		return canonicalSortKey(sources[i]) < canonicalSortKey(sources[j])
+	})
 }
 
 func limitCountMap(out *OutputEnvelope, name string, values map[string]int, max int) map[string]int {

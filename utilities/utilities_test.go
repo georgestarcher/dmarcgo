@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
@@ -195,6 +196,45 @@ func TestReadZipIgnoresDirectoryEntries(t *testing.T) {
 	}
 
 	got, err := ReadZip(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(expected) {
+		t.Fatalf("got %q, wanted %q", string(got), string(expected))
+	}
+}
+
+func TestReadTarGZIgnoresDirectoryEntries(t *testing.T) {
+	tempDir := t.TempDir()
+	archivePath := filepath.Join(tempDir, "report.tar.gz")
+
+	out, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gzipWriter := gzip.NewWriter(out)
+	tarWriter := tar.NewWriter(gzipWriter)
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "nested/", Typeflag: tar.TypeDir, Mode: 0o755}); err != nil {
+		t.Fatal(err)
+	}
+	expected := []byte("<feedback>tar-payload</feedback>")
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "nested/report.xml", Typeflag: tar.TypeReg, Mode: 0o600, Size: int64(len(expected))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tarWriter.Write(expected); err != nil {
+		t.Fatal(err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := out.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ReadTarGZ(archivePath)
 	if err != nil {
 		t.Fatal(err)
 	}

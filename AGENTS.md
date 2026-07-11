@@ -6,7 +6,7 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 
 - This module parses DMARC aggregate reports.
 - It supports legacy/no-namespace aggregate XML, the historical dmarc.org aggregate XML namespace, and RFC 9990 aggregate reports.
-- It accepts gzip, zip, zlib, and raw XML payloads through the public loading helpers.
+- It accepts gzip, zip, tar, zlib, and raw XML payloads through the public loading helpers.
 - It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, DNS policy parser, or spoofing-risk scoring engine.
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
 

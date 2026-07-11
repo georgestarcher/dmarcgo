@@ -62,7 +62,7 @@ func ParseReportFilename(path string) (ReportFilename, error) {
 
 func stripReportExtension(value string, info *ReportFilename) string {
 	lower := strings.ToLower(value)
-	for _, suffix := range []string{".xml.gz", ".xml.zip", ".xml.zlib", ".xml.zz", ".gzip", ".gz", ".zip", ".zlib", ".zz", ".xml"} {
+	for _, suffix := range []string{".tar.gz", ".tgz", ".xml.gz", ".xml.zip", ".xml.tar", ".tar", ".xml.zlib", ".xml.zz", ".gzip", ".gz", ".zip", ".zlib", ".zz", ".xml"} {
 		if strings.HasSuffix(lower, suffix) {
 			info.Extension = suffix
 			switch suffix {
@@ -70,6 +70,8 @@ func stripReportExtension(value string, info *ReportFilename) string {
 				info.Compression = "gzip"
 			case ".xml.zip", ".zip":
 				info.Compression = "zip"
+			case ".xml.tar", ".tar", ".tar.gz", ".tgz":
+				info.Compression = "tar"
 			case ".xml.zlib", ".xml.zz", ".zlib", ".zz":
 				info.Compression = "zlib"
 			}

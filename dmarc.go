@@ -283,7 +283,7 @@ type FileReport struct {
 	MaxDecompressedBytes int64
 }
 
-// Load parses the configured report file as gzip, zip, then zlib.
+// Load parses the configured report file as gzip, zip, tar, then zlib.
 //
 // It tries each supported encoding in that order and returns an error if:
 //   - no supported decoder can read the file, or
@@ -305,7 +305,9 @@ func (r *FileReport) Load() error {
 	limit := r.MaxDecompressedBytes
 	readers := []func(string, int64) ([]byte, error){
 		utilities.ReadGZWithLimit,
+		utilities.ReadTarGZWithLimit,
 		utilities.ReadZipWithLimit,
+		utilities.ReadTarWithLimit,
 		utilities.ReadZZWithLimit,
 	}
 

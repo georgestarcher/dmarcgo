@@ -32,6 +32,16 @@ func TestParseReportFilenameWithUniqueID(t *testing.T) {
 	}
 }
 
+func TestParseReportFilenameWithTarGZ(t *testing.T) {
+	info, err := ParseReportFilename("reporter.example!example.com!1700000000!1700086399.tar.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Compression != "tar" || info.Extension != ".tar.gz" {
+		t.Fatalf("unexpected tar filename metadata: %+v", info)
+	}
+}
+
 func TestParseReportFilenameRejectsInvalidShape(t *testing.T) {
 	if _, err := ParseReportFilename("not-a-dmarc-report.xml.gz"); err == nil {
 		t.Fatal("expected invalid filename error")

@@ -1,6 +1,7 @@
 package dmarcgo
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
@@ -21,7 +22,7 @@ import (
 var ErrMalformedXML = errors.New("malformed DMARC XML")
 
 // ErrUnsupportedReportFormat is returned when bytes cannot be decoded as gzip,
-// zip, zlib, or raw XML.
+// zip, tar, zlib, or raw XML.
 var ErrUnsupportedReportFormat = errors.New("unsupported DMARC report format")
 
 // ReportLoadError wraps a load failure with optional path and format context.
@@ -122,13 +123,15 @@ func ParseReader(reader io.Reader, options ...LoadOption) (*AggregateReport, err
 	return ParseBytes(payload)
 }
 
-// LoadBytes loads a DMARC aggregate report from gzip, zip, zlib, or raw XML
+// LoadBytes loads a DMARC aggregate report from gzip, zip, tar, zlib, or raw XML
 // bytes. Archive formats are attempted before raw XML.
 func LoadBytes(payload []byte, options ...LoadOption) (*AggregateReport, error) {
 	config := applyLoadOptions(options)
 	readers := []func([]byte, int64) ([]byte, error){
 		readGzipBytes,
+		readGzipTarBytes,
 		readZipBytes,
+		readTarBytes,
 		readZlibBytes,
 	}
 
@@ -163,7 +166,7 @@ func LoadReportBytes(payload []byte, options ...LoadOption) (*AggregateReport, e
 	return LoadBytes(payload, options...)
 }
 
-// LoadReader loads a DMARC aggregate report from gzip, zip, zlib, or raw
+// LoadReader loads a DMARC aggregate report from gzip, zip, tar, zlib, or raw
 // XML data read from reader.
 func LoadReader(reader io.Reader, options ...LoadOption) (*AggregateReport, error) {
 	return LoadReaderContext(context.Background(), reader, options...)
@@ -271,6 +274,14 @@ func readGzipBytes(payload []byte, maxBytes int64) ([]byte, error) {
 	return readAllLimited(reader, maxBytes)
 }
 
+func readGzipTarBytes(payload []byte, maxBytes int64) ([]byte, error) {
+	decoded, err := readGzipBytes(payload, maxBytes)
+	if err != nil {
+		return nil, err
+	}
+	return readTarBytes(decoded, maxBytes)
+}
+
 func readZlibBytes(payload []byte, maxBytes int64) ([]byte, error) {
 	reader, err := zlib.NewReader(bytes.NewReader(payload))
 	if err != nil {
@@ -330,6 +341,61 @@ func readZipEntryBytes(file *zip.File, maxBytes int64) ([]byte, error) {
 	}
 	defer reader.Close()
 	return readAllLimited(reader, maxBytes)
+}
+
+func readTarBytes(payload []byte, maxBytes int64) ([]byte, error) {
+	return readTarReader(tar.NewReader(bytes.NewReader(payload)), maxBytes)
+}
+
+func readTarReader(reader *tar.Reader, maxBytes int64) ([]byte, error) {
+	var firstRegularFile []byte
+	var firstErr error
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if header.Size < 0 {
+			continue
+		}
+		limit := maxBytes
+		if limit == 0 {
+			limit = utilities.DefaultMaxDecompressedBytes
+		}
+		if limit >= 0 && header.Size > limit {
+			err := fmt.Errorf("%w: tar entry %q is %d bytes, limit is %d", utilities.ErrPayloadTooLarge, header.Name, header.Size, limit)
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		decoded, err := readAllLimited(reader, maxBytes)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		if strings.HasSuffix(strings.ToLower(header.Name), ".xml") {
+			return decoded, nil
+		}
+		if firstRegularFile == nil {
+			firstRegularFile = decoded
+		}
+	}
+	if firstRegularFile != nil {
+		return firstRegularFile, nil
+	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return nil, fmt.Errorf("tar archive contains no regular files")
 }
 
 func writeJSONLine(writer io.Writer, value any) error {

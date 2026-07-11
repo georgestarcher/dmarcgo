@@ -1,6 +1,7 @@
 package dmarcgo
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
@@ -264,6 +265,48 @@ func TestLoadBytesSupportsZipAndZlib(t *testing.T) {
 	}
 	if zlibReport.ReportMetadata.ReportID != "helper-report" {
 		t.Fatalf("got report id %q", zlibReport.ReportMetadata.ReportID)
+	}
+}
+
+func TestLoadBytesSupportsTarAndTarGZ(t *testing.T) {
+	var tarBuf bytes.Buffer
+	tarWriter := tar.NewWriter(&tarBuf)
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "reports/", Typeflag: tar.TypeDir, Mode: 0o755}); err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(helperReportXML)
+	if err := tarWriter.WriteHeader(&tar.Header{Name: "reports/report.xml", Typeflag: tar.TypeReg, Mode: 0o600, Size: int64(len(payload))}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tarWriter.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	tarReport, err := LoadBytes(tarBuf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tarReport.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", tarReport.ReportMetadata.ReportID)
+	}
+
+	var gzBuf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&gzBuf)
+	if _, err := gzipWriter.Write(tarBuf.Bytes()); err != nil {
+		t.Fatal(err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatal(err)
+	}
+	tarGZReport, err := LoadBytes(gzBuf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tarGZReport.ReportMetadata.ReportID != "helper-report" {
+		t.Fatalf("got report id %q", tarGZReport.ReportMetadata.ReportID)
 	}
 }
 

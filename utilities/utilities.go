@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
 	"compress/zlib"
@@ -131,6 +132,47 @@ func ReadZipWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	return nil, fmt.Errorf("zip file %q contains no regular files", filepath)
 }
 
+// ReadTar returns the first readable file from the archive using
+// DefaultMaxDecompressedBytes, preferring entries whose names end with .xml.
+func ReadTar(filepath string) ([]byte, error) {
+	return ReadTarWithLimit(filepath, DefaultMaxDecompressedBytes)
+}
+
+// ReadTarGZ returns the first readable file from a gzip-compressed tar archive
+// using DefaultMaxDecompressedBytes, preferring entries whose names end with .xml.
+func ReadTarGZ(filepath string) ([]byte, error) {
+	return ReadTarGZWithLimit(filepath, DefaultMaxDecompressedBytes)
+}
+
+// ReadTarGZWithLimit returns the first readable file from a gzip-compressed tar
+// archive up to maxBytes, preferring entries whose names end with .xml.
+func ReadTarGZWithLimit(filepath string, maxBytes int64) ([]byte, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer gzipReader.Close()
+	return readTarReader(tar.NewReader(gzipReader), maxBytes, filepath)
+}
+
+// ReadTarWithLimit returns the first readable file from the archive, preferring
+// entries whose names end with .xml. Directory entries are skipped. If the
+// archive has no regular files, an error is returned.
+func ReadTarWithLimit(filepath string, maxBytes int64) ([]byte, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return readTarReader(tar.NewReader(file), maxBytes, filepath)
+}
+
 func readZipFile(zf *zip.File, maxBytes int64) ([]byte, error) {
 	limit := normalizedLimit(maxBytes)
 	if limit > 0 && zf.UncompressedSize64 > uint64(limit) {
@@ -143,6 +185,54 @@ func readZipFile(zf *zip.File, maxBytes int64) ([]byte, error) {
 	}
 	defer f.Close()
 	return readAllLimited(f, maxBytes)
+}
+
+func readTarReader(tarReader *tar.Reader, maxBytes int64, filepath string) ([]byte, error) {
+	var firstRegularFile []byte
+	var firstErr error
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+		if header.Size < 0 {
+			continue
+		}
+		limit := normalizedLimit(maxBytes)
+		if limit > 0 && header.Size > limit {
+			err := fmt.Errorf("%w: tar entry %q is %d bytes, limit is %d", ErrPayloadTooLarge, header.Name, header.Size, limit)
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		decoded, err := readAllLimited(tarReader, maxBytes)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		if strings.HasSuffix(strings.ToLower(header.Name), ".xml") {
+			return decoded, nil
+		}
+		if firstRegularFile == nil {
+			firstRegularFile = decoded
+		}
+	}
+	if firstRegularFile != nil {
+		return firstRegularFile, nil
+	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+	return nil, fmt.Errorf("tar file %q contains no regular files", filepath)
 }
 
 func readAllLimited(r io.Reader, maxBytes int64) ([]byte, error) {

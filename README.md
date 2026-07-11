@@ -54,6 +54,7 @@ It does not provide a mailbox ingester, directory watcher, database, CLI, dashbo
 
 - gzip-compressed XML, usually `.xml.gz`
 - zip archives, usually `.zip`
+- tar archives, usually `.tar`, `.tar.gz`, or `.tgz`
 - zlib-compressed XML
 
 The parser accepts aggregate XML reports using:
@@ -70,7 +71,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | --- | --- | --- |
 | You have a local report archive path | `dmarcgo.LoadFile(path)` | Returns a parsed `*AggregateReport`. |
 | You need file-loading metadata or a custom size limit on a reusable loader | `FileReport{MaxDecompressedBytes: ...}.LoadFile(path)` | Most callers can use package-level `LoadFile`. |
-| You have attachment bytes from mail, S3, or an upload | `dmarcgo.LoadBytes(data)` | Accepts gzip, zip, zlib, or raw XML bytes. |
+| You have attachment bytes from mail, S3, or an upload | `dmarcgo.LoadBytes(data)` | Accepts gzip, zip, tar, zlib, or raw XML bytes. |
 | You have an `io.Reader` for an attachment or object | `dmarcgo.LoadReader(reader)` | Reads with the same decompressed-size protection. |
 | You know the input is raw XML | `dmarcgo.ParseBytes(data)` or `dmarcgo.ParseReader(reader)` | Skips archive detection. |
 | You want easy JSON rows | `report.Rows()` | Returns one flattened row per DMARC record, with report metadata copied onto each row. |
@@ -372,7 +373,7 @@ func main() {
 
 ## Parse bytes or readers
 
-Use `LoadBytes` or `LoadReader` when report data comes from an email attachment, object storage, upload, or test fixture instead of a local path. These helpers accept gzip, zip, zlib, or raw XML bytes and apply the same size-limit protections as file loading.
+Use `LoadBytes` or `LoadReader` when report data comes from an email attachment, object storage, upload, or test fixture instead of a local path. These helpers accept gzip, zip, tar, zlib, or raw XML bytes and apply the same size-limit protections as file loading.
 
 ```go
 package main
@@ -789,8 +790,8 @@ func main() {
 
 ## Behavior and safety notes
 
-- `LoadFile()` tries gzip, zip, then zlib.
-- `LoadBytes()`, `LoadReader()`, and `LoadReaderContext()` accept gzip, zip, zlib, or raw XML.
+- `LoadFile()` tries gzip XML, gzip-compressed tar, zip, tar, then zlib.
+- `LoadBytes()`, `LoadReader()`, and `LoadReaderContext()` accept gzip XML, gzip-compressed tar, zip, tar, zlib, or raw XML.
 - `ParseBytes()` and `ParseReader()` parse raw XML only.
 - Decompressed payload reads are size-limited to `50 MiB` by default to reduce archive-bomb risk.
 - Set `FileReport.MaxDecompressedBytes` or use `WithMaxDecompressedBytes` if your deployment needs a different decompressed-size limit.

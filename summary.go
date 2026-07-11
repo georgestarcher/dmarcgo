@@ -19,12 +19,16 @@ type ReportSummary struct {
 	TotalRecords        int             `json:"total_records"`
 	TotalMessages       int             `json:"total_messages"`
 	PassedMessages      int             `json:"passed_messages"`
+	FailedMessages      int             `json:"failed_messages"`
 	RejectedMessages    int             `json:"rejected_messages"`
 	QuarantinedMessages int             `json:"quarantined_messages"`
+	NoneMessages        int             `json:"none_messages"`
 	DKIMPassMessages    int             `json:"dkim_pass_messages"`
 	DKIMFailMessages    int             `json:"dkim_fail_messages"`
 	SPFPassMessages     int             `json:"spf_pass_messages"`
 	SPFFailMessages     int             `json:"spf_fail_messages"`
+	PassRate            float64         `json:"pass_rate"`
+	FailureRate         float64         `json:"failure_rate"`
 	BySourceIP          []SourceSummary `json:"by_source_ip,omitempty"`
 	ByDisposition       map[string]int  `json:"by_disposition,omitempty"`
 	ByHeaderFrom        map[string]int  `json:"by_header_from,omitempty"`
@@ -32,17 +36,22 @@ type ReportSummary struct {
 
 // SourceSummary summarizes records for a single source IP.
 type SourceSummary struct {
-	SourceIP         string         `json:"source_ip"`
-	Records          int            `json:"records"`
-	Messages         int            `json:"messages"`
-	RejectedMessages int            `json:"rejected_messages"`
-	PassedMessages   int            `json:"passed_messages"`
-	DKIMFailMessages int            `json:"dkim_fail_messages"`
-	SPFFailMessages  int            `json:"spf_fail_messages"`
-	HeaderFrom       map[string]int `json:"header_from,omitempty"`
-	DKIMDomains      map[string]int `json:"dkim_domains,omitempty"`
-	SPFDomains       map[string]int `json:"spf_domains,omitempty"`
-	Reporters        map[string]int `json:"reporters,omitempty"`
+	SourceIP            string         `json:"source_ip"`
+	Records             int            `json:"records"`
+	Messages            int            `json:"messages"`
+	RejectedMessages    int            `json:"rejected_messages"`
+	QuarantinedMessages int            `json:"quarantined_messages"`
+	NoneMessages        int            `json:"none_messages"`
+	PassedMessages      int            `json:"passed_messages"`
+	FailedMessages      int            `json:"failed_messages"`
+	DKIMFailMessages    int            `json:"dkim_fail_messages"`
+	SPFFailMessages     int            `json:"spf_fail_messages"`
+	PassRate            float64        `json:"pass_rate"`
+	FailureRate         float64        `json:"failure_rate"`
+	HeaderFrom          map[string]int `json:"header_from,omitempty"`
+	DKIMDomains         map[string]int `json:"dkim_domains,omitempty"`
+	SPFDomains          map[string]int `json:"spf_domains,omitempty"`
+	Reporters           map[string]int `json:"reporters,omitempty"`
 }
 
 // SuspiciousSource describes unauthenticated traffic using a target Header From domain.
@@ -102,9 +111,17 @@ func (r AggregateReport) Summary() ReportSummary {
 			source.RejectedMessages += count
 		case "quarantine":
 			summary.QuarantinedMessages += count
+			source.QuarantinedMessages += count
 		case "none", "pass":
+			summary.NoneMessages += count
+			source.NoneMessages += count
+		}
+		if dmarcPassed(record) {
 			summary.PassedMessages += count
 			source.PassedMessages += count
+		} else {
+			summary.FailedMessages += count
+			source.FailedMessages += count
 		}
 		if record.Row.PolicyEvaluated.DKIM == "pass" {
 			summary.DKIMPassMessages += count
@@ -129,8 +146,12 @@ func (r AggregateReport) Summary() ReportSummary {
 	}
 
 	for _, source := range byIP {
+		source.PassRate = ratio(source.PassedMessages, source.Messages)
+		source.FailureRate = ratio(source.FailedMessages, source.Messages)
 		summary.BySourceIP = append(summary.BySourceIP, *source)
 	}
+	summary.PassRate = ratio(summary.PassedMessages, summary.TotalMessages)
+	summary.FailureRate = ratio(summary.FailedMessages, summary.TotalMessages)
 	sort.Slice(summary.BySourceIP, func(i, j int) bool {
 		if summary.BySourceIP[i].Messages == summary.BySourceIP[j].Messages {
 			return summary.BySourceIP[i].SourceIP < summary.BySourceIP[j].SourceIP
@@ -185,6 +206,8 @@ func (r AggregateReport) PassingSources(domain string) []SourceSummary {
 	}
 	out := make([]SourceSummary, 0, len(byIP))
 	for _, source := range byIP {
+		source.PassRate = ratio(source.PassedMessages, source.Messages)
+		source.FailureRate = ratio(source.FailedMessages, source.Messages)
 		out = append(out, *source)
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -272,6 +295,17 @@ func parseCount(raw string) int {
 		return 0
 	}
 	return count
+}
+
+func dmarcPassed(record Record) bool {
+	return record.Row.PolicyEvaluated.DKIM == "pass" || record.Row.PolicyEvaluated.SPF == "pass"
+}
+
+func ratio(part, total int) float64 {
+	if total <= 0 {
+		return 0
+	}
+	return float64(part) / float64(total)
 }
 
 func epochStringToTime(raw string) (time.Time, error) {

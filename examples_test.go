@@ -222,6 +222,34 @@ func ExampleAggregateReport_UnauthenticatedSources() {
 	// Output: source=198.51.100.25 messages=3
 }
 
+// ExampleExcludeUnauthenticatedSources demonstrates caller-owned source exclusions.
+func ExampleExcludeUnauthenticatedSources() {
+	sources := []SuspiciousSource{
+		{SourceIP: "198.51.100.25", Messages: 3},
+		{SourceIP: "203.0.113.10", Messages: 2},
+	}
+	filtered, err := ExcludeUnauthenticatedSources(sources, []SourceExclusion{
+		{Pattern: "198.51.100.0/24", Reason: "known sender"},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(filtered[0].SourceIP)
+	// Output: 203.0.113.10
+}
+
+// ExampleParseReportFilename demonstrates parsing common RUA attachment names.
+func ExampleParseReportFilename() {
+	info, err := ParseReportFilename("google.com!example.com!1700000000!1700086399.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("%s %s %s\n", info.Reporter, info.PolicyDomain, info.Compression)
+	// Output: google.com example.com zip
+}
+
 // ExampleWriteFeaturesJSONL demonstrates writing flattened feature rows as JSON Lines.
 func ExampleWriteFeaturesJSONL() {
 	var report AggregateReport

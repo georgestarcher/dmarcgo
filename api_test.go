@@ -151,8 +151,11 @@ func TestSummaryAndUnauthenticatedSources(t *testing.T) {
 	}
 
 	summary := report.Summary()
-	if summary.TotalMessages != 5 || summary.PassedMessages != 2 || summary.RejectedMessages != 3 {
+	if summary.TotalMessages != 5 || summary.PassedMessages != 2 || summary.FailedMessages != 3 || summary.RejectedMessages != 3 || summary.NoneMessages != 2 {
 		t.Fatalf("unexpected summary: %+v", summary)
+	}
+	if summary.PassRate != 0.4 || summary.FailureRate != 0.6 {
+		t.Fatalf("unexpected summary rates: %+v", summary)
 	}
 	if len(summary.BySourceIP) != 2 || summary.BySourceIP[0].SourceIP != "198.51.100.25" {
 		t.Fatalf("unexpected source ordering: %+v", summary.BySourceIP)

@@ -79,6 +79,8 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want quick counts for one report | `report.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
 | You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
+| You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
+| You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 
@@ -224,9 +226,9 @@ func main() {
 }
 ```
 
-## Summaries and suspicious sources
+## Summaries and source review
 
-`Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops. It includes total messages, disposition counts, DKIM/SPF alignment counts, source-IP summaries, and parsed UTC date-range values.
+`Summary()` gives useful report-level counts without requiring every caller to rebuild the same loops. It includes total messages, DMARC pass/fail counts, disposition counts, DKIM/SPF alignment counts, source-IP summaries, pass/fail rates, and parsed UTC date-range values.
 
 `UnauthenticatedSources(domain)` returns source IPs that used the domain in `header_from` while both DMARC DKIM and SPF alignment failed. `RejectedUnauthenticatedSources(domain)` narrows that list to rejected traffic, and `PassingSources(domain)` shows source IPs that passed at least one DMARC alignment mechanism.
 
@@ -259,6 +261,63 @@ func main() {
 }
 ```
 
+Use `ExcludeUnauthenticatedSources` for caller-owned allowlists or temporary suppressions. Exclusions accept exact IP addresses and CIDR ranges.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	report, err := dmarcgo.LoadFile("reports/example-dmarc-report.xml.gz")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sources := report.UnauthenticatedSources("example.com")
+	filtered, err := dmarcgo.ExcludeUnauthenticatedSources(sources, []dmarcgo.SourceExclusion{
+		{Pattern: "198.51.100.0/24", Reason: "known test range"},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(len(filtered))
+}
+```
+
+## Attachment filename metadata
+
+Many DMARC aggregate report attachments use a bang-separated filename containing the reporting organization, policy domain, begin epoch, end epoch, optional unique ID, and compression extension. Use `ParseReportFilename` when you want that delivery metadata without opening the archive.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/georgestarcher/dmarcgo"
+)
+
+func main() {
+	info, err := dmarcgo.ParseReportFilename("google.com!example.com!1700000000!1700086399.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("reporter=%s domain=%s compression=%s\n",
+		info.Reporter,
+		info.PolicyDomain,
+		info.Compression,
+	)
+}
+```
 
 ## Validation
 
@@ -290,7 +349,7 @@ func main() {
 
 ## Summaries across many reports
 
-Use `SummarizeReports` when you have several parsed `Report` values and want combined counts. Nil reports are skipped.
+Use `SummarizeReports` when you have several parsed `AggregateReport` values and want combined counts. Nil reports are skipped.
 
 ```go
 package main

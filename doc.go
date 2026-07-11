@@ -12,7 +12,9 @@
 // Use AggregateReport.Rows() for flattened records, AggregateReport.Summary()
 // for aggregate counts, AggregateReport.Validate() or AggregateReport.ValidateStrict() for data-quality findings,
 // SummarizeReports() for multi-report counts, and AggregateReport.UnauthenticatedSources()
-// for unauthenticated source-IP summaries.
+// for unauthenticated source-IP summaries. Use ParseReportFilename() for common
+// bang-separated attachment names and ExcludeUnauthenticatedSources() for
+// caller-owned exact-IP or CIDR suppression lists.
 //
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally

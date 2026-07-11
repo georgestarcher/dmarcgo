@@ -42,8 +42,11 @@ func TestMergeSummariesAndSummarizeReports(t *testing.T) {
 	}
 	reports := []*AggregateReport{report, nil, report}
 	agg := SummarizeReports(reports)
-	if agg.Reports != 2 || agg.TotalMessages != 10 || agg.RejectedMessages != 6 {
+	if agg.Reports != 2 || agg.TotalMessages != 10 || agg.PassedMessages != 4 || agg.FailedMessages != 6 || agg.RejectedMessages != 6 {
 		t.Fatalf("unexpected aggregate summary: %+v", agg)
+	}
+	if agg.PassRate != 0.4 || agg.FailureRate != 0.6 {
+		t.Fatalf("unexpected aggregate rates: %+v", agg)
 	}
 	if len(agg.BySourceIP) != 2 || agg.BySourceIP[0].SourceIP != "198.51.100.25" {
 		t.Fatalf("unexpected aggregate source ordering: %+v", agg.BySourceIP)

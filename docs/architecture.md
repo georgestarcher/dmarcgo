@@ -33,7 +33,7 @@ structure containing every possible input or output.
 | Report rows and source review | `report_rows`, `source_review`, `FeatureRow`, `SourceReview` | Current report package |
 | Portfolio validation | `configuration_validation`, `ConfigurationValidationResult` | Portfolio feature |
 | Portfolio health | `configuration_health` | Portfolio and health features |
-| DNS collection | `dns_snapshot` | DNS snapshot feature |
+| DNS collection | `dns_snapshot`, `DNSSnapshot` | DNS snapshot feature |
 | DNS record parsing | `dns_authentication_records` | Authentication-record feature |
 | DNS health | `dns_health` | DNS health feature |
 | Normalized report evidence | `report_evidence` | Report-evidence feature |
@@ -114,6 +114,14 @@ Collection may return an immutable partial snapshot plus structured diagnostics
 when its documented failure policy allows it. Later stages consume that snapshot
 without retrying collection. Unknown or missing evidence remains distinct from a
 negative finding.
+
+`CollectDNSSnapshot` is the only current DNS collection entry point. It plans
+lookups solely from a supplied normalized `Portfolio`, deduplicates shared owner
+names, and calls only the supplied `TXTResolver`. The snapshot preserves the
+collection timestamp, resolver identity, RRset evidence, references back to all
+dependent portfolio scopes, and unavailable-evidence markers. It has no global
+cache and never loads aggregate reports. DNS parsing and health stages consume
+the completed snapshot without initiating new lookups.
 
 ## Persistence and composition
 

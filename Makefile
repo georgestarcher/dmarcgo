@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check ci
 
 build:
 	go build ./...
@@ -43,6 +43,9 @@ output-contract-check:
 portfolio-check:
 	go test -run 'Test.*Portfolio|Test.*Configuration|TestYAML' ./...
 
+dns-snapshot-check:
+	go test -run 'Test.*DNS|Test.*TXTResolver|TestCollectDNSSnapshot|TestPrivatePortfolioCanPlanOfflineDNSSnapshot' ./...
+
 mod-verify:
 	@set -e; \
 	tmp_dir=$$(mktemp -d); \
@@ -74,11 +77,12 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzOutputEnvelopeSerialization -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzParsePortfolioYAML -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzParseTXTResponse -fuzztime=5s -timeout=2m .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

@@ -23,6 +23,14 @@ and this project uses semantic versioning for public API changes.
 - An architecture guide defining package ownership, dependency direction,
   side-effect boundaries, deterministic identifiers, persistence, and stage
   composition for the organizational email-authentication feature roadmap.
+- Explicit, context-aware DNS TXT snapshot collection with bounded concurrency,
+  retry and failure policies, shared-name deduplication, immutable evidence,
+  deterministic timestamps, fragment-preserving TXT records, and structured
+  diagnostics.
+- Standard-library and DNS-message resolver adapters. The DNS-message adapter
+  preserves TTL, authoritative/recursive source, RCODE, CNAME path, SOA, and
+  RFC 2308 negative-cache TTL evidence; limited adapters mark unavailable
+  evidence instead of inventing values.
 
 ### Changed
 

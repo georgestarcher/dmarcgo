@@ -69,6 +69,12 @@ parses supplied SPF, DKIM, and current RFC 9989 DMARC values without performing
 lookups, and preserves missing or unavailable evidence explicitly. See
 [Authentication-record parsing](docs/authentication-records.md).
 
+DNS authentication health is the next pure stage. It evaluates configured
+records and rolls explainable scores through domains, entities, and the complete
+portfolio without reports or additional lookups. Health scores, grades,
+evidence coverage, and categorical maturity remain separate. See
+[DNS authentication health](docs/dns-health.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -113,6 +119,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
 | You want reusable DNS evidence for a portfolio | `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)` | Explicitly queries only configured TXT names; use `DNSMessageResolver` when TTL and authority evidence matter. |
 | You want parsed SPF, DKIM, and DMARC semantics | `dmarcgo.ParseAuthenticationRecords(snapshot)` | Purely parses an existing snapshot; performs no DNS, report, filesystem, or time access. |
+| You want DNS-only authentication posture, maturity, and explainable scores | `dmarcgo.EvaluateDNSHealth(portfolio, authentication, options)` | Purely evaluates completed values with independent SPF/DKIM/DMARC scores, grades, coverage, and conservative through sensitive profiles. |
 | You need to validate one supplied record string | `dmarcgo.ParseSPFRecord`, `dmarcgo.ParseDKIMKeyRecord`, or `dmarcgo.ParseDMARCPolicyRecord` | Returns typed semantics plus value-safe diagnostics without I/O. |
 | You need RFC 9989 DMARC tree-walk names | `dmarcgo.DMARCPolicyDiscoveryNames(domain)` | Computes at most eight owner names but never resolves them. |
 

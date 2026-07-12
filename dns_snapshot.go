@@ -95,6 +95,14 @@ type DNSRCodeEvidence struct {
 	Value     int  `json:"value,omitempty"`
 }
 
+// DNSSECEvidence preserves whether the resolver interface exposed the DNS
+// authenticated-data flag. AuthenticatedData is meaningful only when the
+// caller trusts the selected validating resolver.
+type DNSSECEvidence struct {
+	Available         bool `json:"available"`
+	AuthenticatedData bool `json:"authenticated_data"`
+}
+
 // DNSSOAEvidence preserves the fields used to explain negative-cache evidence.
 type DNSSOAEvidence struct {
 	Name    string `json:"name"`
@@ -130,6 +138,7 @@ type TXTLookupResult struct {
 	Resolver      string               `json:"resolver,omitempty"`
 	AnswerSource  DNSAnswerSource      `json:"answer_source"`
 	RCode         DNSRCodeEvidence     `json:"rcode"`
+	DNSSEC        DNSSECEvidence       `json:"dnssec"`
 	CanonicalName string               `json:"canonical_name,omitempty"`
 	CNAMEPath     []string             `json:"cname_path"`
 }
@@ -161,6 +170,7 @@ type DNSObservation struct {
 	Resolver      string               `json:"resolver,omitempty"`
 	AnswerSource  DNSAnswerSource      `json:"answer_source"`
 	RCode         DNSRCodeEvidence     `json:"rcode"`
+	DNSSEC        DNSSECEvidence       `json:"dnssec"`
 	CanonicalName string               `json:"canonical_name,omitempty"`
 	CNAMEPath     []string             `json:"cname_path"`
 	Attempts      int                  `json:"attempts"`
@@ -624,7 +634,7 @@ func observationFromLookup(query dnsQueryPlan, result TXTLookupResult, status DN
 		Name: query.name, References: cloneDNSReferences(query.references), Status: status,
 		Records: cloneTXTRecords(result.Records), TTL: result.TTL, NegativeTTL: result.NegativeTTL,
 		SOA: cloneSOA(result.SOA), Resolver: resolverID, AnswerSource: result.AnswerSource,
-		RCode: result.RCode, CanonicalName: normalizeDNSDisplayName(result.CanonicalName),
+		RCode: result.RCode, DNSSEC: result.DNSSEC, CanonicalName: normalizeDNSDisplayName(result.CanonicalName),
 		CNAMEPath: normalizeDNSDisplayNames(result.CNAMEPath), Attempts: attempts,
 	}
 	if observation.AnswerSource == "" {

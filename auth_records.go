@@ -80,6 +80,7 @@ type AuthenticationRecordSet struct {
 	Resolver          string                       `json:"resolver,omitempty"`
 	AnswerSource      DNSAnswerSource              `json:"answer_source"`
 	RCode             DNSRCodeEvidence             `json:"rcode"`
+	DNSSEC            DNSSECEvidence               `json:"dnssec"`
 	CanonicalName     string                       `json:"canonical_name,omitempty"`
 	CNAMEPath         []string                     `json:"cname_path"`
 	Attempts          int                          `json:"attempts"`
@@ -90,15 +91,19 @@ type AuthenticationRecordSet struct {
 // DNSAuthenticationResult is an immutable, reusable parse of a DNS snapshot.
 // Accessors return defensive copies and never perform DNS or other I/O.
 type DNSAuthenticationResult struct {
-	metadata       ResultMetadata
-	snapshotDigest AnalysisID
-	digest         AnalysisID
-	recordSets     []AuthenticationRecordSet
-	diagnostics    []AuthenticationDiagnostic
+	metadata        ResultMetadata
+	portfolioDigest AnalysisID
+	snapshotDigest  AnalysisID
+	digest          AnalysisID
+	recordSets      []AuthenticationRecordSet
+	diagnostics     []AuthenticationDiagnostic
 }
 
 // ResultMetadata returns authentication-record metadata without performing work.
 func (result DNSAuthenticationResult) ResultMetadata() ResultMetadata { return result.metadata }
+
+// PortfolioDigest identifies the normalized portfolio used to plan the source snapshot.
+func (result DNSAuthenticationResult) PortfolioDigest() AnalysisID { return result.portfolioDigest }
 
 // SnapshotDigest identifies the exact DNS snapshot supplied to the parser.
 func (result DNSAuthenticationResult) SnapshotDigest() AnalysisID { return result.snapshotDigest }
@@ -144,10 +149,11 @@ func ParseAuthenticationRecords(snapshot DNSSnapshot) (DNSAuthenticationResult, 
 	sortAuthenticationDiagnostics(diagnostics)
 
 	canonical, err := json.Marshal(struct {
-		SnapshotDigest AnalysisID                 `json:"snapshot_digest"`
-		RecordSets     []AuthenticationRecordSet  `json:"record_sets"`
-		Diagnostics    []AuthenticationDiagnostic `json:"diagnostics"`
-	}{snapshot.Digest(), recordSets, diagnostics})
+		PortfolioDigest AnalysisID                 `json:"portfolio_digest"`
+		SnapshotDigest  AnalysisID                 `json:"snapshot_digest"`
+		RecordSets      []AuthenticationRecordSet  `json:"record_sets"`
+		Diagnostics     []AuthenticationDiagnostic `json:"diagnostics"`
+	}{snapshot.PortfolioDigest(), snapshot.Digest(), recordSets, diagnostics})
 	if err != nil {
 		return DNSAuthenticationResult{}, errors.Join(ErrInvalidAnalysisResult, err)
 	}
@@ -158,10 +164,11 @@ func ParseAuthenticationRecords(snapshot DNSSnapshot) (DNSAuthenticationResult, 
 			GeneratedAt:     metadata.GeneratedAt,
 			Evaluation:      Evaluation{State: EvaluationStateEvaluated},
 		},
-		snapshotDigest: snapshot.Digest(),
-		digest:         StableAnalysisID("dns_authentication_records", string(canonical)),
-		recordSets:     cloneAuthenticationRecordSets(recordSets),
-		diagnostics:    append([]AuthenticationDiagnostic(nil), diagnostics...),
+		portfolioDigest: snapshot.PortfolioDigest(),
+		snapshotDigest:  snapshot.Digest(),
+		digest:          StableAnalysisID("dns_authentication_records", string(canonical)),
+		recordSets:      cloneAuthenticationRecordSets(recordSets),
+		diagnostics:     append([]AuthenticationDiagnostic(nil), diagnostics...),
 	}, nil
 }
 
@@ -183,7 +190,7 @@ func parseAuthenticationRecordSet(observation DNSObservation, recordType DNSReco
 	set := AuthenticationRecordSet{
 		Name: observation.Name, Type: recordType, ObservationStatus: observation.Status,
 		ObservedAt: observedAt, TTL: observation.TTL, NegativeTTL: observation.NegativeTTL, SOA: cloneSOA(observation.SOA),
-		Resolver: observation.Resolver, AnswerSource: observation.AnswerSource, RCode: observation.RCode,
+		Resolver: observation.Resolver, AnswerSource: observation.AnswerSource, RCode: observation.RCode, DNSSEC: observation.DNSSEC,
 		CanonicalName: observation.CanonicalName, CNAMEPath: cloneStrings(observation.CNAMEPath), Attempts: observation.Attempts,
 		References: referencesForRecordType(observation.References, recordType), Records: []ParsedAuthenticationRecord{},
 	}

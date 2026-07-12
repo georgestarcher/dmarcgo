@@ -50,6 +50,15 @@
 // them. Record-controlled notes, reporting URIs, and extension values remain
 // untrusted evidence and never become library-generated instructions.
 //
+// EvaluateDNSHealth performs the next pure stage over a normalized Portfolio
+// and completed DNSAuthenticationResult. It produces deterministic record,
+// domain, entity, and portfolio findings and versioned explainable scores.
+// Independent mechanism grades, evidence coverage, and categorical maturity
+// remain separate. DNS-only evidence can establish enforcement but cannot prove
+// managed report handling or adaptive operations.
+// Unavailable DNS evidence remains unknown by default; evaluation never
+// refreshes DNS, reparses TXT values, loads reports, or consults the current time.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

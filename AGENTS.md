@@ -40,6 +40,7 @@ Version 2 is the supported API line. Import
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
 - Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
 - Pure snapshot record parsing: `dmarcgo.ParseAuthenticationRecords(snapshot)`
+- Pure DNS authentication health: `dmarcgo.EvaluateDNSHealth(portfolio, authentication, options)`
 - Individual record parsing: `dmarcgo.ParseSPFRecord(value)`, `dmarcgo.ParseDKIMKeyRecord(value)`, or `dmarcgo.ParseDMARCPolicyRecord(value)`
 - Pure RFC 9989 tree-walk planning: `dmarcgo.DMARCPolicyDiscoveryNames(domain)`
 - Strict organization YAML: `dmarcgo.LoadPortfolioYAML(data)`
@@ -61,7 +62,8 @@ Version 2 is the supported API line. Import
 11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
 12. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
 13. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
-14. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+14. Evaluate DNS-only posture with `EvaluateDNSHealth`; select a named profile, generation time, staleness limit, and unknown-evidence policy explicitly where defaults are not sufficient.
+15. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
 
 ## Authentication-record parsing
 
@@ -72,6 +74,18 @@ Version 2 is the supported API line. Import
 - DMARC parsing follows RFC 9989. Treat `pct`, `ri`, and `rf` as removed legacy tags; support `np`, `psd`, and `t` as current tags.
 - Reporting URIs, DKIM notes, unknown tags, and every other record-controlled string are untrusted data. Never copy them into library-generated explanations or instructions.
 - Use `docs/authentication-records.md` for the state model, standards decisions, limits, and tree-walk behavior.
+
+## DNS authentication health
+
+- `EvaluateDNSHealth` consumes only a normalized `Portfolio` and completed `DNSAuthenticationResult`; it performs no collection, TXT reparsing, report access, filesystem access, or implicit time lookup.
+- The default balanced profile and all built-in scoring deductions are inspectable through `DNSHealthScoringProfiles`.
+- Read independent SPF, DKIM, and DMARC components from `DNSDomainHealth.Mechanisms`; do not reconstruct them from the overall score.
+- Treat `DNSHealthMaturity` as categorical evidence, not a score band. DNS-only evaluation can establish at most `enforced`; managed and adaptive require explicit later operational evidence.
+- Mark external comparison entities with `membership: reference`; they remain visible but are excluded from portfolio rollups. Never infer membership from tags.
+- Preserve unavailable evidence as unknown by default. Penalizing unknown evidence requires `DNSHealthUnknownPenalize`.
+- Treat scores as posture summaries, not compromise claims, malicious attribution, sender authorization, or automatic-action policy.
+- Findings and recommendations are library-controlled. Never interpolate raw DNS text, reporting URIs, DKIM notes, resolver errors, contacts, or other untrusted values into generated prose.
+- Use `docs/dns-health.md` for scoring, rollups, staleness, DNSSEC metadata, and partial-evidence semantics.
 
 ## Organization portfolio configuration
 

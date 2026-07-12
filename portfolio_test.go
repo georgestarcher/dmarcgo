@@ -238,6 +238,9 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 			config.Entities = append(config.Entities, EntityConfig{ID: "second", Parent: "primary"})
 			config.Entities[0].Parent = "second"
 		}, code: "configuration.entity.parent_cycle"},
+		{name: "invalid entity membership", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Membership = "external-ish"
+		}, code: "configuration.entity.invalid_membership"},
 		{name: "domain parent cycle", mutate: func(config *PortfolioConfig) {
 			config.Entities[0].Domains = append(config.Entities[0].Domains, DomainConfig{Name: "child.example.test", Parent: "example.test"})
 			config.Entities[0].Domains[0].Parent = "child.example.test"
@@ -256,6 +259,31 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 				t.Fatalf("NormalizePortfolio() error = %v diagnostics=%+v, want code %q", err, diagnosticsFromError(err), test.code)
 			}
 		})
+	}
+}
+
+func TestPortfolioEntityMembershipDefaultsAndInheritance(t *testing.T) {
+	config := minimalPortfolioConfig()
+	config.Entities[0].Membership = PortfolioMembershipReference
+	config.Entities = append(config.Entities, EntityConfig{ID: "child", Parent: "primary"})
+	portfolio, err := NormalizePortfolio(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := findEntity(t, portfolio.Entities(), "primary").Membership; got != PortfolioMembershipReference {
+		t.Fatalf("primary membership=%q", got)
+	}
+	if got := findEntity(t, portfolio.Entities(), "child").Membership; got != PortfolioMembershipReference {
+		t.Fatalf("inherited membership=%q", got)
+	}
+
+	config.Entities[1].Membership = PortfolioMembershipOwned
+	portfolio, err = NormalizePortfolio(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := findEntity(t, portfolio.Entities(), "child").Membership; got != PortfolioMembershipOwned {
+		t.Fatalf("overridden membership=%q", got)
 	}
 }
 

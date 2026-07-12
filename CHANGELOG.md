@@ -35,6 +35,13 @@ and this project uses semantic versioning for public API changes.
   reusable DNS snapshots, with typed semantics, deterministic diagnostics,
   bounded SPF dependency analysis, DKIM key-strength metadata, DMARC tree-walk
   planning, IDN normalization, fuzz coverage, and explicit unknown evidence.
+- Pure DNS authentication-health evaluation with stable record, domain, entity,
+  and portfolio findings; deterministic versioned scoring profiles; complete
+  score contributions; partial-evidence and staleness policy; shared-record and
+  inheritance-aware rollups; and optional DNSSEC authenticated-data evidence.
+- Independent SPF, DKIM, and DMARC grades; a sample-calibrated maturity scale
+  with an explicit DNS-only evidence ceiling; maturity distributions and
+  coverage; and owned-versus-reference membership for honest portfolio rollups.
 
 ### Changed
 

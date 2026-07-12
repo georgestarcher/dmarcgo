@@ -34,6 +34,15 @@ const (
 	CollectionModeReplace CollectionMode = "replace"
 )
 
+// PortfolioMembership controls whether an entity participates in organization
+// rollups or is retained only as a comparison/reference entity.
+type PortfolioMembership string
+
+const (
+	PortfolioMembershipOwned     PortfolioMembership = "owned"
+	PortfolioMembershipReference PortfolioMembership = "reference"
+)
+
 // ExclusionScope identifies what a caller-owned exclusion applies to.
 type ExclusionScope string
 
@@ -97,12 +106,13 @@ type ExpectedSenderConfig struct {
 
 // EntityConfig defines a business unit, subsidiary, acquisition, or sister organization.
 type EntityConfig struct {
-	ID      string         `json:"id" yaml:"id"`
-	Name    string         `json:"name,omitempty" yaml:"name,omitempty"`
-	Parent  string         `json:"parent,omitempty" yaml:"parent,omitempty"`
-	Owner   string         `json:"owner,omitempty" yaml:"owner,omitempty"`
-	Tags    []string       `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Domains []DomainConfig `json:"domains,omitempty" yaml:"domains,omitempty"`
+	ID         string              `json:"id" yaml:"id"`
+	Name       string              `json:"name,omitempty" yaml:"name,omitempty"`
+	Parent     string              `json:"parent,omitempty" yaml:"parent,omitempty"`
+	Owner      string              `json:"owner,omitempty" yaml:"owner,omitempty"`
+	Membership PortfolioMembership `json:"membership,omitempty" yaml:"membership,omitempty"`
+	Tags       []string            `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Domains    []DomainConfig      `json:"domains,omitempty" yaml:"domains,omitempty"`
 }
 
 // DomainConfig defines one root or explicit subdomain and the record names to monitor.
@@ -217,12 +227,13 @@ type ExpectedSender struct {
 
 // Entity is a normalized organizational entity.
 type Entity struct {
-	ID      string            `json:"id"`
-	Name    string            `json:"name,omitempty"`
-	Parent  string            `json:"parent,omitempty"`
-	Owner   string            `json:"owner,omitempty"`
-	Tags    []string          `json:"tags"`
-	Domains []MonitoredDomain `json:"domains"`
+	ID         string              `json:"id"`
+	Name       string              `json:"name,omitempty"`
+	Parent     string              `json:"parent,omitempty"`
+	Owner      string              `json:"owner,omitempty"`
+	Membership PortfolioMembership `json:"membership"`
+	Tags       []string            `json:"tags"`
+	Domains    []MonitoredDomain   `json:"domains"`
 }
 
 // MonitoredDomain is a normalized effective domain configuration.
@@ -502,21 +513,30 @@ func (normalizer *portfolioNormalizer) normalizeEntities(configs []EntityConfig,
 		}
 		if visiting[id] {
 			normalizer.add("configuration.entity.parent_cycle", paths[id]+".parent", "The entity parent relationship contains a cycle.")
-			return Entity{ID: id, Tags: []string{}, Domains: []MonitoredDomain{}}
+			return Entity{ID: id, Membership: PortfolioMembershipOwned, Tags: []string{}, Domains: []MonitoredDomain{}}
 		}
 		visiting[id] = true
-		entity := Entity{ID: id, Name: strings.TrimSpace(config.Name), Parent: config.Parent, Owner: organization.Owner, Tags: cloneStrings(organization.Tags), Domains: []MonitoredDomain{}}
+		entity := Entity{ID: id, Name: strings.TrimSpace(config.Name), Parent: config.Parent, Owner: organization.Owner, Membership: PortfolioMembershipOwned, Tags: cloneStrings(organization.Tags), Domains: []MonitoredDomain{}}
 		if config.Parent != "" {
 			if _, exists := byID[config.Parent]; !exists {
 				normalizer.add("configuration.entity.unknown_parent", paths[id]+".parent", "The entity references an unknown parent ID.")
 			} else {
 				parent := resolve(config.Parent)
 				entity.Owner = parent.Owner
+				entity.Membership = parent.Membership
 				entity.Tags = cloneStrings(parent.Tags)
 			}
 		}
 		if owner := normalizer.normalizeReferenceField(config.Owner, paths[id]+".owner", "configuration.entity.invalid_owner"); owner != "" {
 			entity.Owner = owner
+		}
+		if config.Membership != "" {
+			switch config.Membership {
+			case PortfolioMembershipOwned, PortfolioMembershipReference:
+				entity.Membership = config.Membership
+			default:
+				normalizer.add("configuration.entity.invalid_membership", paths[id]+".membership", "Entity membership must be owned or reference.")
+			}
 		}
 		normalizer.validateOwnerReference(entity.Owner, paths[id]+".owner")
 		entity.Tags = mergeStrings(entity.Tags, normalizeTags(config.Tags), CollectionModeMerge)

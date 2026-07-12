@@ -130,6 +130,19 @@ Direct record parsers and DMARC tree-walk planning also perform no I/O. SPF
 graph evidence is limited to relationships present in the snapshot; unavailable
 void-lookup and macro-expansion evidence remains indeterminate.
 
+`EvaluateDNSHealth` is the pure posture stage. It consumes a normalized
+portfolio and completed authentication result, rejects mismatched provenance,
+and rolls deterministic findings and explainable scores from record to domain,
+entity, and portfolio. Unknown DNS evidence is not a failure by default.
+Optional DNSSEC authenticated-data evidence is preserved without assuming that
+an unset flag means validation failure.
+
+DNS health also emits independent mechanism components and categorical maturity.
+Maturity rollups preserve a level distribution and use the weakest available
+domain as a guardrail. Entities explicitly configured with `membership:
+reference` remain fully evaluated but are excluded from organization rollups.
+Report outcomes never alter DNS maturity; correlation is a separate later mode.
+
 ## Persistence and composition
 
 Intermediate profiles, snapshots, evidence, and results may be persisted by the

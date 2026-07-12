@@ -191,6 +191,7 @@ func parseTXTResponse(message []byte, id uint16, queryName, resolverID string) (
 		return result, false, ErrDNSMalformedResponse
 	}
 	result.RCode = DNSRCodeEvidence{Available: true, Value: int(header.RCode)}
+	result.DNSSEC = DNSSECEvidence{Available: true, AuthenticatedData: header.AuthenticData}
 	if header.Authoritative {
 		result.AnswerSource = DNSAnswerSourceAuthoritative
 	} else {

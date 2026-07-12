@@ -91,21 +91,39 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 	coverage := DNSHealthCoverage{PlannedRecords: len(records)}
 	applicableDMARC, hasApplicableDMARC := evaluator.domainDMARCRecordName(domain)
 	var published, usableSPF, usableDKIM, strongDKIM, dmarcPresent, dmarcEnforced, dmarcScopeEnforced, reportingConfigured bool
+	var spfPlanned, spfUnknown, dkimPlanned, dkimUnknown, dmarcPlanned, dmarcUnknown int
 	spfEvaluationComplete := true
 	allCurrent := len(records) > 0
 	for _, health := range records {
-		if health.Score.Available {
+		set, ok := evaluator.sets[dnsHealthRecordKey(health.Name, health.Type)]
+		conclusive := maturityEvidenceConclusive(set, ok)
+		if conclusive {
 			coverage.EvaluatedRecords++
 		} else {
 			coverage.UnknownRecords++
 		}
-		set, ok := evaluator.sets[dnsHealthRecordKey(health.Name, health.Type)]
+		switch health.Type {
+		case DNSRecordSPF:
+			spfPlanned++
+			if !conclusive {
+				spfUnknown++
+			}
+		case DNSRecordDKIM:
+			dkimPlanned++
+			if !conclusive {
+				dkimUnknown++
+			}
+		case DNSRecordDMARC:
+			if hasApplicableDMARC && health.Name == applicableDMARC {
+				dmarcPlanned++
+				if !conclusive {
+					dmarcUnknown++
+				}
+			}
+		}
 		if !ok || len(set.Records) != 1 {
 			allCurrent = false
 			continue
-		}
-		if set.Status == AuthenticationRecordValid || set.Status == AuthenticationRecordWeak {
-			published = true
 		}
 		if set.Status != AuthenticationRecordValid {
 			allCurrent = false
@@ -115,6 +133,7 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 		case DNSRecordSPF:
 			if parsed.SPF != nil && maturityUsableSPF(*parsed.SPF, set.Status) {
 				usableSPF = true
+				published = true
 				if len(parsed.SPF.Relationships) > 0 && !parsed.SPF.Lookup.ExpandedAvailable {
 					spfEvaluationComplete = false
 				}
@@ -122,6 +141,7 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 		case DNSRecordDKIM:
 			if parsed.DKIM != nil && maturityUsableDKIM(*parsed.DKIM, set.Status) {
 				usableDKIM = true
+				published = true
 				if maturityStrongDKIM(*parsed.DKIM) {
 					strongDKIM = true
 				}
@@ -130,8 +150,9 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 			if !hasApplicableDMARC || health.Name != applicableDMARC {
 				continue
 			}
-			if parsed.DMARC != nil && parsed.DMARC.EffectivePolicy != "" {
+			if parsed.DMARC != nil && maturityUsableDMARC(*parsed.DMARC, set.Status) {
 				dmarcPresent = true
+				published = true
 				reportingConfigured = reportingConfigured || len(parsed.DMARC.AggregateReports) > 0
 				dmarcEnforced = dmarcEnforced || parsed.DMARC.EffectivePolicy == DMARCPolicyQuarantine || parsed.DMARC.EffectivePolicy == DMARCPolicyReject
 				dmarcScopeEnforced = dmarcScopeEnforced || maturityDMARCScopeEnforced(*parsed.DMARC)
@@ -144,6 +165,14 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 	ownerAssigned := domain.Owner != "" || entity.Owner != "" || evaluator.organization.Owner != ""
 	senderInventory := len(domain.ExpectedSenders) > 0
 	completeEvidence := coverage.PlannedRecords > 0 && coverage.UnknownRecords == 0
+	recordsPublishedState := maturitySignalState(coverage.PlannedRecords, coverage.UnknownRecords, published)
+	spfAvailableState := maturitySignalState(spfPlanned, spfUnknown, usableSPF)
+	dkimAvailableState := maturitySignalState(dkimPlanned, dkimUnknown, usableDKIM)
+	dkimStrongState := maturitySignalState(dkimPlanned, dkimUnknown, strongDKIM)
+	dmarcPresentState := maturitySignalState(dmarcPlanned, dmarcUnknown, dmarcPresent)
+	dmarcEnforcedState := maturitySignalState(dmarcPlanned, dmarcUnknown, dmarcEnforced)
+	dmarcScopeState := maturitySignalState(dmarcPlanned, dmarcUnknown, dmarcScopeEnforced)
+	reportingState := maturitySignalState(dmarcPlanned, dmarcUnknown, reportingConfigured)
 	managedDNSReady := usableSPF && spfEvaluationComplete && strongDKIM && dmarcEnforced && dmarcScopeEnforced && reportingConfigured && ownerAssigned && senderInventory && completeEvidence && allCurrent
 
 	level := DNSHealthMaturityUnmanaged
@@ -167,15 +196,15 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 		Version: DNSHealthMaturityVersion, Available: available, Level: level, Name: name, Evaluation: evaluation,
 		MaximumObservableLevel: DNSHealthMaturityEnforced, Coverage: coverage,
 		Signals: []DNSHealthMaturitySignal{
-			maturitySignal("dns.maturity.records_published", published, EvaluationStateEvaluated, "At least one usable authentication record is published."),
-			maturitySignal("dns.maturity.spf_available", usableSPF, EvaluationStateEvaluated, "A usable SPF policy is present in the configured evidence."),
-			maturitySignal("dns.maturity.spf_evaluation_complete", usableSPF && spfEvaluationComplete, maturitySPFEvaluationState(usableSPF, spfEvaluationComplete), "Complete SPF dependency evidence stays within evaluation limits without unresolved relationships."),
-			maturitySignal("dns.maturity.dkim_available", usableDKIM, EvaluationStateEvaluated, "A usable DKIM selector is present in the configured evidence."),
-			maturitySignal("dns.maturity.dkim_strong", strongDKIM, EvaluationStateEvaluated, "A production DKIM selector uses Ed25519 or an RSA key of at least 2048 bits."),
-			maturitySignal("dns.maturity.dmarc_published", dmarcPresent, EvaluationStateEvaluated, "An applicable DMARC policy is published."),
-			maturitySignal("dns.maturity.dmarc_enforced", dmarcEnforced, EvaluationStateEvaluated, "The effective DMARC policy is quarantine or reject."),
-			maturitySignal("dns.maturity.dmarc_scope_enforced", dmarcScopeEnforced, EvaluationStateEvaluated, "The applicable DMARC policy protects the policy domain, subdomains, and nonexistent subdomains through explicit or inherited enforcement."),
-			maturitySignal("dns.maturity.aggregate_reporting_configured", reportingConfigured, EvaluationStateEvaluated, "At least one valid DMARC aggregate-report destination is configured."),
+			maturitySignal("dns.maturity.records_published", published, recordsPublishedState, "At least one usable authentication record is published."),
+			maturitySignal("dns.maturity.spf_available", usableSPF, spfAvailableState, "A usable SPF policy is present in the configured evidence."),
+			maturitySignal("dns.maturity.spf_evaluation_complete", usableSPF && spfEvaluationComplete, maturitySPFEvaluationState(usableSPF, spfEvaluationComplete, spfAvailableState), "Complete SPF dependency evidence stays within evaluation limits without unresolved relationships."),
+			maturitySignal("dns.maturity.dkim_available", usableDKIM, dkimAvailableState, "A usable DKIM selector is present in the configured evidence."),
+			maturitySignal("dns.maturity.dkim_strong", strongDKIM, dkimStrongState, "A production DKIM selector uses Ed25519 or an RSA key of at least 2048 bits."),
+			maturitySignal("dns.maturity.dmarc_published", dmarcPresent, dmarcPresentState, "An applicable DMARC policy is published."),
+			maturitySignal("dns.maturity.dmarc_enforced", dmarcEnforced, dmarcEnforcedState, "The effective DMARC policy is quarantine or reject."),
+			maturitySignal("dns.maturity.dmarc_scope_enforced", dmarcScopeEnforced, dmarcScopeState, "The applicable DMARC policy protects the policy domain, subdomains, and nonexistent subdomains through explicit or inherited enforcement."),
+			maturitySignal("dns.maturity.aggregate_reporting_configured", reportingConfigured, reportingState, "At least one valid DMARC aggregate-report destination is configured."),
 			maturitySignal("dns.maturity.owner_assigned", ownerAssigned, EvaluationStateEvaluated, "The portfolio assigns accountable ownership for this domain."),
 			maturitySignal("dns.maturity.sender_inventory_declared", senderInventory, EvaluationStateEvaluated, "The portfolio declares at least one expected sender for this domain."),
 			maturitySignal("dns.maturity.evidence_complete", completeEvidence, EvaluationStateEvaluated, "Every configured record has conclusive DNS evidence."),
@@ -189,11 +218,35 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 	return maturity
 }
 
-func maturitySPFEvaluationState(usable, complete bool) EvaluationState {
+func maturitySPFEvaluationState(usable, complete bool, availableState EvaluationState) EvaluationState {
+	if !usable {
+		return availableState
+	}
 	if usable && !complete {
 		return EvaluationStateUnknown
 	}
 	return EvaluationStateEvaluated
+}
+
+func maturitySignalState(planned, unknown int, satisfied bool) EvaluationState {
+	if satisfied || planned == 0 || unknown == 0 {
+		return EvaluationStateEvaluated
+	}
+	return EvaluationStateUnknown
+}
+
+func maturityEvidenceConclusive(set AuthenticationRecordSet, available bool) bool {
+	if !available {
+		return false
+	}
+	switch set.Status {
+	case AuthenticationRecordValid, AuthenticationRecordMissing, AuthenticationRecordMalformed,
+		AuthenticationRecordInvalid, AuthenticationRecordUnsupported, AuthenticationRecordWeak,
+		AuthenticationRecordConflicting:
+		return true
+	default:
+		return false
+	}
 }
 
 func maturitySignal(code string, satisfied bool, state EvaluationState, explanation string) DNSHealthMaturitySignal {
@@ -214,6 +267,10 @@ func maturityUsableSPF(record SPFRecord, status AuthenticationRecordStatus) bool
 
 func maturityUsableDKIM(record DKIMKeyRecord, status AuthenticationRecordStatus) bool {
 	return (status == AuthenticationRecordValid || status == AuthenticationRecordWeak) && !record.Revoked && record.PublicKey != ""
+}
+
+func maturityUsableDMARC(record DMARCPolicyRecord, status AuthenticationRecordStatus) bool {
+	return (status == AuthenticationRecordValid || status == AuthenticationRecordWeak) && record.EffectivePolicy != ""
 }
 
 func maturityStrongDKIM(record DKIMKeyRecord) bool {

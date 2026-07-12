@@ -291,6 +291,83 @@ func TestDNSHealthMaturityScaleAndManagedEvidenceBoundary(t *testing.T) {
 	}
 }
 
+func TestDNSHealthMaturityCoverageUsesAuthenticationEvidenceStatus(t *testing.T) {
+	portfolio := dnsHealthTestPortfolio(t)
+	overrides := make(map[string]DNSObservationStatus)
+	for name := range dnsHealthTestRecordValues() {
+		overrides[name] = DNSObservationTimeout
+	}
+	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, overrides)
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{
+		UnknownPolicy: DNSHealthUnknownPenalize,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, domain := range result.Domains() {
+		coverage := domain.Maturity.Coverage
+		if domain.Maturity.Available || coverage.PlannedRecords == 0 || coverage.EvaluatedRecords != 0 ||
+			coverage.UnknownRecords != coverage.PlannedRecords || coverage.Percent != 0 {
+			t.Fatalf("timeout maturity for %s=%+v", domain.Domain, domain.Maturity)
+		}
+		signal := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.records_published")
+		if signal.Satisfied || signal.Evaluation.State != EvaluationStateUnknown {
+			t.Fatalf("timeout published signal for %s=%+v", domain.Domain, signal)
+		}
+	}
+	portfolioMaturity := result.PortfolioMaturity()
+	if portfolioMaturity.Available || portfolioMaturity.Coverage.EvaluatedRecords != 0 ||
+		portfolioMaturity.Coverage.UnknownRecords != portfolioMaturity.Coverage.PlannedRecords {
+		t.Fatalf("timeout portfolio maturity=%+v", portfolioMaturity)
+	}
+}
+
+func TestDNSHealthMaturityBasicRequiresUsableRecord(t *testing.T) {
+	tests := []struct {
+		name    string
+		records MonitoredRecordsConfig
+		values  map[string]string
+	}{
+		{
+			name:    "permissive SPF",
+			records: MonitoredRecordsConfig{SPF: []string{"maturity.example.test"}},
+			values:  map[string]string{"maturity.example.test": "v=spf1 +all"},
+		},
+		{
+			name:    "revoked DKIM",
+			records: MonitoredRecordsConfig{DKIM: []string{"revoked._domainkey.maturity.example.test"}},
+			values:  map[string]string{"revoked._domainkey.maturity.example.test": "v=DKIM1; p="},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			portfolio, err := NormalizePortfolio(PortfolioConfig{
+				SchemaVersion: PortfolioSchemaVersion,
+				Organization:  OrganizationConfig{ID: "maturity-test"},
+				Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+					Name: "maturity.example.test", Records: test.records,
+				}}}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, test.values)
+			result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			domain := findDNSDomainHealth(t, result.Domains(), "maturity.example.test", "primary")
+			if !domain.Maturity.Available || domain.Maturity.Level != DNSHealthMaturityUnmanaged || domain.Maturity.Coverage.Percent != 100 {
+				t.Fatalf("unusable-record maturity=%+v", domain.Maturity)
+			}
+			signal := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.records_published")
+			if signal.Satisfied || signal.Evaluation.State != EvaluationStateEvaluated {
+				t.Fatalf("unusable-record published signal=%+v", signal)
+			}
+		})
+	}
+}
+
 func TestDNSHealthSPFOnlyBaselineSeparatesHealthCoverageAndMaturity(t *testing.T) {
 	config := PortfolioConfig{
 		SchemaVersion:   PortfolioSchemaVersion,

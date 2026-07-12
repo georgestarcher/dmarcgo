@@ -98,6 +98,9 @@ func TestParseDKIMKeyRecord(t *testing.T) {
 		{name: "future hash", value: "v=DKIM1; h=future; p=", status: AuthenticationRecordUnsupported, code: "dkim.unsupported_hash_algorithm"},
 		{name: "missing key", value: "v=DKIM1; s=email", status: AuthenticationRecordInvalid, code: "dkim.missing_required_public_key"},
 		{name: "version not first", value: "p=; v=DKIM1", status: AuthenticationRecordInvalid, code: "dkim.invalid_version"},
+		{name: "empty hash element", value: "v=DKIM1; h=sha256:; p=", status: AuthenticationRecordInvalid, code: "dkim.invalid_hash_algorithms"},
+		{name: "empty service element", value: "v=DKIM1; s=email::*; p=", status: AuthenticationRecordInvalid, code: "dkim.invalid_services"},
+		{name: "empty flag element", value: "v=DKIM1; t=y:; p=", status: AuthenticationRecordInvalid, code: "dkim.invalid_flags"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			parsed, gotDiagnostics := ParseDKIMKeyRecord(test.value)
@@ -203,6 +206,18 @@ func TestCandidateTXTRecordsAcceptsDMARCVersionWhitespace(t *testing.T) {
 		{Joined: "v=dmarc1; p=reject"},
 	}
 	if candidates := candidateTXTRecords(records, DNSRecordDMARC); len(candidates) != 1 || candidates[0].Joined != records[0].Joined {
+		t.Fatalf("candidates=%+v", candidates)
+	}
+}
+
+func TestCandidateTXTRecordsDiscardNonDKIMVersions(t *testing.T) {
+	records := []TXTRecord{
+		{Joined: "v=DKIM1; p="},
+		{Joined: "v=spf1 -all"},
+		{Joined: "p="},
+	}
+	candidates := candidateTXTRecords(records, DNSRecordDKIM)
+	if len(candidates) != 2 || candidates[0].Joined != records[0].Joined || candidates[1].Joined != records[2].Joined {
 		t.Fatalf("candidates=%+v", candidates)
 	}
 }

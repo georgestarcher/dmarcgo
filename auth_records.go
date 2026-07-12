@@ -265,7 +265,9 @@ func candidateTXTRecords(records []TXTRecord, recordType DNSRecordType) []TXTRec
 				result = append(result, record)
 			}
 		case DNSRecordDKIM:
-			result = append(result, record)
+			if isDKIMCandidate(value) {
+				result = append(result, record)
+			}
 		case DNSRecordDMARC:
 			if hasDMARCVersionTag(value) {
 				result = append(result, record)
@@ -273,6 +275,15 @@ func candidateTXTRecords(records []TXTRecord, recordType DNSRecordType) []TXTRec
 		}
 	}
 	return result
+}
+
+func isDKIMCandidate(value string) bool {
+	first, _, _ := strings.Cut(value, ";")
+	name, tagValue, found := strings.Cut(first, "=")
+	if !found || !strings.EqualFold(strings.TrimSpace(name), "v") {
+		return true
+	}
+	return strings.TrimSpace(tagValue) == "DKIM1"
 }
 
 func hasDMARCVersionTag(value string) bool {

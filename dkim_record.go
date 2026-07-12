@@ -56,13 +56,13 @@ func ParseDKIMKeyRecord(value string) (DKIMKeyRecord, []AuthenticationDiagnostic
 			}
 			record.Version = tag.value
 		case "h":
-			var truncated bool
-			record.HashAlgorithms, truncated = normalizedColonList(tag.value)
+			var truncated, malformed bool
+			record.HashAlgorithms, truncated, malformed = normalizedColonList(tag.value)
 			if truncated {
 				diagnostics = append(diagnostics, parserDiagnostic("dkim.malformed_hash_algorithm_limit", FindingSeverityHigh, "hash_algorithms", tag.offset, "The DKIM hash-algorithm list contains too many values.", dkimStandardReference))
 			}
-			if len(record.HashAlgorithms) == 0 {
-				diagnostics = append(diagnostics, parserDiagnostic("dkim.invalid_hash_algorithms", FindingSeverityHigh, "hash_algorithms", tag.offset, "The DKIM hash-algorithm list is empty.", dkimStandardReference))
+			if malformed || len(record.HashAlgorithms) == 0 {
+				diagnostics = append(diagnostics, parserDiagnostic("dkim.invalid_hash_algorithms", FindingSeverityHigh, "hash_algorithms", tag.offset, "The DKIM hash-algorithm list contains an empty element.", dkimStandardReference))
 			}
 			for _, algorithm := range record.HashAlgorithms {
 				switch algorithm {
@@ -83,13 +83,13 @@ func ParseDKIMKeyRecord(value string) (DKIMKeyRecord, []AuthenticationDiagnostic
 			publicKeyOffset = tag.offset
 			record.PublicKey = removeASCIIWhitespace(tag.value)
 		case "s":
-			var truncated bool
-			record.Services, truncated = normalizedColonList(tag.value)
+			var truncated, malformed bool
+			record.Services, truncated, malformed = normalizedColonList(tag.value)
 			if truncated {
 				diagnostics = append(diagnostics, parserDiagnostic("dkim.malformed_service_limit", FindingSeverityHigh, "services", tag.offset, "The DKIM service list contains too many values.", dkimStandardReference))
 			}
-			if len(record.Services) == 0 {
-				diagnostics = append(diagnostics, parserDiagnostic("dkim.invalid_services", FindingSeverityHigh, "services", tag.offset, "The DKIM service list is empty.", dkimStandardReference))
+			if malformed || len(record.Services) == 0 {
+				diagnostics = append(diagnostics, parserDiagnostic("dkim.invalid_services", FindingSeverityHigh, "services", tag.offset, "The DKIM service list contains an empty element.", dkimStandardReference))
 			}
 			for _, service := range record.Services {
 				if service != "*" && service != "email" {
@@ -97,10 +97,13 @@ func ParseDKIMKeyRecord(value string) (DKIMKeyRecord, []AuthenticationDiagnostic
 				}
 			}
 		case "t":
-			var truncated bool
-			record.Flags, truncated = normalizedColonList(tag.value)
+			var truncated, malformed bool
+			record.Flags, truncated, malformed = normalizedColonList(tag.value)
 			if truncated {
 				diagnostics = append(diagnostics, parserDiagnostic("dkim.malformed_flag_limit", FindingSeverityHigh, "flags", tag.offset, "The DKIM flag list contains too many values.", dkimStandardReference))
+			}
+			if malformed || len(record.Flags) == 0 {
+				diagnostics = append(diagnostics, parserDiagnostic("dkim.invalid_flags", FindingSeverityHigh, "flags", tag.offset, "The DKIM flag list contains an empty element.", dkimStandardReference))
 			}
 			for _, flag := range record.Flags {
 				if flag != "y" && flag != "s" {
@@ -170,7 +173,7 @@ func validateDKIMPublicKey(record *DKIMKeyRecord) []AuthenticationDiagnostic {
 	return nil
 }
 
-func normalizedColonList(value string) ([]string, bool) {
+func normalizedColonList(value string) ([]string, bool, bool) {
 	parts := strings.SplitN(value, ":", maxAuthenticationListItems+1)
 	truncated := len(parts) > maxAuthenticationListItems
 	if truncated {
@@ -178,14 +181,17 @@ func normalizedColonList(value string) ([]string, bool) {
 	}
 	result := make([]string, 0, len(parts))
 	seen := map[string]bool{}
+	malformed := false
 	for _, part := range parts {
 		part = strings.ToLower(strings.TrimSpace(part))
-		if part != "" && !seen[part] {
+		if part == "" {
+			malformed = true
+		} else if !seen[part] {
 			seen[part] = true
 			result = append(result, part)
 		}
 	}
-	return result, truncated
+	return result, truncated, malformed
 }
 
 func removeASCIIWhitespace(value string) string {

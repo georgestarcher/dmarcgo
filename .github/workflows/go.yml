@@ -127,6 +127,9 @@ jobs:
       - name: Compile README examples
         run: python3 scripts/check_readme_examples.py
 
+      - name: Validate provider catalog and review dates
+        run: make provider-catalog-check
+
       - name: Coverage
         run: |
           go test -covermode=atomic -coverprofile=coverage.out ./...

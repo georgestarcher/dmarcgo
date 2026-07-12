@@ -42,6 +42,15 @@ const (
 	DNSHealthScopePortfolio DNSHealthScope = "portfolio"
 )
 
+// DNSProviderInventoryState records whether a recognized provider is declared
+// by an expected sender in the exact domain scope being evaluated.
+type DNSProviderInventoryState string
+
+const (
+	DNSProviderInventoryDeclared    DNSProviderInventoryState = "declared"
+	DNSProviderInventoryNotDeclared DNSProviderInventoryState = "not_declared"
+)
+
 // DNSHealthScoringProfile is the complete, inspectable set of deductions used
 // by one named scoring profile. All values are non-negative point deductions.
 type DNSHealthScoringProfile struct {
@@ -144,6 +153,23 @@ type DNSHealthFinding struct {
 	Sensitivity    Sensitivity       `json:"sensitivity"`
 }
 
+// DNSHealthProviderContext links one recognized static SPF dependency to
+// catalog and domain-inventory context. It is evidence only and never changes
+// health findings, scores, or sender authorization.
+type DNSHealthProviderContext struct {
+	ID                AnalysisID                `json:"id"`
+	EntityID          string                    `json:"entity_id"`
+	Domain            string                    `json:"domain"`
+	SPFRecordName     string                    `json:"spf_record_name"`
+	RelationshipType  string                    `json:"relationship_type"`
+	EvidenceID        EvidenceID                `json:"evidence_id"`
+	Provider          ProviderMatch             `json:"provider"`
+	InventoryState    DNSProviderInventoryState `json:"inventory_state"`
+	ExpectedSenderIDs []string                  `json:"expected_sender_ids"`
+	Evaluation        Evaluation                `json:"evaluation"`
+	Sensitivity       Sensitivity               `json:"sensitivity"`
+}
+
 // DNSRecordHealth evaluates one configured record name in one domain scope.
 type DNSRecordHealth struct {
 	ID          AnalysisID                 `json:"id"`
@@ -196,26 +222,43 @@ type DNSEntityHealth struct {
 // DNSHealthResult is an immutable DNS-only posture result. Accessors return
 // defensive copies and never perform parsing, DNS, report, or filesystem I/O.
 type DNSHealthResult struct {
-	metadata             ResultMetadata
-	portfolioDigest      AnalysisID
-	snapshotDigest       AnalysisID
-	authenticationDigest AnalysisID
-	digest               AnalysisID
-	profile              DNSHealthScoringProfile
-	portfolioScore       DNSHealthScore
-	portfolioMaturity    DNSHealthMaturity
-	records              []DNSRecordHealth
-	domains              []DNSDomainHealth
-	entities             []DNSEntityHealth
-	findings             []DNSHealthFinding
+	metadata              ResultMetadata
+	portfolioDigest       AnalysisID
+	snapshotDigest        AnalysisID
+	authenticationDigest  AnalysisID
+	providerCatalogDigest AnalysisID
+	digest                AnalysisID
+	profile               DNSHealthScoringProfile
+	providerProvenance    ProviderCatalogProvenance
+	portfolioScore        DNSHealthScore
+	portfolioMaturity     DNSHealthMaturity
+	records               []DNSRecordHealth
+	domains               []DNSDomainHealth
+	entities              []DNSEntityHealth
+	findings              []DNSHealthFinding
+	providerContexts      []DNSHealthProviderContext
 }
 
-func (result DNSHealthResult) ResultMetadata() ResultMetadata   { return result.metadata }
-func (result DNSHealthResult) PortfolioDigest() AnalysisID      { return result.portfolioDigest }
-func (result DNSHealthResult) SnapshotDigest() AnalysisID       { return result.snapshotDigest }
-func (result DNSHealthResult) AuthenticationDigest() AnalysisID { return result.authenticationDigest }
+func (result DNSHealthResult) ResultMetadata() ResultMetadata { return result.metadata }
+func (result DNSHealthResult) PortfolioDigest() AnalysisID    { return result.portfolioDigest }
+func (result DNSHealthResult) SnapshotDigest() AnalysisID     { return result.snapshotDigest }
+
+// AuthenticationDigest returns the exact parsed authentication input digest.
+func (result DNSHealthResult) AuthenticationDigest() AnalysisID {
+	return result.authenticationDigest
+}
+
+// ProviderCatalogDigest returns the exact provider-catalog input digest.
+func (result DNSHealthResult) ProviderCatalogDigest() AnalysisID { return result.providerCatalogDigest }
+
 func (result DNSHealthResult) Digest() AnalysisID               { return result.digest }
 func (result DNSHealthResult) Profile() DNSHealthScoringProfile { return result.profile }
+
+// ProviderCatalogProvenance returns the exact catalog provenance used by the evaluation.
+func (result DNSHealthResult) ProviderCatalogProvenance() ProviderCatalogProvenance {
+	return cloneProviderCatalogProvenance(result.providerProvenance)
+}
+
 func (result DNSHealthResult) PortfolioScore() DNSHealthScore {
 	return cloneDNSHealthScore(result.portfolioScore)
 }
@@ -235,6 +278,11 @@ func (result DNSHealthResult) Entities() []DNSEntityHealth {
 }
 func (result DNSHealthResult) Findings() []DNSHealthFinding {
 	return cloneDNSHealthFindings(result.findings)
+}
+
+// ProviderContexts returns recognized static SPF dependencies in stable order.
+func (result DNSHealthResult) ProviderContexts() []DNSHealthProviderContext {
+	return cloneDNSHealthProviderContexts(result.providerContexts)
 }
 
 // DNSHealthScoringProfiles returns all built-in profiles in stable
@@ -298,23 +346,28 @@ func dnsHealthSensitiveProfile() DNSHealthScoringProfile {
 }
 
 type dnsHealthEvaluator struct {
-	portfolio      Portfolio
-	authentication DNSAuthenticationResult
-	profile        DNSHealthScoringProfile
-	options        DNSHealthOptions
-	organization   Organization
-	sets           map[string]AuthenticationRecordSet
-	senders        map[string]ExpectedSender
-	findings       []DNSHealthFinding
-	records        []DNSRecordHealth
-	domains        []DNSDomainHealth
-	entities       []DNSEntityHealth
+	portfolio          Portfolio
+	authentication     DNSAuthenticationResult
+	providerCatalog    ProviderCatalog
+	profile            DNSHealthScoringProfile
+	options            DNSHealthOptions
+	organization       Organization
+	sets               map[string]AuthenticationRecordSet
+	senders            map[string]ExpectedSender
+	providerSenderIDs  map[string][]string
+	providerContextIDs map[AnalysisID]struct{}
+	findings           []DNSHealthFinding
+	records            []DNSRecordHealth
+	domains            []DNSDomainHealth
+	entities           []DNSEntityHealth
+	providerContexts   []DNSHealthProviderContext
 }
 
 // EvaluateDNSHealth evaluates a normalized portfolio and already parsed DNS
-// authentication evidence. It performs no DNS, report, filesystem, time, or
-// other I/O and never reparses TXT record text.
-func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResult, options DNSHealthOptions) (DNSHealthResult, error) {
+// authentication evidence using an explicitly supplied provider catalog. It
+// performs no DNS, report, filesystem, time, or other I/O and never reparses
+// TXT record text. Provider recognition is context only and never affects scores.
+func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResult, providerCatalog ProviderCatalog, options DNSHealthOptions) (DNSHealthResult, error) {
 	profileName := options.Profile
 	if profileName == "" {
 		profileName = DNSHealthProfileBalanced
@@ -334,7 +387,7 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 		return DNSHealthResult{}, errors.Join(ErrInvalidDNSHealthOptions, errors.New("negative maximum snapshot age"))
 	}
 	metadata := authentication.ResultMetadata()
-	if portfolio.Digest() == "" || authentication.Digest() == "" || authentication.SnapshotDigest() == "" ||
+	if portfolio.Digest() == "" || authentication.Digest() == "" || authentication.SnapshotDigest() == "" || providerCatalog.Digest() == "" ||
 		metadata.ContractVersion != AnalysisContractVersion || metadata.Mode != AnalysisModeDNSAuthentication ||
 		authentication.PortfolioDigest() != portfolio.Digest() {
 		return DNSHealthResult{}, ErrInvalidAnalysisResult
@@ -351,9 +404,10 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 	options.GeneratedAt = generatedAt
 
 	evaluator := dnsHealthEvaluator{
-		portfolio: portfolio, authentication: authentication, profile: profile, options: options,
+		portfolio: portfolio, authentication: authentication, providerCatalog: providerCatalog, profile: profile, options: options,
 		organization: portfolio.Organization(), sets: map[string]AuthenticationRecordSet{}, senders: map[string]ExpectedSender{},
-		findings: []DNSHealthFinding{}, records: []DNSRecordHealth{}, domains: []DNSDomainHealth{}, entities: []DNSEntityHealth{},
+		providerSenderIDs: map[string][]string{}, providerContextIDs: map[AnalysisID]struct{}{},
+		findings: []DNSHealthFinding{}, records: []DNSRecordHealth{}, domains: []DNSDomainHealth{}, entities: []DNSEntityHealth{}, providerContexts: []DNSHealthProviderContext{},
 	}
 	for _, set := range authentication.RecordSets() {
 		evaluator.sets[dnsHealthRecordKey(set.Name, set.Type)] = set
@@ -361,6 +415,7 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 	for _, sender := range portfolio.ExpectedSenders() {
 		evaluator.senders[sender.ID] = sender
 	}
+	evaluator.indexProviderSenders()
 	evaluator.evaluate()
 	portfolioScore := evaluator.portfolioHealthScore()
 	portfolioMaturity := evaluator.portfolioHealthMaturity()
@@ -369,27 +424,31 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 	evaluator.sort()
 
 	canonical, err := json.Marshal(struct {
-		PortfolioDigest      AnalysisID              `json:"portfolio_digest"`
-		SnapshotDigest       AnalysisID              `json:"snapshot_digest"`
-		AuthenticationDigest AnalysisID              `json:"authentication_digest"`
-		GeneratedAt          time.Time               `json:"generated_at"`
-		Profile              DNSHealthScoringProfile `json:"profile"`
-		PortfolioScore       DNSHealthScore          `json:"portfolio_score"`
-		PortfolioMaturity    DNSHealthMaturity       `json:"portfolio_maturity"`
-		Records              []DNSRecordHealth       `json:"records"`
-		Domains              []DNSDomainHealth       `json:"domains"`
-		Entities             []DNSEntityHealth       `json:"entities"`
-		Findings             []DNSHealthFinding      `json:"findings"`
-	}{portfolio.Digest(), authentication.SnapshotDigest(), authentication.Digest(), generatedAt, profile, portfolioScore, portfolioMaturity,
-		evaluator.records, evaluator.domains, evaluator.entities, evaluator.findings})
+		PortfolioDigest       AnalysisID                 `json:"portfolio_digest"`
+		SnapshotDigest        AnalysisID                 `json:"snapshot_digest"`
+		AuthenticationDigest  AnalysisID                 `json:"authentication_digest"`
+		ProviderCatalogDigest AnalysisID                 `json:"provider_catalog_digest"`
+		ProviderProvenance    ProviderCatalogProvenance  `json:"provider_provenance"`
+		GeneratedAt           time.Time                  `json:"generated_at"`
+		Profile               DNSHealthScoringProfile    `json:"profile"`
+		PortfolioScore        DNSHealthScore             `json:"portfolio_score"`
+		PortfolioMaturity     DNSHealthMaturity          `json:"portfolio_maturity"`
+		Records               []DNSRecordHealth          `json:"records"`
+		Domains               []DNSDomainHealth          `json:"domains"`
+		Entities              []DNSEntityHealth          `json:"entities"`
+		Findings              []DNSHealthFinding         `json:"findings"`
+		ProviderContexts      []DNSHealthProviderContext `json:"provider_contexts"`
+	}{portfolio.Digest(), authentication.SnapshotDigest(), authentication.Digest(), providerCatalog.Digest(), providerCatalog.Provenance(), generatedAt, profile, portfolioScore, portfolioMaturity,
+		evaluator.records, evaluator.domains, evaluator.entities, evaluator.findings, evaluator.providerContexts})
 	if err != nil {
 		return DNSHealthResult{}, errors.Join(ErrInvalidAnalysisResult, err)
 	}
 	return DNSHealthResult{
 		metadata:        ResultMetadata{ContractVersion: AnalysisContractVersion, Mode: AnalysisModeDNSHealth, GeneratedAt: generatedAt, Evaluation: Evaluation{State: EvaluationStateEvaluated}},
 		portfolioDigest: portfolio.Digest(), snapshotDigest: authentication.SnapshotDigest(), authenticationDigest: authentication.Digest(),
+		providerCatalogDigest: providerCatalog.Digest(), providerProvenance: providerCatalog.Provenance(),
 		digest: StableAnalysisID("dns_health", string(canonical)), profile: profile, portfolioScore: cloneDNSHealthScore(portfolioScore), portfolioMaturity: cloneDNSHealthMaturity(portfolioMaturity),
-		records: cloneDNSRecordHealth(evaluator.records), domains: cloneDNSDomainHealth(evaluator.domains), entities: cloneDNSEntityHealth(evaluator.entities), findings: cloneDNSHealthFindings(evaluator.findings),
+		records: cloneDNSRecordHealth(evaluator.records), domains: cloneDNSDomainHealth(evaluator.domains), entities: cloneDNSEntityHealth(evaluator.entities), findings: cloneDNSHealthFindings(evaluator.findings), providerContexts: cloneDNSHealthProviderContexts(evaluator.providerContexts),
 	}, nil
 }
 
@@ -604,6 +663,7 @@ func (evaluator *dnsHealthEvaluator) statusFinding(status AuthenticationRecordSt
 }
 
 func (evaluator *dnsHealthEvaluator) evaluateSPF(entityID, domain, name string, record SPFRecord, evidenceID EvidenceID) []DNSHealthFinding {
+	evaluator.collectProviderContexts(entityID, domain, name, record, evidenceID)
 	findings := make([]DNSHealthFinding, 0)
 	var all *SPFTerm
 	for index := range record.Terms {
@@ -637,6 +697,57 @@ func (evaluator *dnsHealthEvaluator) evaluateSPF(entityID, domain, name string, 
 			"The supplied snapshot does not contain a complete SPF dependency graph.", "Collect every declared SPF dependency when complete expanded-lookup evidence is required.", spfStandardReference))
 	}
 	return findings
+}
+
+func (evaluator *dnsHealthEvaluator) indexProviderSenders() {
+	for _, entity := range evaluator.portfolio.Entities() {
+		for _, domain := range entity.Domains {
+			for _, senderID := range domain.ExpectedSenders {
+				sender, ok := evaluator.senders[senderID]
+				if !ok || sender.Provider == "" {
+					continue
+				}
+				provider, ok := evaluator.providerCatalog.LookupProvider(sender.Provider)
+				if !ok {
+					continue
+				}
+				key := dnsProviderInventoryKey(entity.ID, domain.Name, provider.ID)
+				evaluator.providerSenderIDs[key] = append(evaluator.providerSenderIDs[key], sender.ID)
+			}
+		}
+	}
+	for key, senderIDs := range evaluator.providerSenderIDs {
+		evaluator.providerSenderIDs[key] = compactSortedStrings(senderIDs)
+	}
+}
+
+func (evaluator *dnsHealthEvaluator) collectProviderContexts(entityID, domain, name string, record SPFRecord, evidenceID EvidenceID) {
+	for _, relationship := range record.Relationships {
+		match, ok := evaluator.providerCatalog.MatchSPFRelationship(relationship)
+		if !ok {
+			continue
+		}
+		senderIDs := cloneStrings(evaluator.providerSenderIDs[dnsProviderInventoryKey(entityID, domain, match.ProviderID)])
+		inventoryState := DNSProviderInventoryNotDeclared
+		if len(senderIDs) > 0 {
+			inventoryState = DNSProviderInventoryDeclared
+		}
+		id := StableAnalysisID("dns_health_provider_context", string(evaluator.providerCatalog.Digest()), entityID, domain, name, relationship.Type, match.MatchedInclude, match.ProviderID, string(evidenceID))
+		if _, exists := evaluator.providerContextIDs[id]; exists {
+			continue
+		}
+		evaluator.providerContextIDs[id] = struct{}{}
+		evaluator.providerContexts = append(evaluator.providerContexts, DNSHealthProviderContext{
+			ID: id, EntityID: entityID, Domain: domain, SPFRecordName: name,
+			RelationshipType: relationship.Type, EvidenceID: evidenceID, Provider: match,
+			InventoryState: inventoryState, ExpectedSenderIDs: senderIDs,
+			Evaluation: Evaluation{State: EvaluationStateEvaluated}, Sensitivity: SensitivityOperational,
+		})
+	}
+}
+
+func dnsProviderInventoryKey(entityID, domain, providerID string) string {
+	return entityID + "\x00" + domain + "\x00" + providerID
 }
 
 func (evaluator *dnsHealthEvaluator) evaluateDKIM(entityID, domain, name string, record DKIMKeyRecord, evidenceID EvidenceID) []DNSHealthFinding {
@@ -1141,6 +1252,25 @@ func (evaluator *dnsHealthEvaluator) sort() {
 		return evaluator.domains[i].Domain < evaluator.domains[j].Domain
 	})
 	sort.Slice(evaluator.entities, func(i, j int) bool { return evaluator.entities[i].EntityID < evaluator.entities[j].EntityID })
+	sort.Slice(evaluator.providerContexts, func(i, j int) bool {
+		left, right := evaluator.providerContexts[i], evaluator.providerContexts[j]
+		if left.EntityID != right.EntityID {
+			return left.EntityID < right.EntityID
+		}
+		if left.Domain != right.Domain {
+			return left.Domain < right.Domain
+		}
+		if left.SPFRecordName != right.SPFRecordName {
+			return left.SPFRecordName < right.SPFRecordName
+		}
+		if left.Provider.ProviderID != right.Provider.ProviderID {
+			return left.Provider.ProviderID < right.Provider.ProviderID
+		}
+		if left.Provider.MatchedInclude != right.Provider.MatchedInclude {
+			return left.Provider.MatchedInclude < right.Provider.MatchedInclude
+		}
+		return left.ID < right.ID
+	})
 	sort.Slice(evaluator.findings, func(i, j int) bool {
 		if evaluator.findings[i].Severity != evaluator.findings[j].Severity {
 			return dnsHealthSeverityRank(evaluator.findings[i].Severity) > dnsHealthSeverityRank(evaluator.findings[j].Severity)
@@ -1218,4 +1348,18 @@ func cloneDNSHealthFindings(values []DNSHealthFinding) []DNSHealthFinding {
 		result[index].EvidenceIDs = append([]EvidenceID(nil), result[index].EvidenceIDs...)
 	}
 	return result
+}
+
+func cloneDNSHealthProviderContexts(values []DNSHealthProviderContext) []DNSHealthProviderContext {
+	result := append([]DNSHealthProviderContext(nil), values...)
+	for index := range result {
+		result[index].ExpectedSenderIDs = cloneStrings(result[index].ExpectedSenderIDs)
+	}
+	return result
+}
+
+func cloneProviderCatalogProvenance(value ProviderCatalogProvenance) ProviderCatalogProvenance {
+	value.AddedProviderIDs = cloneStrings(value.AddedProviderIDs)
+	value.ReplacedProviderIDs = cloneStrings(value.ReplacedProviderIDs)
+	return value
 }

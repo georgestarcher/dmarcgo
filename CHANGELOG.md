@@ -42,6 +42,10 @@ and this project uses semantic versioning for public API changes.
 - Independent SPF, DKIM, and DMARC grades; a sample-calibrated maturity scale
   with an explicit DNS-only evidence ceiling; maturity distributions and
   coverage; and owned-versus-reference membership for honest portfolio rollups.
+- Strict, versioned, embedded email-provider metadata with reviewed first-party
+  citations, exact-by-default SPF dependency matching, immutable accessors,
+  explicit private overlays, deterministic provenance, review-date checks, and
+  context-only semantics that never imply authorization or DNS health.
 
 ### Changed
 

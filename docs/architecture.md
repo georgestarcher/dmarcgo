@@ -9,8 +9,9 @@ orchestrator may compose them, but composition is not the foundational API.
 
 ```text
 portfolio/configuration -> DNS collection -> DNS parsing -> DNS health
+provider catalog + parsed static SPF dependencies -> provider context
 reports -> normalized report evidence
-portfolio + DNS health + report evidence -> correlation
+portfolio + DNS health + provider context + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 completed result values -> output encoders
@@ -103,6 +104,13 @@ reject report loading, parsing, evaluation, summarization, and network imports.
 Each future collection or enrichment interface must add counting and failing
 spies that prove unrelated modes never invoke it.
 
+The provider catalog is inert, versioned context rather than a collection
+stage. Catalog loading reads only caller-supplied bytes or the embedded file.
+Matching consumes normalized static SPF relationships and never resolves DNS.
+Recognition does not authorize a sender, repair broken DNS, grant health points,
+or trust an IP range. Health and correlation retain live DNS and the portfolio's
+expected-sender inventory as their authoritative inputs.
+
 ## Cancellation and failures
 
 Only stages performing cancellable work accept `context.Context`: report reader
@@ -131,9 +139,12 @@ graph evidence is limited to relationships present in the snapshot; unavailable
 void-lookup and macro-expansion evidence remains indeterminate.
 
 `EvaluateDNSHealth` is the pure posture stage. It consumes a normalized
-portfolio and completed authentication result, rejects mismatched provenance,
-and rolls deterministic findings and explainable scores from record to domain,
-entity, and portfolio. Unknown DNS evidence is not a failure by default.
+portfolio, completed authentication result, and explicit provider catalog;
+rejects mismatched or incomplete provenance; and rolls deterministic findings
+and explainable scores from record to domain, entity, and portfolio. Recognized
+static SPF dependencies carry exact-domain inventory context but never change
+findings, scores, or sender authorization. Unknown DNS evidence is not a failure
+by default.
 Optional DNSSEC authenticated-data evidence is preserved without assuming that
 an unset flag means validation failure.
 

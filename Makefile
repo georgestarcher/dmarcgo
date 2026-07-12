@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check dns-health-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check ci
 
 build:
 	go build ./...
@@ -52,6 +52,9 @@ auth-record-check:
 dns-health-check:
 	go test -run 'Test.*DNSHealth|TestEvaluateDNSHealth' ./...
 
+provider-catalog-check:
+	DMARCGO_PROVIDER_CATALOG_AS_OF=$$(date -u +%F) go test -run 'Test.*ProviderCatalog|Test.*ProviderMatch|Test.*ProviderRecognition|TestEmbeddedProvider' ./...
+
 mod-verify:
 	@set -e; \
 	tmp_dir=$$(mktemp -d); \
@@ -88,11 +91,12 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzParseDKIMKeyRecord -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzParseDMARCPolicyRecord -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzSPFDependencyGraph -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzParseProviderCatalogYAML -fuzztime=5s -timeout=2m .
 
 bench-smoke:
 	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check dns-health-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

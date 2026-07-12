@@ -24,11 +24,11 @@ func TestEvaluateDNSHealthDeterministicRollupsAndFindings(t *testing.T) {
 	authentication := dnsHealthTestAuthentication(t, portfolio, observedAt, nil)
 	options := DNSHealthOptions{Profile: DNSHealthProfileBalanced, GeneratedAt: observedAt.Add(time.Hour)}
 
-	first, err := EvaluateDNSHealth(portfolio, authentication, options)
+	first, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), options)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := EvaluateDNSHealth(portfolio, authentication, options)
+	second, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestEvaluateDNSHealthDeterministicRollupsAndFindings(t *testing.T) {
 func TestEvaluateDNSHealthSharedRecordRetainsEveryScope(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestEvaluateDNSHealthUnknownEvidencePolicy(t *testing.T) {
 	overrides := map[string]DNSObservationStatus{"sister.example.test": DNSObservationTimeout}
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, overrides)
 
-	preserved, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	preserved, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func TestEvaluateDNSHealthUnknownEvidencePolicy(t *testing.T) {
 	if record.Score.Available || record.Score.Evaluation.State != EvaluationStateUnknown {
 		t.Fatalf("preserved unknown score=%+v", record.Score)
 	}
-	penalized, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{UnknownPolicy: DNSHealthUnknownPenalize})
+	penalized, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{UnknownPolicy: DNSHealthUnknownPenalize})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,13 +126,13 @@ func TestEvaluateDNSHealthUnknownEvidencePolicy(t *testing.T) {
 func TestEvaluateDNSHealthProfilesStalenessAndExactContributions(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	conservative, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{
+	conservative, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{
 		Profile: DNSHealthProfileConservative, GeneratedAt: dnsHealthTestTime.Add(48 * time.Hour), MaxSnapshotAge: 24 * time.Hour,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	sensitive, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{
+	sensitive, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{
 		Profile: DNSHealthProfileSensitive, GeneratedAt: dnsHealthTestTime.Add(48 * time.Hour), MaxSnapshotAge: 24 * time.Hour,
 	})
 	if err != nil {
@@ -158,7 +158,7 @@ func TestEvaluateDNSHealthPreservesOptionalDNSSECEvidence(t *testing.T) {
 	authentication := dnsHealthTestAuthenticationEvidence(t, portfolio, dnsHealthTestTime, nil, map[string]DNSSECEvidence{
 		"_dmarc.example.test": {Available: true, AuthenticatedData: false},
 	})
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestEvaluateDNSHealthMissingSelectorAndUnmonitoredPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestEvaluateDNSHealthWeakClassificationDoesNotDuplicateSpecificDeduction(t 
 	values := dnsHealthTestRecordValues()
 	values["_dmarc.marketing.example.test"] += "; t=y"
 	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func TestEvaluateDNSHealthBalancedMissingComponentScores(t *testing.T) {
 		"shared._domainkey.shared-mail.example.test": DNSObservationNoData,
 		"_dmarc.example.test":                        DNSObservationNXDOMAIN,
 	})
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestEvaluateDNSHealthBalancedMissingComponentScores(t *testing.T) {
 func TestDNSHealthMaturityScaleAndManagedEvidenceBoundary(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestDNSHealthSPFOnlyBaselineSeparatesHealthCoverageAndMaturity(t *testing.T
 	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, map[string]string{
 		"brown.example.test": "v=spf1 -all",
 	})
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestDNSHealthReferenceEntityIsExcludedFromPortfolioRollups(t *testing.T) {
 		t.Fatal(err)
 	}
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,7 +319,7 @@ func TestDNSHealthCurrentPracticeDeductions(t *testing.T) {
 	values["marketing.example.test"] = "v=spf1 ?all"
 	values["_dmarc.marketing.example.test"] = "v=DMARC1; p=quarantine; adkim=s; aspf=s; rua=mailto:reports@example.test"
 	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,8 +342,11 @@ func TestEvaluateDNSHealthRejectsMismatchedAndInvalidOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := EvaluateDNSHealth(other, authentication, DNSHealthOptions{}); !errors.Is(err, ErrInvalidAnalysisResult) {
+	if _, err := EvaluateDNSHealth(other, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{}); !errors.Is(err, ErrInvalidAnalysisResult) {
 		t.Fatalf("mismatch error=%v", err)
+	}
+	if _, err := EvaluateDNSHealth(portfolio, authentication, ProviderCatalog{}, DNSHealthOptions{}); !errors.Is(err, ErrInvalidAnalysisResult) {
+		t.Fatalf("empty provider catalog error=%v", err)
 	}
 	for _, options := range []DNSHealthOptions{
 		{Profile: "future"},
@@ -351,16 +354,84 @@ func TestEvaluateDNSHealthRejectsMismatchedAndInvalidOptions(t *testing.T) {
 		{MaxSnapshotAge: -time.Second},
 		{GeneratedAt: dnsHealthTestTime.Add(-time.Second)},
 	} {
-		if _, err := EvaluateDNSHealth(portfolio, authentication, options); !errors.Is(err, ErrInvalidDNSHealthOptions) {
+		if _, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), options); !errors.Is(err, ErrInvalidDNSHealthOptions) {
 			t.Fatalf("options=%+v error=%v", options, err)
 		}
+	}
+}
+
+func TestEvaluateDNSHealthProviderContextIsExactScopeAndScoreNeutral(t *testing.T) {
+	config := dnsHealthTestConfig()
+	config.ExpectedSenders[0].Provider = "google-apps"
+	config.ExpectedSenders = append(config.ExpectedSenders, ExpectedSenderConfig{ID: "other", RequireSPF: true})
+	config.Entities[1].Domains[0].ExpectedSenders = []string{"other"}
+	portfolio, err := NormalizePortfolio(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := dnsHealthTestRecordValues()
+	values["example.test"] = "v=spf1 include:_spf.google.com -all"
+	values["marketing.example.test"] = "v=spf1 include:sender.unknown.example -all"
+	values["sister.example.test"] = "v=spf1 include:_spf.google.com +all"
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
+
+	catalog := dnsHealthTestCatalog(t)
+	withContext, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if withContext.ProviderCatalogDigest() != catalog.Digest() || withContext.ProviderCatalogProvenance().Digest != catalog.Digest() {
+		t.Fatal("provider catalog provenance does not identify the evaluation input")
+	}
+	contexts := withContext.ProviderContexts()
+	if len(contexts) != 3 {
+		t.Fatalf("provider contexts=%+v", contexts)
+	}
+	declared := findDNSHealthProviderContext(t, contexts, "example.test", "google-workspace")
+	if declared.InventoryState != DNSProviderInventoryDeclared || !reflect.DeepEqual(declared.ExpectedSenderIDs, []string{"workspace"}) || !declared.Provider.ContextOnly {
+		t.Fatalf("declared provider context=%+v", declared)
+	}
+	notDeclared := findDNSHealthProviderContext(t, contexts, "sister.example.test", "google-workspace")
+	if notDeclared.InventoryState != DNSProviderInventoryNotDeclared || len(notDeclared.ExpectedSenderIDs) != 0 {
+		t.Fatalf("exact-domain provider inventory=%+v", notDeclared)
+	}
+	for _, context := range contexts {
+		if context.Domain == "sister.example.test" && context.InventoryState != DNSProviderInventoryNotDeclared {
+			t.Fatalf("inherited record changed exact-domain provider inventory: %+v", context)
+		}
+	}
+	sisterSPF := findDNSRecordHealth(t, withContext.Records(), "sister.example.test", DNSRecordSPF, "sister")
+	if !scoreHasContribution(sisterSPF.Score, "dns.health.spf_permissive_all") {
+		t.Fatalf("provider recognition repaired weak SPF: %+v", sisterSPF.Score)
+	}
+
+	unrelatedCatalog, err := NormalizeProviderCatalog(providerCatalogConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	withoutContext, err := EvaluateDNSHealth(portfolio, authentication, unrelatedCatalog, DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(withoutContext.ProviderContexts()) != 0 {
+		t.Fatalf("unrelated catalog produced contexts=%+v", withoutContext.ProviderContexts())
+	}
+	if !reflect.DeepEqual(withContext.PortfolioScore(), withoutContext.PortfolioScore()) ||
+		!reflect.DeepEqual(withContext.Records(), withoutContext.Records()) ||
+		!reflect.DeepEqual(withContext.Findings(), withoutContext.Findings()) {
+		t.Fatal("provider recognition changed DNS health findings or scores")
+	}
+
+	contexts[0].ExpectedSenderIDs[0] = "changed"
+	if reflect.DeepEqual(contexts, withContext.ProviderContexts()) {
+		t.Fatal("mutating provider contexts changed completed DNS health data")
 	}
 }
 
 func TestDNSHealthAccessorsReturnDefensiveCopies(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,9 +522,10 @@ func BenchmarkEvaluateDNSHealthLargePortfolio(b *testing.B) {
 		b.Fatal(err)
 	}
 	authentication := dnsHealthTestAuthentication(b, portfolio, dnsHealthTestTime, nil)
+	catalog := dnsHealthTestCatalog(b)
 	b.ReportAllocs()
 	for range b.N {
-		if _, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{}); err != nil {
+		if _, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{}); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -476,6 +548,7 @@ func TestPrivatePortfolioLiveDNSHealthCompatibility(t *testing.T) {
 	if len(paths) == 0 {
 		t.Skip("private DNS record notes are not present")
 	}
+	catalog := dnsHealthTestCatalog(t)
 	for portfolioIndex, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -503,7 +576,7 @@ func TestPrivatePortfolioLiveDNSHealthCompatibility(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, profile := range []DNSHealthProfileName{DNSHealthProfileConservative, DNSHealthProfileBalanced, DNSHealthProfileSensitive} {
-			result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{Profile: profile})
+			result, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{Profile: profile})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -538,6 +611,15 @@ func dnsHealthTestPortfolio(t testing.TB) Portfolio {
 		t.Fatal(err)
 	}
 	return portfolio
+}
+
+func dnsHealthTestCatalog(t testing.TB) ProviderCatalog {
+	t.Helper()
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return catalog
 }
 
 func dnsHealthTestConfig() PortfolioConfig {
@@ -681,6 +763,17 @@ func findDNSHealthMaturitySignal(t testing.TB, maturity DNSHealthMaturity, code 
 	return DNSHealthMaturitySignal{}
 }
 
+func findDNSHealthProviderContext(t testing.TB, contexts []DNSHealthProviderContext, domain, providerID string) DNSHealthProviderContext {
+	t.Helper()
+	for _, context := range contexts {
+		if context.Domain == domain && context.Provider.ProviderID == providerID {
+			return context
+		}
+	}
+	t.Fatalf("provider context %s/%s not found", domain, providerID)
+	return DNSHealthProviderContext{}
+}
+
 func maturitySignalSatisfied(maturity DNSHealthMaturity, code string) bool {
 	for _, signal := range maturity.Signals {
 		if signal.Code == code {
@@ -744,7 +837,7 @@ func recomputeDNSHealthScore(score DNSHealthScore) int {
 func TestDNSHealthResultJSONShapeIsStable(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, nil)
-	result, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

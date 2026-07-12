@@ -1,20 +1,24 @@
 # DNS authentication health
 
-DNS health is a pure evaluation stage over a normalized `Portfolio` and a
-completed `DNSAuthenticationResult`. It does not accept reports, perform DNS
-queries, read files, reparse TXT text, or consult the current clock.
+DNS health is a pure evaluation stage over a normalized `Portfolio`, a
+completed `DNSAuthenticationResult`, and an explicit `ProviderCatalog`. It does
+not accept reports, perform DNS queries, read files, reparse TXT text, or
+consult the current clock. Provider recognition adds inventory context only;
+it never changes scores or sender authorization.
 
 ## Pipeline
 
 ```text
-NormalizePortfolio -> CollectDNSSnapshot -> ParseAuthenticationRecords -> EvaluateDNSHealth
-       pure                explicit I/O               pure                       pure
+NormalizePortfolio -> CollectDNSSnapshot -> ParseAuthenticationRecords --+
+       pure                explicit I/O               pure               +-> EvaluateDNSHealth
+ProviderCatalog ---------------------------------------------------------+          pure
 ```
 
-Each stage retains the portfolio, snapshot, and authentication-result digests
-needed to reject mismatched inputs. `EvaluateDNSHealth` defaults its generation
-time to the DNS observation time. Set `DNSHealthOptions.GeneratedAt` explicitly
-when evaluating staleness or creating a later reproducible assessment.
+The result retains the portfolio, snapshot, authentication-result, and provider
+catalog digests needed to reproduce and validate its inputs. `EvaluateDNSHealth`
+defaults its generation time to the DNS observation time. Set
+`DNSHealthOptions.GeneratedAt` explicitly when evaluating staleness or creating
+a later reproducible assessment.
 
 ## Scopes and evidence
 
@@ -25,6 +29,7 @@ The result contains:
 - entity rollups for subsidiaries, acquisitions, and sister organizations;
 - a portfolio rollup;
 - stable findings linked to evidence IDs from authentication parsing;
+- recognized static SPF dependencies with exact-domain expected-sender context;
 - complete score contributions for deterministic recomputation.
 
 A shared DKIM selector produces a distinct record-scope assessment for every
@@ -157,7 +162,11 @@ The evaluator reports, among other conditions:
 ## Example
 
 ```go
-result, err := dmarcgo.EvaluateDNSHealth(portfolio, authentication,
+catalog, err := dmarcgo.DefaultProviderCatalog()
+if err != nil {
+    return err
+}
+result, err := dmarcgo.EvaluateDNSHealth(portfolio, authentication, catalog,
     dmarcgo.DNSHealthOptions{
         Profile:        dmarcgo.DNSHealthProfileBalanced,
         GeneratedAt:    assessmentTime,

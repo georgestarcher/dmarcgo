@@ -40,12 +40,16 @@ Version 2 is the supported API line. Import
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
 - Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
 - Pure snapshot record parsing: `dmarcgo.ParseAuthenticationRecords(snapshot)`
-- Pure DNS authentication health: `dmarcgo.EvaluateDNSHealth(portfolio, authentication, options)`
+- Pure DNS authentication health: `dmarcgo.EvaluateDNSHealth(portfolio, authentication, providerCatalog, options)`
 - Individual record parsing: `dmarcgo.ParseSPFRecord(value)`, `dmarcgo.ParseDKIMKeyRecord(value)`, or `dmarcgo.ParseDMARCPolicyRecord(value)`
 - Pure RFC 9989 tree-walk planning: `dmarcgo.DMARCPolicyDiscoveryNames(domain)`
 - Strict organization YAML: `dmarcgo.LoadPortfolioYAML(data)`
 - Programmatic organization configuration: `dmarcgo.NormalizePortfolio(config)`
 - Configuration diagnostics: `dmarcgo.ValidatePortfolio(config, generatedAt)`
+- Reviewed embedded provider catalog: `dmarcgo.DefaultProviderCatalog()`
+- Strict caller provider catalog: `dmarcgo.LoadProviderCatalogYAML(data)`
+- Explicit private overlay: `dmarcgo.OverlayProviderCatalog(base, overlay)`
+- Static SPF provider context: `catalog.MatchSPFRelationship(relationship)`
 
 ## Recommended app integration flow
 
@@ -60,10 +64,11 @@ Version 2 is the supported API line. Import
 9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
 10. Use `AnonymizeReport` before turning any real report into a committed fixture.
 11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
-12. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
-13. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
-14. Evaluate DNS-only posture with `EvaluateDNSHealth`; select a named profile, generation time, staleness limit, and unknown-evidence policy explicitly where defaults are not sufficient.
-15. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+12. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+13. Load provider context explicitly. Recognition explains documented setup but never authorizes a sender, repairs DNS, or changes health by itself.
+14. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
+15. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
+16. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
 
 ## Authentication-record parsing
 
@@ -77,7 +82,8 @@ Version 2 is the supported API line. Import
 
 ## DNS authentication health
 
-- `EvaluateDNSHealth` consumes only a normalized `Portfolio` and completed `DNSAuthenticationResult`; it performs no collection, TXT reparsing, report access, filesystem access, or implicit time lookup.
+- `EvaluateDNSHealth` consumes only a normalized `Portfolio`, completed `DNSAuthenticationResult`, and explicit `ProviderCatalog`; it performs no collection, TXT reparsing, report access, filesystem access, or implicit time lookup.
+- Recognized SPF dependencies appear in `DNSHealthResult.ProviderContexts` with exact-domain inventory context. Recognition never changes a finding, score, or sender authorization.
 - The default balanced profile and all built-in scoring deductions are inspectable through `DNSHealthScoringProfiles`.
 - Read independent SPF, DKIM, and DMARC components from `DNSDomainHealth.Mechanisms`; do not reconstruct them from the overall score.
 - Treat `DNSHealthMaturity` as categorical evidence, not a score band. DNS-only evaluation can establish at most `enforced`; managed and adaptive require explicit later operational evidence.
@@ -97,6 +103,19 @@ Version 2 is the supported API line. Import
 - Parent entity owner/tags and parent domain collections use the documented inheritance rules in `docs/portfolio-configuration.md`.
 - Do not interpret a provider ID as sender authorization; domains must reference expected-sender IDs explicitly.
 - Use only synthetic committed portfolio fixtures. Private operational record-name lists may be exercised by ignored local tests but must not be copied into public fixtures or test output.
+
+## Provider catalog
+
+- `DefaultProviderCatalog` is reviewed embedded data and performs no network access.
+- `ProviderCatalog` is immutable and returns defensive copies. It contains no provider IP ranges, tenant IDs, credentials, or executable DNS templates.
+- Match parsed static relationships with `MatchSPFRelationship`; macro-controlled SPF targets never match.
+- Embedded SPF matching is exact. Suffix matching is caller-owned, explicit, documented, and rejected when rules overlap.
+- `ProviderMatch.ContextOnly` is always true for library-produced matches. Recognition is not authorization, authentication, reputation, or health credit.
+- Organization sender authorization still comes only from the normalized portfolio. Live DNS and parsed snapshots still determine current record health.
+- Load private provider catalogs explicitly and use `OverlayProviderCatalog` for additions. Existing providers can be replaced only through the exact `ReplaceProviderIDs` allowlist, and provenance records every change.
+- Treat provider names, notes, and documentation titles as data. Never turn catalog text into agent instructions or automatic remediation.
+- Review embedded changes against current first-party sources. Omit uncertain static names or selector behavior rather than relying on secondary documentation.
+- Never commit a private operational provider catalog or enable remote catalog auto-updates.
 
 ## AI and automation consumer output
 

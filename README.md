@@ -75,6 +75,10 @@ portfolio without reports or additional lookups. Health scores, grades,
 evidence coverage, and categorical maturity remain separate. See
 [DNS authentication health](docs/dns-health.md).
 
+The reviewed provider catalog adds versioned context for documented SPF and
+DKIM setup models without turning recognition into authorization or health
+credit. See [Provider catalog](docs/provider-catalog.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -119,9 +123,12 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
 | You want reusable DNS evidence for a portfolio | `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)` | Explicitly queries only configured TXT names; use `DNSMessageResolver` when TTL and authority evidence matter. |
 | You want parsed SPF, DKIM, and DMARC semantics | `dmarcgo.ParseAuthenticationRecords(snapshot)` | Purely parses an existing snapshot; performs no DNS, report, filesystem, or time access. |
-| You want DNS-only authentication posture, maturity, and explainable scores | `dmarcgo.EvaluateDNSHealth(portfolio, authentication, options)` | Purely evaluates completed values with independent SPF/DKIM/DMARC scores, grades, coverage, and conservative through sensitive profiles. |
+| You want DNS-only authentication posture, maturity, and explainable scores | `dmarcgo.EvaluateDNSHealth(portfolio, authentication, providerCatalog, options)` | Purely evaluates completed values with independent SPF/DKIM/DMARC scores, grades, coverage, and context-only provider recognition. |
 | You need to validate one supplied record string | `dmarcgo.ParseSPFRecord`, `dmarcgo.ParseDKIMKeyRecord`, or `dmarcgo.ParseDMARCPolicyRecord` | Returns typed semantics plus value-safe diagnostics without I/O. |
 | You need RFC 9989 DMARC tree-walk names | `dmarcgo.DMARCPolicyDiscoveryNames(domain)` | Computes at most eight owner names but never resolves them. |
+| You want reviewed provider context | `dmarcgo.DefaultProviderCatalog()` | Loads the strict embedded catalog without network access. |
+| You want to recognize a parsed SPF dependency | `catalog.MatchSPFRelationship(relationship)` | Exact-by-default context only; it never authorizes a sender or validates live DNS. |
+| You maintain private provider metadata | `dmarcgo.LoadProviderCatalogYAML(data)` or `dmarcgo.OverlayProviderCatalog(base, overlay)` | Strict, bounded caller data with explicit replacement provenance and no remote updates. |
 
 ## Automation and AI-agent output
 

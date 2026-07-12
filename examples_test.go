@@ -50,7 +50,11 @@ func ExampleEvaluateDNSHealth() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	health, err := EvaluateDNSHealth(portfolio, authentication, DNSHealthOptions{Profile: DNSHealthProfileBalanced})
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		log.Fatal(err)
+	}
+	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{Profile: DNSHealthProfileBalanced})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -163,6 +167,20 @@ func ExampleParseSPFRecord() {
 	record, diagnostics := ParseSPFRecord("v=spf1 include:sender.example.test -all")
 	fmt.Printf("status=%s terms=%d lookups=%d diagnostics=%d\n", record.Status, len(record.Terms), record.Lookup.DirectTerms, len(diagnostics))
 	// Output: status=valid terms=2 lookups=1 diagnostics=0
+}
+
+func ExampleDefaultProviderCatalog() {
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		log.Fatal(err)
+	}
+	record, diagnostics := ParseSPFRecord("v=spf1 include:_spf.google.com -all")
+	if len(diagnostics) != 0 {
+		log.Fatal(diagnostics)
+	}
+	match, ok := catalog.MatchSPFRelationship(record.Relationships[0])
+	fmt.Printf("provider=%s context_only=%t matched=%t\n", match.ProviderID, match.ContextOnly, ok)
+	// Output: provider=google-workspace context_only=true matched=true
 }
 
 func ExampleParseDMARCPolicyRecord() {

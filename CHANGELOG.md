@@ -7,6 +7,22 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+### Added
+
+- Shared analysis-mode, result-metadata, evaluation-state, sensitivity,
+  identifier, and clock contracts for independently callable organizational
+  analysis stages.
+- An architecture guide defining package ownership, dependency direction,
+  side-effect boundaries, deterministic identifiers, persistence, and stage
+  composition for the organizational email-authentication feature roadmap.
+
+### Changed
+
+- `BuildValidationOutput` now accepts a completed `ReportValidationResult`
+  instead of a report plus findings. Use `report.ValidationResult(mode,
+  generatedAt)` to perform validation before serialization; output conversion
+  no longer reruns report analysis.
+
 ## [2.1.0] - 2026-07-11
 
 Version 2.1 adds a versioned, privacy-aware output contract for automation and

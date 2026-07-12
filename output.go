@@ -39,14 +39,16 @@ var ErrOutputRedaction = errors.New("output redaction failed")
 var ErrOutputSerialization = errors.New("output serialization failed")
 
 // OutputMode identifies the analysis result carried by an OutputEnvelope.
-type OutputMode string
+// It aliases AnalysisMode so completed analysis values and encoders share one
+// canonical mode vocabulary.
+type OutputMode = AnalysisMode
 
 const (
-	OutputModeReportValidation OutputMode = "report_validation"
-	OutputModeReportSummary    OutputMode = "report_summary"
-	OutputModeAggregateSummary OutputMode = "aggregate_summary"
-	OutputModeReportRows       OutputMode = "report_rows"
-	OutputModeSourceReview     OutputMode = "source_review"
+	OutputModeReportValidation = AnalysisModeReportValidation
+	OutputModeReportSummary    = AnalysisModeReportSummary
+	OutputModeAggregateSummary = AnalysisModeAggregateSummary
+	OutputModeReportRows       = AnalysisModeReportRows
+	OutputModeSourceReview     = AnalysisModeSourceReview
 )
 
 // OutputProfile controls representation. It never triggers analysis or I/O.
@@ -84,34 +86,14 @@ const (
 	OutputStatusFailed                OutputStatus = "failed"
 )
 
-// OutputEvaluationState describes whether the requested analysis was performed.
-type OutputEvaluationState string
+// OutputEvaluationState aliases the shared EvaluationState contract.
+type OutputEvaluationState = EvaluationState
 
 const (
-	OutputEvaluationEvaluated     OutputEvaluationState = "evaluated"
-	OutputEvaluationNotEvaluated  OutputEvaluationState = "not_evaluated"
-	OutputEvaluationUnknown       OutputEvaluationState = "unknown"
-	OutputEvaluationNotApplicable OutputEvaluationState = "not_applicable"
-)
-
-// FindingSeverity is the operational importance of a finding.
-type FindingSeverity string
-
-const (
-	FindingSeverityInfo     FindingSeverity = "info"
-	FindingSeverityLow      FindingSeverity = "low"
-	FindingSeverityMedium   FindingSeverity = "medium"
-	FindingSeverityHigh     FindingSeverity = "high"
-	FindingSeverityCritical FindingSeverity = "critical"
-)
-
-// FindingConfidence describes how strongly the supplied evidence supports a finding.
-type FindingConfidence string
-
-const (
-	FindingConfidenceLow    FindingConfidence = "low"
-	FindingConfidenceMedium FindingConfidence = "medium"
-	FindingConfidenceHigh   FindingConfidence = "high"
+	OutputEvaluationEvaluated     = EvaluationStateEvaluated
+	OutputEvaluationNotEvaluated  = EvaluationStateNotEvaluated
+	OutputEvaluationUnknown       = EvaluationStateUnknown
+	OutputEvaluationNotApplicable = EvaluationStateNotApplicable
 )
 
 // OutputOptions controls envelope representation without rerunning analysis.
@@ -151,10 +133,7 @@ type OutputEnvelope struct {
 
 // OutputEvaluation records whether analysis was performed and why it was not
 // performed when the state is not evaluated.
-type OutputEvaluation struct {
-	State  OutputEvaluationState `json:"state"`
-	Reason string                `json:"reason,omitempty"`
-}
+type OutputEvaluation = Evaluation
 
 type OutputScope struct {
 	TargetDomains []string `json:"target_domains"`
@@ -173,7 +152,7 @@ type OutputSummary struct {
 }
 
 type OutputFinding struct {
-	Code        string            `json:"code"`
+	Code        FindingCode       `json:"code"`
 	Category    string            `json:"category"`
 	Severity    FindingSeverity   `json:"severity"`
 	Confidence  FindingConfidence `json:"confidence"`
@@ -182,7 +161,7 @@ type OutputFinding struct {
 	Subject     map[string]string `json:"subject"`
 	Evidence    []OutputEvidence  `json:"evidence"`
 	Limitations []string          `json:"limitations"`
-	ActionCodes []string          `json:"action_codes"`
+	ActionCodes []ActionCode      `json:"action_codes"`
 }
 
 type OutputEvidence struct {
@@ -191,12 +170,12 @@ type OutputEvidence struct {
 	Path        string                `json:"path,omitempty"`
 	Value       any                   `json:"value"`
 	State       OutputEvaluationState `json:"state"`
-	Provenance  string                `json:"provenance,omitempty"`
-	Sensitivity string                `json:"sensitivity"`
+	Provenance  ProvenanceID          `json:"provenance,omitempty"`
+	Sensitivity Sensitivity           `json:"sensitivity"`
 }
 
 type OutputAction struct {
-	Code       string            `json:"code"`
+	Code       ActionCode        `json:"code"`
 	Priority   int               `json:"priority"`
 	Title      string            `json:"title"`
 	Reason     string            `json:"reason"`
@@ -210,11 +189,11 @@ type AutomationPolicy struct {
 }
 
 type OutputMessage struct {
-	Code      string `json:"code"`
-	Category  string `json:"category"`
-	Message   string `json:"message"`
-	Path      string `json:"path,omitempty"`
-	Retryable bool   `json:"retryable"`
+	Code      DiagnosticCode `json:"code"`
+	Category  string         `json:"category"`
+	Message   string         `json:"message"`
+	Path      string         `json:"path,omitempty"`
+	Retryable bool           `json:"retryable"`
 }
 
 const (
@@ -227,9 +206,19 @@ const (
 )
 
 type OutputProvenance struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-	Key  string `json:"key,omitempty"`
+	ID   ProvenanceID `json:"id"`
+	Type string       `json:"type"`
+	Key  string       `json:"key,omitempty"`
+}
+
+// ResultMetadata returns shared metadata without performing analysis or I/O.
+func (output OutputEnvelope) ResultMetadata() ResultMetadata {
+	return ResultMetadata{
+		ContractVersion: AnalysisContractVersion,
+		Mode:            output.Mode,
+		GeneratedAt:     output.GeneratedAt,
+		Evaluation:      output.Evaluation,
+	}
 }
 
 type RedactionMetadata struct {
@@ -303,20 +292,34 @@ func OutputMessageForError(err error) OutputMessage {
 	}
 }
 
-// BuildValidationOutput creates an envelope from already computed validation findings.
-func BuildValidationOutput(report *AggregateReport, findings []ValidationFinding, options OutputOptions) (OutputEnvelope, error) {
+// BuildValidationOutput creates an envelope from an already computed report
+// validation result.
+func BuildValidationOutput(result ReportValidationResult, options OutputOptions) (OutputEnvelope, error) {
+	metadata := result.ResultMetadata()
+	if metadata.ContractVersion != AnalysisContractVersion {
+		return OutputEnvelope{}, fmt.Errorf("%w: unsupported contract version %q", ErrInvalidAnalysisResult, metadata.ContractVersion)
+	}
+	if metadata.Mode != AnalysisModeReportValidation {
+		return OutputEnvelope{}, fmt.Errorf("%w: validation result has mode %q", ErrInvalidAnalysisResult, metadata.Mode)
+	}
+	if metadata.GeneratedAt.IsZero() {
+		return OutputEnvelope{}, fmt.Errorf("%w: validation result requires generated time", ErrInvalidAnalysisResult)
+	}
+	if metadata.Evaluation.State != EvaluationStateEvaluated {
+		return OutputEnvelope{}, fmt.Errorf("%w: validation result state is %q; use BuildFailureOutput", ErrInvalidAnalysisResult, metadata.Evaluation.State)
+	}
+	options.GeneratedAt = metadata.GeneratedAt
 	options, err := normalizeOutputOptions(options)
 	if err != nil {
 		return OutputEnvelope{}, err
 	}
-	scope := OutputScope{}
-	input := OutputInput{}
-	if report != nil {
-		scope.TargetDomains = compactSortedStrings([]string{report.PolicyPublished.Domain})
-		input = OutputInput{ReportCount: 1, RecordCount: len(report.Record), MessageCount: report.Summary().TotalMessages}
-	}
-	out := baseOutput(OutputModeReportValidation, scope, input, options)
-	data := append([]ValidationFinding{}, findings...)
+	out := baseOutput(
+		OutputModeReportValidation,
+		OutputScope{TargetDomains: compactSortedStrings([]string{result.TargetDomain})},
+		OutputInput{ReportCount: result.ReportCount, RecordCount: result.RecordCount, MessageCount: result.MessageCount},
+		options,
+	)
+	data := append([]ValidationFinding{}, result.Findings...)
 	sort.SliceStable(data, func(i, j int) bool {
 		if validationSeverityRank(data[i].Severity) != validationSeverityRank(data[j].Severity) {
 			return validationSeverityRank(data[i].Severity) > validationSeverityRank(data[j].Severity)
@@ -339,8 +342,8 @@ func BuildValidationOutput(report *AggregateReport, findings []ValidationFinding
 			Code: "report.validation", Category: "data_quality", Severity: severity, Confidence: FindingConfidenceHigh,
 			Title: "Report validation finding", Explanation: "The report field did not satisfy the selected validation rules.",
 			Subject:     map[string]string{"path": finding.Path},
-			Evidence:    []OutputEvidence{{Type: "validation_result", Source: "dmarcgo", Path: finding.Path, Value: finding.Message, State: OutputEvaluationEvaluated, Sensitivity: "operational"}},
-			Limitations: []string{}, ActionCodes: []string{"review_report_data"},
+			Evidence:    []OutputEvidence{{Type: "validation_result", Source: "dmarcgo", Path: finding.Path, Value: finding.Message, State: OutputEvaluationEvaluated, Sensitivity: SensitivityOperational}},
+			Limitations: []string{}, ActionCodes: []ActionCode{"review_report_data"},
 		})
 	}
 	if len(data) == 0 {
@@ -441,8 +444,8 @@ func BuildSourceReviewOutput(review SourceReview, options OutputOptions) (Output
 		out.Findings = []OutputFinding{{
 			Code: "report.unauthenticated_sources", Category: "source_review", Severity: FindingSeverityMedium, Confidence: FindingConfidenceHigh,
 			Title: "Unauthenticated sources observed", Explanation: "These sources used the target Header From domain while both policy-evaluated DKIM and SPF failed.",
-			Subject: map[string]string{"domain": review.Domain}, Evidence: []OutputEvidence{{Type: "source_summary", Source: "aggregate_report", Value: map[string]int{"sources": totalUnauthenticated, "messages": messages}, State: OutputEvaluationEvaluated, Sensitivity: "operational"}},
-			Limitations: []string{"DMARC aggregate evidence does not establish malicious intent."}, ActionCodes: []string{"review_unauthenticated_sources"},
+			Subject: map[string]string{"domain": review.Domain}, Evidence: []OutputEvidence{{Type: "source_summary", Source: "aggregate_report", Value: map[string]int{"sources": totalUnauthenticated, "messages": messages}, State: OutputEvaluationEvaluated, Sensitivity: SensitivityOperational}},
+			Limitations: []string{"DMARC aggregate evidence does not establish malicious intent."}, ActionCodes: []ActionCode{"review_unauthenticated_sources"},
 		}}
 		out.RecommendedActions = []OutputAction{reviewAction("review_unauthenticated_sources", "Review unauthenticated sending sources", "Confirm whether the sources are expected before taking defensive action.")}
 		out.Summary = OutputSummary{Headline: "Unauthenticated sources require review; the report alone does not establish malicious intent.", Severity: FindingSeverityMedium, Confidence: FindingConfidenceHigh}
@@ -549,8 +552,8 @@ func addAuthenticationFindings(out *OutputEnvelope, failed, invalid int, domain 
 		out.Findings = append(out.Findings, OutputFinding{
 			Code: "report.authentication_failures", Category: "authentication", Severity: FindingSeverityMedium, Confidence: FindingConfidenceHigh,
 			Title: "DMARC authentication failures observed", Explanation: "Messages failed both policy-evaluated DKIM and SPF alignment.",
-			Subject: map[string]string{"domain": domain}, Evidence: []OutputEvidence{{Type: "authentication_result", Source: "aggregate_report", Value: map[string]int{"failed_messages": failed}, State: OutputEvaluationEvaluated, Sensitivity: "operational"}},
-			Limitations: []string{"Authentication failure does not by itself prove spoofing or malicious intent."}, ActionCodes: []string{"review_authentication_failures"},
+			Subject: map[string]string{"domain": domain}, Evidence: []OutputEvidence{{Type: "authentication_result", Source: "aggregate_report", Value: map[string]int{"failed_messages": failed}, State: OutputEvaluationEvaluated, Sensitivity: SensitivityOperational}},
+			Limitations: []string{"Authentication failure does not by itself prove spoofing or malicious intent."}, ActionCodes: []ActionCode{"review_authentication_failures"},
 		})
 		out.RecommendedActions = append(out.RecommendedActions, reviewAction("review_authentication_failures", "Review authentication failures", "Determine whether failed traffic is an expected sender configuration issue or unauthorized use."))
 	}
@@ -558,8 +561,8 @@ func addAuthenticationFindings(out *OutputEnvelope, failed, invalid int, domain 
 		out.Findings = append(out.Findings, OutputFinding{
 			Code: "report.invalid_records", Category: "data_quality", Severity: FindingSeverityLow, Confidence: FindingConfidenceHigh,
 			Title: "Invalid report records excluded from message totals", Explanation: "One or more records had invalid counts and were excluded from message totals.",
-			Subject: map[string]string{}, Evidence: []OutputEvidence{{Type: "validation_result", Source: "aggregate_report", Value: map[string]int{"invalid_records": invalid}, State: OutputEvaluationEvaluated, Sensitivity: "operational"}},
-			Limitations: []string{}, ActionCodes: []string{"review_report_data"},
+			Subject: map[string]string{}, Evidence: []OutputEvidence{{Type: "validation_result", Source: "aggregate_report", Value: map[string]int{"invalid_records": invalid}, State: OutputEvaluationEvaluated, Sensitivity: SensitivityOperational}},
+			Limitations: []string{}, ActionCodes: []ActionCode{"review_report_data"},
 		})
 	}
 	if len(out.Findings) == 0 {
@@ -643,7 +646,7 @@ func redactOutput(out OutputEnvelope) (OutputEnvelope, error) {
 			}
 			out.Findings[i].Evidence[j].Value = value
 			out.Findings[i].Evidence[j].Path = redactOptionalText("evidence_path", out.Findings[i].Evidence[j].Path)
-			out.Findings[i].Evidence[j].Provenance = redactOptionalText("provenance", out.Findings[i].Evidence[j].Provenance)
+			out.Findings[i].Evidence[j].Provenance = ProvenanceID(redactOptionalText("provenance", string(out.Findings[i].Evidence[j].Provenance)))
 		}
 	}
 	for i := range out.RecommendedActions {
@@ -968,7 +971,7 @@ func clearRestrictedFeatureText(row *FeatureRow) {
 }
 
 func reviewAction(code, title, reason string) OutputAction {
-	return OutputAction{Code: code, Priority: 1, Title: title, Reason: reason, Target: map[string]string{}, Automation: AutomationPolicy{Eligible: false, Reason: "DMARC aggregate evidence requires organizational context and human authorization."}}
+	return OutputAction{Code: ActionCode(code), Priority: 1, Title: title, Reason: reason, Target: map[string]string{}, Automation: AutomationPolicy{Eligible: false, Reason: "DMARC aggregate evidence requires organizational context and human authorization."}}
 }
 
 func highestSeverity(findings []OutputFinding) FindingSeverity {

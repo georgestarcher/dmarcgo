@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // ValidationSeverity classifies report validation findings.
@@ -30,6 +31,53 @@ type ValidationFinding struct {
 	Severity ValidationSeverity `json:"severity"`
 	Path     string             `json:"path"`
 	Message  string             `json:"message"`
+}
+
+// ReportValidationResult is a completed report-validation result suitable for
+// inspection, persistence, or output serialization without rerunning report
+// analysis.
+type ReportValidationResult struct {
+	Metadata     ResultMetadata      `json:"metadata"`
+	TargetDomain string              `json:"target_domain"`
+	ReportCount  int                 `json:"report_count"`
+	RecordCount  int                 `json:"record_count"`
+	MessageCount int                 `json:"message_count"`
+	Findings     []ValidationFinding `json:"findings"`
+}
+
+// ResultMetadata returns the completed validation metadata without performing
+// analysis or I/O.
+func (result ReportValidationResult) ResultMetadata() ResultMetadata {
+	return result.Metadata
+}
+
+// ValidationResult validates the report in mode and captures the counts needed
+// by downstream output builders. A nil report produces a not-evaluated result
+// that output builders reject; use BuildFailureOutput for prerequisite errors.
+func (r *AggregateReport) ValidationResult(mode ValidationMode, generatedAt time.Time) ReportValidationResult {
+	metadata := ResultMetadata{
+		ContractVersion: AnalysisContractVersion,
+		Mode:            AnalysisModeReportValidation,
+		GeneratedAt:     generatedAt.UTC(),
+		Evaluation:      Evaluation{State: EvaluationStateEvaluated},
+	}
+	if r == nil {
+		metadata.Evaluation = Evaluation{State: EvaluationStateNotEvaluated, Reason: "No report was supplied for validation."}
+		return ReportValidationResult{Metadata: metadata, Findings: []ValidationFinding{}}
+	}
+	summary := r.Summary()
+	findings := r.ValidateWithMode(mode)
+	if findings == nil {
+		findings = []ValidationFinding{}
+	}
+	return ReportValidationResult{
+		Metadata:     metadata,
+		TargetDomain: r.PolicyPublished.Domain,
+		ReportCount:  1,
+		RecordCount:  summary.TotalRecords,
+		MessageCount: summary.TotalMessages,
+		Findings:     findings,
+	}
 }
 
 // Validate checks required aggregate-report fields and common value constraints

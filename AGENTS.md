@@ -61,7 +61,7 @@ Version 2 is the supported API line. Import
 - Set `GeneratedAt` explicitly when reproducible output matters.
 - Set `MaxItems` to bound each named collection supplied to a model and inspect `truncation.collections` for total and returned counts.
 - Treat stable finding and action codes as the contract; explanatory prose may improve between releases.
-- `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis. Use `OutputMessageForError` plus `BuildFailureOutput` when a prerequisite failed before evaluation.
+- `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis. Create validation input with `report.ValidationResult(mode, generatedAt)`. Use `OutputMessageForError` plus `BuildFailureOutput` when a prerequisite failed before evaluation.
 - `WriteOutputJSONL` emits one complete self-describing envelope per line.
 - Use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or `schemas/output/v1.json` to discover and validate downstream contracts.
 - Never convert a recommendation into an automatic defensive action unless the consuming application applies its own authorization policy.

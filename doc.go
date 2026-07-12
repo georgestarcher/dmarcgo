@@ -26,6 +26,11 @@
 // analysis, or network access. Use OutputSchemaForVersion() and
 // SupportedOutputModes() for contract discovery.
 //
+// AnalysisMode, ResultMetadata, EvaluationState, and Result define the shared
+// conventions used by independently callable analysis stages. Networked stages
+// accept explicit dependencies and Clock values; pure analysis and output
+// stages consume already completed values without hidden I/O.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

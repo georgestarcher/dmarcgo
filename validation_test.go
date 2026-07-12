@@ -35,6 +35,34 @@ func TestValidateFindings(t *testing.T) {
 	}
 }
 
+func TestReportValidationResultIsCompletedAndIndependent(t *testing.T) {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result := report.ValidationResult(ValidationModeCompatibility, outputTestTime)
+	if result.TargetDomain != "example.com" || result.ReportCount != 1 || result.RecordCount != 2 || result.MessageCount != 5 {
+		t.Fatalf("unexpected validation result counts: %+v", result)
+	}
+	if result.Findings == nil {
+		t.Fatal("completed validation result must use a non-nil findings collection")
+	}
+
+	report.PolicyPublished.Domain = "changed.example"
+	if result.TargetDomain != "example.com" {
+		t.Fatalf("validation result changed with report: %+v", result)
+	}
+}
+
+func TestNilReportValidationResult(t *testing.T) {
+	var report *AggregateReport
+	result := report.ValidationResult(ValidationModeCompatibility, outputTestTime)
+	if result.ReportCount != 0 || result.Findings == nil || result.Metadata.Evaluation.State != EvaluationStateNotEvaluated {
+		t.Fatalf("unexpected nil-report validation result: %+v", result)
+	}
+}
+
 func TestMergeSummariesAndSummarizeReports(t *testing.T) {
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {

@@ -30,6 +30,33 @@ func ExampleBuildReportSummaryOutput() {
 	// Output: mode=report_summary status=completed findings=0
 }
 
+func ExampleBuildValidationOutput() {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	generatedAt := time.Date(2026, 7, 12, 12, 0, 0, 0, time.UTC)
+	result := report.ValidationResult(ValidationModeCompatibility, generatedAt)
+	output, err := BuildValidationOutput(result, OutputOptions{
+		Profile: OutputProfileAutomation,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("mode=%s findings=%d\n", output.Mode, len(output.Findings))
+	// Output:
+	// mode=report_validation findings=0
+}
+
+func ExampleStableAnalysisID() {
+	first := StableAnalysisID("finding", "report.authentication_failures", "example.test")
+	second := StableAnalysisID("finding", "report.authentication_failures", "example.test")
+	fmt.Println(first == second)
+	// Output: true
+}
+
 // ExampleBuildFailureOutput demonstrates a stable error envelope for work that
 // could not be evaluated.
 func ExampleBuildFailureOutput() {

@@ -3,6 +3,7 @@ package dmarcgo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -185,6 +186,45 @@ func TestCollectDNSSnapshotRetriesTransientFailure(t *testing.T) {
 	observation := snapshot.Observations()[0]
 	if observation.Status != DNSObservationSuccess || observation.Attempts != 2 || resolver.callCount("one.test") != 2 {
 		t.Fatalf("retry observation = %+v calls=%d", observation, resolver.callCount("one.test"))
+	}
+}
+
+func TestCollectDNSSnapshotRejectsMisconfiguredBuiltInResolvers(t *testing.T) {
+	portfolio := singleDNSNamePortfolio(t)
+	for _, test := range []struct {
+		name     string
+		resolver TXTResolver
+	}{
+		{name: "net resolver", resolver: NetTXTResolver{}},
+		{name: "DNS message resolver", resolver: DNSMessageResolver{}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, test.resolver, DNSCollectionOptions{})
+			if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
+				t.Fatalf("error = %v", err)
+			}
+			if snapshot.ResultMetadata().Mode != "" || len(snapshot.Observations()) != 0 {
+				t.Fatalf("misconfiguration produced snapshot evidence: %+v", snapshot)
+			}
+		})
+	}
+}
+
+func TestCollectDNSSnapshotPropagatesRuntimeResolverMisconfiguration(t *testing.T) {
+	portfolio := singleDNSNamePortfolio(t)
+	resolver := newFixtureTXTResolver()
+	resolver.errors["one.test"] = []error{fmt.Errorf("%w: fixture is incomplete", ErrInvalidDNSCollectionOptions)}
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{
+		Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxAttempts: 3,
+	})
+	if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
+		t.Fatalf("error = %v", err)
+	}
+	if resolver.callCount("one.test") != 1 {
+		t.Fatalf("misconfiguration lookup calls = %d", resolver.callCount("one.test"))
+	}
+	if snapshot.ResultMetadata().Mode != "" || len(snapshot.Observations()) != 0 {
+		t.Fatalf("misconfiguration produced snapshot evidence: %+v", snapshot)
 	}
 }
 

@@ -251,6 +251,11 @@ type dnsLookupOutcome struct {
 	observation DNSObservation
 	diagnostic  *DNSCollectionDiagnostic
 	failed      bool
+	fatal       bool
+}
+
+type txtResolverValidator interface {
+	validateTXTResolver() error
 }
 
 // CollectDNSSnapshot explicitly resolves all configured SPF, DKIM, and DMARC
@@ -267,6 +272,11 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	}
 	if resolver == nil {
 		return DNSSnapshot{}, fmt.Errorf("%w: resolver is required", ErrInvalidDNSCollectionOptions)
+	}
+	if validator, ok := resolver.(txtResolverValidator); ok {
+		if err := validator.validateTXTResolver(); err != nil {
+			return DNSSnapshot{}, err
+		}
 	}
 
 	observedAt := options.Clock.Now().UTC()
@@ -286,6 +296,8 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		}
 	}
 
+	workCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	jobs := make(chan int)
 	results := make(chan dnsLookupOutcome, len(plan))
 	var workers sync.WaitGroup
@@ -298,8 +310,11 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		go func() {
 			defer workers.Done()
 			for index := range jobs {
-				outcome := collectDNSObservation(ctx, plan[index], resolver, options)
+				outcome := collectDNSObservation(workCtx, plan[index], resolver, options)
 				outcome.index = index
+				if outcome.fatal {
+					cancel()
+				}
 				results <- outcome
 			}
 		}()
@@ -310,7 +325,7 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		for index := range plan {
 			select {
 			case jobs <- index:
-			case <-ctx.Done():
+			case <-workCtx.Done():
 				return
 			}
 		}
@@ -321,12 +336,14 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	}()
 
 	diagnostics := make([]DNSCollectionDiagnostic, 0)
+	fatal := false
 	for outcome := range results {
 		observations[outcome.index] = outcome.observation
 		completed[outcome.index] = true
 		if outcome.diagnostic != nil {
 			diagnostics = append(diagnostics, *outcome.diagnostic)
 		}
+		fatal = fatal || outcome.fatal
 	}
 	for index := range observations {
 		if !completed[index] {
@@ -343,6 +360,9 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	snapshot := newDNSSnapshot(observedAt, portfolio.Digest(), observations, diagnostics)
 	if err := ctx.Err(); err != nil {
 		return snapshot, &DNSCollectionError{cause: err}
+	}
+	if fatal {
+		return DNSSnapshot{}, fmt.Errorf("%w: resolver failed during collection", ErrInvalidDNSCollectionOptions)
 	}
 	return snapshot, nil
 }
@@ -362,6 +382,9 @@ func collectDNSSnapshotFailFast(ctx context.Context, portfolioID AnalysisID, obs
 			break
 		}
 		outcome := collectDNSObservation(ctx, query, resolver, options)
+		if outcome.fatal {
+			return DNSSnapshot{}, fmt.Errorf("%w: resolver failed during collection", ErrInvalidDNSCollectionOptions)
+		}
 		observations[index] = outcome.observation
 		completed = index + 1
 		if outcome.diagnostic != nil {
@@ -474,6 +497,9 @@ func collectDNSObservation(ctx context.Context, query dnsQueryPlan, resolver TXT
 		attemptErr := attemptCtx.Err()
 		cancel()
 		observation.Attempts = attempt
+		if errors.Is(lookupErr, ErrInvalidDNSCollectionOptions) {
+			return dnsLookupOutcome{observation: observation, failed: true, fatal: true}
+		}
 		status := classifyDNSLookup(result, lookupErr, attemptErr, ctx.Err())
 		if !retryDNSStatus(status) || attempt == options.MaxAttempts {
 			observation = observationFromLookup(query, result, status, attempt, options.ResolverID)

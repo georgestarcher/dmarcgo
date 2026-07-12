@@ -23,19 +23,29 @@ type DNSMessageResolver struct {
 	ResolverID string
 }
 
-// LookupTXT performs one DNS-message exchange. Network may be "udp" or "tcp"
-// and defaults to UDP with automatic TCP retry for truncated responses.
-func (resolver DNSMessageResolver) LookupTXT(ctx context.Context, name string) (TXTLookupResult, error) {
+func (resolver DNSMessageResolver) validateTXTResolver() error {
+	_, _, err := resolver.configuration()
+	return err
+}
+
+func (resolver DNSMessageResolver) configuration() (string, string, error) {
 	network := strings.ToLower(strings.TrimSpace(resolver.Network))
 	if network == "" {
 		network = "udp"
 	}
 	if network != "udp" && network != "tcp" {
-		return TXTLookupResult{}, fmt.Errorf("%w: unsupported DNS network", ErrInvalidDNSCollectionOptions)
+		return "", "", fmt.Errorf("%w: unsupported DNS network", ErrInvalidDNSCollectionOptions)
 	}
 	server, err := dnsServerAddress(resolver.Server)
+	return network, server, err
+}
+
+// LookupTXT performs one DNS-message exchange. Network may be "udp" or "tcp"
+// and defaults to UDP with automatic TCP retry for truncated responses.
+func (resolver DNSMessageResolver) LookupTXT(ctx context.Context, name string) (TXTLookupResult, error) {
+	network, server, err := resolver.configuration()
 	if err != nil {
-		return TXTLookupResult{}, err
+		return TXTLookupResult{Name: normalizeDNSDisplayName(name)}, err
 	}
 	query, id, err := buildTXTQuery(name)
 	if err != nil {

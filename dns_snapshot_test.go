@@ -211,20 +211,38 @@ func TestCollectDNSSnapshotRejectsMisconfiguredBuiltInResolvers(t *testing.T) {
 }
 
 func TestCollectDNSSnapshotPropagatesRuntimeResolverMisconfiguration(t *testing.T) {
-	portfolio := singleDNSNamePortfolio(t)
+	portfolio := dnsTestPortfolio(t)
 	resolver := newFixtureTXTResolver()
-	resolver.errors["one.test"] = []error{fmt.Errorf("%w: fixture is incomplete", ErrInvalidDNSCollectionOptions)}
+	for _, query := range buildDNSQueryPlan(portfolio) {
+		resolver.errors[query.name] = []error{fmt.Errorf("%w: fixture is incomplete", ErrInvalidDNSCollectionOptions)}
+	}
 	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{
-		Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxAttempts: 3,
+		Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxConcurrency: 8, MaxAttempts: 3,
 	})
 	if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
 		t.Fatalf("error = %v", err)
 	}
-	if resolver.callCount("one.test") != 1 {
-		t.Fatalf("misconfiguration lookup calls = %d", resolver.callCount("one.test"))
+	lookupCalls := 0
+	for _, query := range buildDNSQueryPlan(portfolio) {
+		lookupCalls += resolver.callCount(query.name)
+	}
+	if lookupCalls != 1 {
+		t.Fatalf("misconfiguration lookup calls = %d", lookupCalls)
 	}
 	if snapshot.ResultMetadata().Mode != "" || len(snapshot.Observations()) != 0 {
 		t.Fatalf("misconfiguration produced snapshot evidence: %+v", snapshot)
+	}
+}
+
+func TestCollectDNSSnapshotRejectsTypedNilResolver(t *testing.T) {
+	portfolio := singleDNSNamePortfolio(t)
+	var resolver *NetTXTResolver
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{})
+	if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
+		t.Fatalf("error = %v", err)
+	}
+	if snapshot.ResultMetadata().Mode != "" || len(snapshot.Observations()) != 0 {
+		t.Fatalf("typed nil resolver produced snapshot evidence: %+v", snapshot)
 	}
 }
 

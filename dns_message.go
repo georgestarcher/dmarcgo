@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -79,8 +80,15 @@ func dnsServerAddress(value string) (string, error) {
 	if value == "" {
 		return "", fmt.Errorf("%w: DNS server is required", ErrInvalidDNSCollectionOptions)
 	}
-	if _, _, err := net.SplitHostPort(value); err == nil {
-		return value, nil
+	if host, port, err := net.SplitHostPort(value); err == nil {
+		if strings.TrimSpace(host) == "" {
+			return "", fmt.Errorf("%w: DNS server host is required", ErrInvalidDNSCollectionOptions)
+		}
+		portNumber, err := strconv.Atoi(port)
+		if err != nil || portNumber < 1 || portNumber > 65535 {
+			return "", fmt.Errorf("%w: DNS server port is invalid", ErrInvalidDNSCollectionOptions)
+		}
+		return net.JoinHostPort(host, strconv.Itoa(portNumber)), nil
 	}
 	if ip := net.ParseIP(strings.Trim(value, "[]")); ip != nil {
 		return net.JoinHostPort(ip.String(), "53"), nil

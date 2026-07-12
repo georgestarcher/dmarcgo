@@ -51,6 +51,9 @@ define it. Set `Clock` when the snapshot timestamp must be reproducible.
 Concurrency, per-attempt timeout, attempts, retry delay, and failure policy are
 bounded by `DNSCollectionOptions`. Timeouts and temporary failures are retryable;
 NXDOMAIN, NODATA, malformed responses, and cancellation are terminal.
+Before concurrent fan-out, collection resolves the first deterministic planned
+name serially. A resolver-wide configuration error therefore stops collection
+after one call and returns no snapshot evidence.
 
 `DNSFailureCollectAll` records every terminal outcome and returns a complete
 snapshot with value-safe diagnostics. `DNSFailureFailFast` stops remaining

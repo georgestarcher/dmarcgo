@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -270,7 +271,7 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	if err != nil {
 		return DNSSnapshot{}, err
 	}
-	if resolver == nil {
+	if nilTXTResolver(resolver) {
 		return DNSSnapshot{}, fmt.Errorf("%w: resolver is required", ErrInvalidDNSCollectionOptions)
 	}
 	if validator, ok := resolver.(txtResolverValidator); ok {
@@ -295,6 +296,16 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 			Records: []TXTRecord{}, CNAMEPath: []string{}, AnswerSource: DNSAnswerSourceUnknown,
 		}
 	}
+	diagnostics := make([]DNSCollectionDiagnostic, 0)
+	preflight := collectDNSObservation(ctx, plan[0], resolver, options)
+	if preflight.fatal {
+		return DNSSnapshot{}, fmt.Errorf("%w: resolver failed during collection", ErrInvalidDNSCollectionOptions)
+	}
+	observations[0] = preflight.observation
+	completed[0] = true
+	if preflight.diagnostic != nil {
+		diagnostics = append(diagnostics, *preflight.diagnostic)
+	}
 
 	workCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -302,8 +313,8 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	results := make(chan dnsLookupOutcome, len(plan))
 	var workers sync.WaitGroup
 	workerCount := options.MaxConcurrency
-	if workerCount > len(plan) {
-		workerCount = len(plan)
+	if workerCount > len(plan)-1 {
+		workerCount = len(plan) - 1
 	}
 	for range workerCount {
 		workers.Add(1)
@@ -322,7 +333,7 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 
 	go func() {
 		defer close(jobs)
-		for index := range plan {
+		for index := 1; index < len(plan); index++ {
 			select {
 			case jobs <- index:
 			case <-workCtx.Done():
@@ -335,7 +346,6 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		close(results)
 	}()
 
-	diagnostics := make([]DNSCollectionDiagnostic, 0)
 	fatal := false
 	for outcome := range results {
 		observations[outcome.index] = outcome.observation
@@ -365,6 +375,19 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		return DNSSnapshot{}, fmt.Errorf("%w: resolver failed during collection", ErrInvalidDNSCollectionOptions)
 	}
 	return snapshot, nil
+}
+
+func nilTXTResolver(resolver TXTResolver) bool {
+	if resolver == nil {
+		return true
+	}
+	value := reflect.ValueOf(resolver)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 func collectDNSSnapshotFailFast(ctx context.Context, portfolioID AnalysisID, observedAt time.Time, plan []dnsQueryPlan, resolver TXTResolver, options DNSCollectionOptions) (DNSSnapshot, error) {

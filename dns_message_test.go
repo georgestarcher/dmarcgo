@@ -110,6 +110,34 @@ func TestDNSMessageResolverRequiresExplicitServer(t *testing.T) {
 	}
 }
 
+func TestDNSMessageResolverValidatesNumericServerPort(t *testing.T) {
+	for _, server := range []string{
+		"127.0.0.1:bad",
+		"127.0.0.1:",
+		"127.0.0.1:0",
+		"127.0.0.1:-1",
+		"127.0.0.1:65536",
+		":53",
+	} {
+		t.Run(server, func(t *testing.T) {
+			err := (DNSMessageResolver{Server: server}).validateTXTResolver()
+			if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
+				t.Fatalf("error = %v", err)
+			}
+		})
+	}
+}
+
+func TestDNSMessageResolverAcceptsValidServerPort(t *testing.T) {
+	for _, server := range []string{"127.0.0.1:5353", "[::1]:5353"} {
+		t.Run(server, func(t *testing.T) {
+			if err := (DNSMessageResolver{Server: server}).validateTXTResolver(); err != nil {
+				t.Fatalf("error = %v", err)
+			}
+		})
+	}
+}
+
 func TestDNSMessageResolverRetriesMalformedTruncatedUDPOverTCP(t *testing.T) {
 	tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.ParseIP("127.0.0.1")})
 	if err != nil {

@@ -67,6 +67,13 @@ SPF soft-fail and neutral terminal policies deduct 10 and 30 respectively.
 SPF and DKIM absence produce zero for those configured components in the
 balanced profile.
 
+For a configured domain using an inherited parent DMARC record, scoring and
+maturity apply the record's `sp` policy, falling back to `p` when `sp` is
+absent. The `np` policy is evaluated separately when determining whether the
+published record enforces all descendant scopes. Because this stage performs no
+DNS queries beyond the supplied snapshot, it does not infer that a configured
+domain is nonexistent.
+
 Scores are posture indicators, not proof of compromise, sender authorization,
 or malicious activity. Applications should use finding codes and evidence,
 not score alone, for decisions.

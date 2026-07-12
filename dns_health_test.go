@@ -256,14 +256,72 @@ func TestEvaluateDNSHealthBalancedMissingComponentScores(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := findDNSRecordHealth(t, result.Records(), "example.test", DNSRecordSPF, "corporate").Score.Value; got != 0 {
+	missingSPF := findDNSRecordHealth(t, result.Records(), "example.test", DNSRecordSPF, "corporate").Score
+	if got := missingSPF.Value; got != 0 {
 		t.Fatalf("missing SPF score=%d want=0", got)
+	}
+	encoded, err := json.Marshal(missingSPF)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &fields); err != nil {
+		t.Fatal(err)
+	}
+	if value, ok := fields["value"]; !ok || string(value) != "0" {
+		t.Fatalf("available zero score must retain value in JSON: %s", encoded)
 	}
 	if got := findDNSRecordHealth(t, result.Records(), "shared._domainkey.shared-mail.example.test", DNSRecordDKIM, "corporate").Score.Value; got != 0 {
 		t.Fatalf("missing DKIM score=%d want=0", got)
 	}
 	if got := findDNSRecordHealth(t, result.Records(), "_dmarc.example.test", DNSRecordDMARC, "corporate").Score.Value; got != 30 {
 		t.Fatalf("missing DMARC score=%d want=30", got)
+	}
+}
+
+func TestEvaluateDNSHealthUsesInheritedDMARCSubdomainPolicy(t *testing.T) {
+	config := dnsHealthTestConfig()
+	config.Entities[0].Domains[1].Records.DMARC = nil
+	portfolio, err := NormalizePortfolio(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := dnsHealthTestRecordValues()
+	values["_dmarc.example.test"] = "v=DMARC1; p=reject; sp=none; np=reject; adkim=s; aspf=s; rua=mailto:reports@example.test"
+	delete(values, "_dmarc.marketing.example.test")
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inherited := findDNSRecordHealthForDomain(t, result.Records(), "_dmarc.example.test", DNSRecordDMARC, "corporate", "marketing.example.test")
+	if inherited.Score.Value != 70 || !scoreHasContribution(inherited.Score, "dns.health.dmarc_monitoring_only") {
+		t.Fatalf("inherited DMARC score=%+v want monitoring-only 70", inherited.Score)
+	}
+	marketing := findDNSDomainHealth(t, result.Domains(), "marketing.example.test", "corporate")
+	if marketing.Mechanisms.DMARC.Value != 70 || marketing.Maturity.Level != DNSHealthMaturityMonitored {
+		t.Fatalf("marketing DMARC=%+v maturity=%+v", marketing.Mechanisms.DMARC, marketing.Maturity)
+	}
+	if signal := findDNSHealthMaturitySignal(t, marketing.Maturity, "dns.maturity.dmarc_enforced"); signal.Satisfied {
+		t.Fatalf("inherited sp=none reported as enforced: %+v", signal)
+	}
+	finding := findDNSHealthFindingForDomain(t, result.Findings(), "dns.health.dmarc_child_policy_weaker", "marketing.example.test")
+	if finding.ScoreImpact >= 0 {
+		t.Fatalf("child-policy finding=%+v", finding)
+	}
+}
+
+func TestEffectiveDMARCPolicyForScopeAppliesTestingOnce(t *testing.T) {
+	record, _ := ParseDMARCPolicyRecord("v=DMARC1; p=reject; sp=quarantine; np=reject; t=y")
+	if got := effectiveDMARCPolicyForScope(record, dmarcPolicyScopeExact); got != DMARCPolicyQuarantine {
+		t.Fatalf("exact policy=%q want=%q", got, DMARCPolicyQuarantine)
+	}
+	if got := effectiveDMARCPolicyForScope(record, dmarcPolicyScopeSubdomain); got != DMARCPolicyNone {
+		t.Fatalf("subdomain policy=%q want=%q", got, DMARCPolicyNone)
+	}
+	if got := effectiveDMARCPolicyForScope(record, dmarcPolicyScopeNonexistent); got != DMARCPolicyQuarantine {
+		t.Fatalf("nonexistent policy=%q want=%q", got, DMARCPolicyQuarantine)
 	}
 }
 
@@ -834,6 +892,17 @@ func findDNSHealthFinding(t testing.TB, findings []DNSHealthFinding, code Findin
 	return DNSHealthFinding{}
 }
 
+func findDNSHealthFindingForDomain(t testing.TB, findings []DNSHealthFinding, code FindingCode, domain string) DNSHealthFinding {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Code == code && finding.Domain == domain {
+			return finding
+		}
+	}
+	t.Fatalf("finding %s/%s not found", domain, code)
+	return DNSHealthFinding{}
+}
+
 func hasDNSHealthScope(findings []DNSHealthFinding, scope DNSHealthScope) bool {
 	for _, finding := range findings {
 		if finding.Scope == scope {
@@ -851,6 +920,17 @@ func findDNSRecordHealth(t testing.TB, records []DNSRecordHealth, name string, r
 		}
 	}
 	t.Fatalf("record %s/%s/%s not found", entityID, name, recordType)
+	return DNSRecordHealth{}
+}
+
+func findDNSRecordHealthForDomain(t testing.TB, records []DNSRecordHealth, name string, recordType DNSRecordType, entityID, domain string) DNSRecordHealth {
+	t.Helper()
+	for _, record := range records {
+		if record.Name == name && record.Type == recordType && record.EntityID == entityID && record.Domain == domain {
+			return record
+		}
+	}
+	t.Fatalf("record %s/%s/%s/%s not found", entityID, domain, name, recordType)
 	return DNSRecordHealth{}
 }
 

@@ -121,10 +121,11 @@ const (
 )
 
 // DNSHealthScore is a bounded score plus its complete recomputation evidence.
-// Unavailable scores retain an explicit unknown Evaluation rather than using 0.
+// Available distinguishes an evaluated zero from an unavailable placeholder;
+// unavailable scores also retain an explicit unknown Evaluation.
 type DNSHealthScore struct {
 	Available     bool                         `json:"available"`
-	Value         int                          `json:"value,omitempty"`
+	Value         int                          `json:"value"`
 	Maximum       int                          `json:"maximum"`
 	Grade         DNSHealthGrade               `json:"grade"`
 	Evaluation    Evaluation                   `json:"evaluation"`
@@ -776,12 +777,13 @@ func (evaluator *dnsHealthEvaluator) evaluateDKIM(entityID, domain, name string,
 
 func (evaluator *dnsHealthEvaluator) evaluateDMARC(entityID, domain, name string, record DMARCPolicyRecord, evidenceID EvidenceID) []DNSHealthFinding {
 	findings := make([]DNSHealthFinding, 0)
-	if record.EffectivePolicy == DMARCPolicyNone {
+	effectivePolicy := dmarcPolicyForConfiguredDomain(domain, name, record)
+	if effectivePolicy == DMARCPolicyNone {
 		findings = append(findings, evaluator.newFinding("dns.health.dmarc_monitoring_only", FindingSeverityMedium, FindingConfidenceHigh, DNSHealthScopeRecord,
 			entityID, domain, name, DNSRecordDMARC, []EvidenceID{evidenceID}, EvaluationStateEvaluated, -evaluator.profile.DMARCMonitoringOnly,
 			"The effective DMARC policy is monitoring only.", "Move toward quarantine or reject after validating every legitimate sending path.", dmarcStandardReference))
 	}
-	if record.EffectivePolicy == DMARCPolicyQuarantine {
+	if effectivePolicy == DMARCPolicyQuarantine {
 		findings = append(findings, evaluator.newFinding("dns.health.dmarc_quarantine", FindingSeverityLow, FindingConfidenceHigh, DNSHealthScopeRecord,
 			entityID, domain, name, DNSRecordDMARC, []EvidenceID{evidenceID}, EvaluationStateEvaluated, -evaluator.profile.DMARCQuarantine,
 			"The effective DMARC policy requests quarantine rather than rejection.", "Confirm whether quarantine is the intended steady state or a staged transition toward rejection.", dmarcStandardReference))
@@ -898,7 +900,50 @@ func (evaluator *dnsHealthEvaluator) domainDMARCPolicy(domain MonitoredDomain) (
 		return "", nil, false
 	}
 	set := evaluator.sets[dnsHealthRecordKey(name, DNSRecordDMARC)]
-	return set.Records[0].DMARC.EffectivePolicy, []EvidenceID{set.Records[0].EvidenceID}, true
+	return dmarcPolicyForConfiguredDomain(domain.Name, name, *set.Records[0].DMARC), []EvidenceID{set.Records[0].EvidenceID}, true
+}
+
+type dmarcPolicyScope int
+
+const (
+	dmarcPolicyScopeExact dmarcPolicyScope = iota
+	dmarcPolicyScopeSubdomain
+	dmarcPolicyScopeNonexistent
+)
+
+func dmarcPolicyForConfiguredDomain(domain, recordName string, record DMARCPolicyRecord) DMARCPolicy {
+	scope := dmarcPolicyScopeExact
+	if recordName != "_dmarc."+domain {
+		scope = dmarcPolicyScopeSubdomain
+	}
+	return effectiveDMARCPolicyForScope(record, scope)
+}
+
+func effectiveDMARCPolicyForScope(record DMARCPolicyRecord, scope dmarcPolicyScope) DMARCPolicy {
+	policy := record.Policy
+	if policy == "" {
+		policy = record.EffectivePolicy
+	}
+	switch scope {
+	case dmarcPolicyScopeSubdomain:
+		if record.SubdomainPolicy != "" {
+			policy = record.SubdomainPolicy
+		}
+	case dmarcPolicyScopeNonexistent:
+		if record.NonexistentPolicy != "" {
+			policy = record.NonexistentPolicy
+		} else if record.SubdomainPolicy != "" {
+			policy = record.SubdomainPolicy
+		}
+	}
+	if record.Testing {
+		policy = testingDMARCPolicy(policy)
+	}
+	return policy
+}
+
+func dmarcPolicyIsEnforced(policy DMARCPolicy) bool {
+	return policy == DMARCPolicyQuarantine || policy == DMARCPolicyReject
 }
 
 func (evaluator *dnsHealthEvaluator) domainDMARCRecordName(domain MonitoredDomain) (string, bool) {

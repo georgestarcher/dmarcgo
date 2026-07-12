@@ -150,12 +150,16 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainMaturity(entity Entity, domai
 			if !hasApplicableDMARC || health.Name != applicableDMARC {
 				continue
 			}
-			if parsed.DMARC != nil && maturityUsableDMARC(*parsed.DMARC, set.Status) {
+			if parsed.DMARC != nil {
+				effectivePolicy := dmarcPolicyForConfiguredDomain(domain.Name, health.Name, *parsed.DMARC)
+				if !maturityUsableDMARC(effectivePolicy, set.Status) {
+					continue
+				}
 				dmarcPresent = true
 				published = true
 				reportingConfigured = reportingConfigured || len(parsed.DMARC.AggregateReports) > 0
-				dmarcEnforced = dmarcEnforced || parsed.DMARC.EffectivePolicy == DMARCPolicyQuarantine || parsed.DMARC.EffectivePolicy == DMARCPolicyReject
-				dmarcScopeEnforced = dmarcScopeEnforced || maturityDMARCScopeEnforced(*parsed.DMARC)
+				dmarcEnforced = dmarcEnforced || dmarcPolicyIsEnforced(effectivePolicy)
+				dmarcScopeEnforced = dmarcScopeEnforced || maturityDMARCScopeEnforced(domain.Name, health.Name, *parsed.DMARC)
 			}
 		}
 	}
@@ -269,8 +273,8 @@ func maturityUsableDKIM(record DKIMKeyRecord, status AuthenticationRecordStatus)
 	return (status == AuthenticationRecordValid || status == AuthenticationRecordWeak) && !record.Revoked && record.PublicKey != ""
 }
 
-func maturityUsableDMARC(record DMARCPolicyRecord, status AuthenticationRecordStatus) bool {
-	return (status == AuthenticationRecordValid || status == AuthenticationRecordWeak) && record.EffectivePolicy != ""
+func maturityUsableDMARC(policy DMARCPolicy, status AuthenticationRecordStatus) bool {
+	return (status == AuthenticationRecordValid || status == AuthenticationRecordWeak) && policy != ""
 }
 
 func maturityStrongDKIM(record DKIMKeyRecord) bool {
@@ -280,20 +284,10 @@ func maturityStrongDKIM(record DKIMKeyRecord) bool {
 	return record.KeyType == "ed25519" || (record.KeyType == "rsa" && record.KeyBits >= 2048)
 }
 
-func maturityDMARCScopeEnforced(record DMARCPolicyRecord) bool {
-	if record.EffectivePolicy != DMARCPolicyQuarantine && record.EffectivePolicy != DMARCPolicyReject {
-		return false
-	}
-	subdomain := record.SubdomainPolicy
-	if subdomain == "" {
-		subdomain = record.EffectivePolicy
-	}
-	nonexistent := record.NonexistentPolicy
-	if nonexistent == "" {
-		nonexistent = subdomain
-	}
-	return (subdomain == DMARCPolicyQuarantine || subdomain == DMARCPolicyReject) &&
-		(nonexistent == DMARCPolicyQuarantine || nonexistent == DMARCPolicyReject)
+func maturityDMARCScopeEnforced(domain, recordName string, record DMARCPolicyRecord) bool {
+	return dmarcPolicyIsEnforced(dmarcPolicyForConfiguredDomain(domain, recordName, record)) &&
+		dmarcPolicyIsEnforced(effectiveDMARCPolicyForScope(record, dmarcPolicyScopeSubdomain)) &&
+		dmarcPolicyIsEnforced(effectiveDMARCPolicyForScope(record, dmarcPolicyScopeNonexistent))
 }
 
 func containsString(values []string, wanted string) bool {

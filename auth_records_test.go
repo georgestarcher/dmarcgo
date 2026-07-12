@@ -27,6 +27,16 @@ func TestParseSPFRecord(t *testing.T) {
 		}
 	})
 
+	t.Run("valid IPv6-only CIDR", func(t *testing.T) {
+		record, diagnostics := ParseSPFRecord("v=spf1 a//64 mx:mail.example//128 -all")
+		if record.Status != AuthenticationRecordValid || len(diagnostics) != 0 {
+			t.Fatalf("record = %+v diagnostics=%+v", record, diagnostics)
+		}
+		if record.Terms[0].IPv4CIDR != 0 || record.Terms[0].IPv6CIDR != 64 || record.Terms[1].IPv4CIDR != 0 || record.Terms[1].IPv6CIDR != 128 {
+			t.Fatalf("CIDR terms = %+v", record.Terms)
+		}
+	})
+
 	for _, test := range []struct {
 		name   string
 		value  string
@@ -34,6 +44,8 @@ func TestParseSPFRecord(t *testing.T) {
 		code   DiagnosticCode
 	}{
 		{name: "bad CIDR", value: "v=spf1 a/33 -all", status: AuthenticationRecordInvalid, code: "spf.invalid_cidr"},
+		{name: "empty IPv4 CIDR", value: "v=spf1 a/ -all", status: AuthenticationRecordInvalid, code: "spf.invalid_cidr"},
+		{name: "empty IPv6 CIDR", value: "v=spf1 a// -all", status: AuthenticationRecordInvalid, code: "spf.invalid_cidr"},
 		{name: "empty explicit domain", value: "v=spf1 a:/24 -all", status: AuthenticationRecordInvalid, code: "spf.invalid_domain"},
 		{name: "bad network", value: "v=spf1 ip4:2001:db8::1 -all", status: AuthenticationRecordInvalid, code: "spf.invalid_network"},
 		{name: "unknown mechanism", value: "v=spf1 future:example.test -all", status: AuthenticationRecordUnsupported, code: "spf.unknown_mechanism"},
@@ -125,7 +137,7 @@ func TestParseDKIMKeyRecordAcceptsProviderSPKIEncoding(t *testing.T) {
 
 func TestParseDMARCPolicyRecordRFC9989(t *testing.T) {
 	record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; sp=quarantine; np=reject; adkim=s; aspf=r; t=y; psd=n; rua=mailto:agg@bücher.example!10m; ruf=mailto:fail@example.test; fo=1:d:s; x-future=value; pct=25")
-	if record.Status != AuthenticationRecordWeak || record.Policy != DMARCPolicyReject || record.NonexistentPolicy != DMARCPolicyReject || !record.Testing {
+	if record.Status != AuthenticationRecordWeak || record.Policy != DMARCPolicyReject || record.EffectivePolicy != DMARCPolicyQuarantine || record.NonexistentPolicy != DMARCPolicyReject || !record.Testing {
 		t.Fatalf("record=%+v diagnostics=%+v", record, diagnostics)
 	}
 	if len(record.AggregateReports) != 1 || record.AggregateReports[0].Domain != "xn--bcher-kva.example" || record.AggregateReports[0].LegacySize != "10m" {
@@ -142,8 +154,12 @@ func TestParseDMARCPolicyRecordFallbackAndErrors(t *testing.T) {
 		t.Fatalf("monitoring=%+v diagnostics=%+v", monitoring, diagnostics)
 	}
 	invalidSubdomain, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; sp=block; rua=mailto:reports@example.test")
-	if invalidSubdomain.Status != AuthenticationRecordInvalid || !invalidSubdomain.RecoveredMonitoring || invalidSubdomain.EffectivePolicy != DMARCPolicyNone || !hasAuthenticationDiagnostic(diagnostics, "dmarc.invalid_subdomain_policy") {
-		t.Fatalf("invalid subdomain fallback=%+v diagnostics=%+v", invalidSubdomain, diagnostics)
+	if invalidSubdomain.Status != AuthenticationRecordInvalid || invalidSubdomain.RecoveredMonitoring || invalidSubdomain.EffectivePolicy != DMARCPolicyReject || !hasAuthenticationDiagnostic(diagnostics, "dmarc.invalid_subdomain_policy") {
+		t.Fatalf("invalid subdomain policy=%+v diagnostics=%+v", invalidSubdomain, diagnostics)
+	}
+	invalidNonexistent, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=quarantine; np=block; rua=mailto:reports@example.test")
+	if invalidNonexistent.Status != AuthenticationRecordInvalid || invalidNonexistent.RecoveredMonitoring || invalidNonexistent.EffectivePolicy != DMARCPolicyQuarantine || !hasAuthenticationDiagnostic(diagnostics, "dmarc.invalid_nonexistent_policy") {
+		t.Fatalf("invalid nonexistent policy=%+v diagnostics=%+v", invalidNonexistent, diagnostics)
 	}
 
 	for _, test := range []struct {
@@ -171,6 +187,32 @@ func TestParseDMARCPolicyRecordNormalizesCaseInsensitiveValues(t *testing.T) {
 	record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=REJECT; sp=Quarantine; adkim=S; aspf=R; psd=N; t=N")
 	if record.Status != AuthenticationRecordValid || record.Policy != DMARCPolicyReject || record.SubdomainPolicy != DMARCPolicyQuarantine || record.DKIMAlignment != DMARCAlignmentStrict || len(diagnostics) != 0 {
 		t.Fatalf("record=%+v diagnostics=%+v", record, diagnostics)
+	}
+}
+
+func TestParseDMARCPolicyRecordTestingEffectivePolicy(t *testing.T) {
+	for _, test := range []struct {
+		published DMARCPolicy
+		effective DMARCPolicy
+	}{
+		{published: DMARCPolicyReject, effective: DMARCPolicyQuarantine},
+		{published: DMARCPolicyQuarantine, effective: DMARCPolicyNone},
+		{published: DMARCPolicyNone, effective: DMARCPolicyNone},
+	} {
+		record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=" + string(test.published) + "; t=y")
+		if record.Policy != test.published || record.EffectivePolicy != test.effective || !record.Testing || !hasAuthenticationDiagnostic(diagnostics, "dmarc.weak_testing_mode") {
+			t.Fatalf("published=%q record=%+v diagnostics=%+v", test.published, record, diagnostics)
+		}
+	}
+}
+
+func TestParseDMARCPolicyRecordNormalizesReportingURIHosts(t *testing.T) {
+	record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; rua=https://bücher.example/report,https://[2001:db8::1]/report")
+	if record.Status != AuthenticationRecordValid || len(diagnostics) != 0 || len(record.AggregateReports) != 2 {
+		t.Fatalf("record=%+v diagnostics=%+v", record, diagnostics)
+	}
+	if record.AggregateReports[0].Domain != "xn--bcher-kva.example" || record.AggregateReports[1].Domain != "2001:db8::1" {
+		t.Fatalf("aggregate reports=%+v", record.AggregateReports)
 	}
 }
 

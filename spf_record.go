@@ -265,30 +265,32 @@ func parseDualCIDR(value string) (int, int, bool) {
 	if !strings.HasPrefix(value, "/") {
 		return 0, 0, false
 	}
-	value = value[1:]
-	parts := strings.Split(value, "//")
-	if len(parts) > 2 {
+	remainder := value[1:]
+	if strings.HasPrefix(remainder, "/") {
+		ipv6, ok := parseCIDRLength(remainder[1:], 128)
+		return 0, ipv6, ok
+	}
+	ipv4Text, ipv6Text, hasIPv6 := strings.Cut(remainder, "//")
+	ipv4, ok := parseCIDRLength(ipv4Text, 32)
+	if !ok {
 		return 0, 0, false
 	}
-	ipv4, ipv6 := 0, 0
-	if parts[0] != "" {
-		parsed, err := strconv.Atoi(parts[0])
-		if err != nil || parsed < 0 || parsed > 32 {
-			return 0, 0, false
-		}
-		ipv4 = parsed
+	if !hasIPv6 {
+		return ipv4, 0, true
 	}
-	if len(parts) == 2 {
-		if parts[1] == "" {
-			return 0, 0, false
-		}
-		parsed, err := strconv.Atoi(parts[1])
-		if err != nil || parsed < 0 || parsed > 128 {
-			return 0, 0, false
-		}
-		ipv6 = parsed
+	ipv6, ok := parseCIDRLength(ipv6Text, 128)
+	return ipv4, ipv6, ok
+}
+
+func parseCIDRLength(value string, maximum int) (int, bool) {
+	if value == "" {
+		return 0, false
 	}
-	return ipv4, ipv6, true
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 || parsed > maximum {
+		return 0, false
+	}
+	return parsed, true
 }
 
 func validSPFNetwork(mechanism, value string) bool {

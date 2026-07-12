@@ -1,6 +1,7 @@
 package dmarcgo
 
 import (
+	"net"
 	"net/url"
 	"strings"
 
@@ -75,7 +76,7 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 		record.Version = "DMARC1"
 	}
 	policyPresent := false
-	policySyntaxInvalid := false
+	domainPolicyInvalid := false
 	validAggregateURI := false
 	for _, tag := range tags {
 		if tag.value == "" {
@@ -89,7 +90,7 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 			policyPresent = true
 			policy, ok := parseDMARCPolicy(tag.value)
 			if !ok {
-				policySyntaxInvalid = true
+				domainPolicyInvalid = true
 				diagnostics = append(diagnostics, parserDiagnostic("dmarc.invalid_policy", FindingSeverityHigh, "policy", tag.offset, "The DMARC domain policy is invalid.", dmarcStandardReference))
 			} else {
 				record.Policy = policy
@@ -98,7 +99,6 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 		case "sp":
 			policy, ok := parseDMARCPolicy(tag.value)
 			if !ok {
-				policySyntaxInvalid = true
 				diagnostics = append(diagnostics, parserDiagnostic("dmarc.invalid_subdomain_policy", FindingSeverityHigh, "subdomain_policy", tag.offset, "The DMARC subdomain policy is invalid.", dmarcStandardReference))
 			} else {
 				record.SubdomainPolicy = policy
@@ -106,7 +106,6 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 		case "np":
 			policy, ok := parseDMARCPolicy(tag.value)
 			if !ok {
-				policySyntaxInvalid = true
 				diagnostics = append(diagnostics, parserDiagnostic("dmarc.invalid_nonexistent_policy", FindingSeverityHigh, "nonexistent_policy", tag.offset, "The DMARC non-existent-domain policy is invalid.", dmarcStandardReference))
 			} else {
 				record.NonexistentPolicy = policy
@@ -149,7 +148,7 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 			diagnostics = append(diagnostics, parserDiagnostic("dmarc.unknown_tag", FindingSeverityInfo, "unknown_tags", tag.offset, "An unknown DMARC tag is preserved and ignored as required by RFC 9989.", dmarcStandardReference))
 		}
 	}
-	if policySyntaxInvalid || !policyPresent || record.Policy == "" {
+	if domainPolicyInvalid || !policyPresent || record.Policy == "" {
 		if validAggregateURI {
 			record.EffectivePolicy = DMARCPolicyNone
 			record.RecoveredMonitoring = true
@@ -158,6 +157,9 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 			record.EffectivePolicy = ""
 			diagnostics = append(diagnostics, parserDiagnostic("dmarc.missing_required_policy", FindingSeverityHigh, "policy", 0, "The DMARC record has no usable policy and no aggregate-report destination for monitoring fallback.", dmarcStandardReference))
 		}
+	}
+	if record.Testing && record.EffectivePolicy != "" {
+		record.EffectivePolicy = testingDMARCPolicy(record.EffectivePolicy)
 	}
 	record.Status = statusFromDiagnostics(diagnostics)
 	return record, diagnostics
@@ -197,6 +199,17 @@ func parseDMARCPolicy(value string) (DMARCPolicy, bool) {
 		return DMARCPolicy(value), true
 	default:
 		return "", false
+	}
+}
+
+func testingDMARCPolicy(policy DMARCPolicy) DMARCPolicy {
+	switch policy {
+	case DMARCPolicyReject:
+		return DMARCPolicyQuarantine
+	case DMARCPolicyQuarantine, DMARCPolicyNone:
+		return DMARCPolicyNone
+	default:
+		return policy
 	}
 }
 
@@ -268,7 +281,18 @@ func parseDMARCURI(raw string) (DMARCReportURI, bool) {
 		return result, false
 	}
 	result.Address = uriValue
-	result.Domain = strings.ToLower(parsed.Hostname())
+	host := strings.ToLower(parsed.Hostname())
+	if host != "" {
+		if ip := net.ParseIP(host); ip != nil {
+			result.Domain = ip.String()
+		} else {
+			domain, err := idna.Lookup.ToASCII(host)
+			if err != nil || domain == "" {
+				return result, false
+			}
+			result.Domain = domain
+		}
+	}
 	return result, true
 }
 

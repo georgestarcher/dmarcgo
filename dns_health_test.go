@@ -313,6 +313,28 @@ func TestEvaluateDNSHealthUsesFirstSPFAllMechanism(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthRedirectSuppliesSPFFallback(t *testing.T) {
+	config := dnsHealthTestConfig()
+	config.Entities[0].Domains[0].Records.SPF = []string{"example.test", "_spf.example.test"}
+	portfolio, err := NormalizePortfolio(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := dnsHealthTestRecordValues()
+	values["example.test"] = "v=spf1 redirect=_spf.example.test"
+	values["_spf.example.test"] = "v=spf1 -all"
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	redirect := findDNSRecordHealthForDomain(t, result.Records(), "example.test", DNSRecordSPF, "corporate", "example.test")
+	if redirect.Score.Value != 100 || scoreHasContribution(redirect.Score, "dns.health.spf_no_all") ||
+		scoreHasContribution(redirect.Score, "dns.health.spf_dependency_evidence_incomplete") {
+		t.Fatalf("redirect SPF score=%+v", redirect.Score)
+	}
+}
+
 func TestEvaluateDNSHealthUsesInheritedDMARCSubdomainPolicy(t *testing.T) {
 	config := dnsHealthTestConfig()
 	config.Entities[0].Domains[1].Records.DMARC = nil

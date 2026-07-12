@@ -668,7 +668,7 @@ func (evaluator *dnsHealthEvaluator) evaluateSPF(entityID, domain, name string, 
 	evaluator.collectProviderContexts(entityID, domain, name, record, evidenceID)
 	findings := make([]DNSHealthFinding, 0)
 	all, hasAll := firstSPFAllTerm(record)
-	if !hasAll {
+	if !hasAll && !hasSPFRedirect(record) {
 		findings = append(findings, evaluator.newFinding("dns.health.spf_no_all", FindingSeverityLow, FindingConfidenceHigh, DNSHealthScopeRecord,
 			entityID, domain, name, DNSRecordSPF, []EvidenceID{evidenceID}, EvaluationStateEvaluated, -evaluator.profile.SPFNoAll,
 			"The SPF record has no all mechanism and may not express a complete default result.", "Review whether an explicit terminal all mechanism is appropriate.", spfStandardReference))
@@ -703,6 +703,15 @@ func firstSPFAllTerm(record SPFRecord) (SPFTerm, bool) {
 		}
 	}
 	return SPFTerm{}, false
+}
+
+func hasSPFRedirect(record SPFRecord) bool {
+	for _, term := range record.Terms {
+		if term.Modifier == "redirect" {
+			return true
+		}
+	}
+	return false
 }
 
 func (evaluator *dnsHealthEvaluator) indexProviderSenders() {

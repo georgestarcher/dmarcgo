@@ -66,7 +66,9 @@ deductions. A 1024-bit RSA DKIM key receives a 15-point maturity deduction;
 SPF soft-fail and neutral terminal policies deduct 10 and 30 respectively.
 SPF and DKIM absence produce zero for those configured components in the
 balanced profile. SPF scoring uses the first `all` mechanism because it always
-matches and makes every later mechanism unreachable.
+matches and makes every later mechanism unreachable. A valid `redirect`
+modifier supplies the fallback result when no mechanism matches, so a
+redirect-only policy is not treated as missing a terminal result.
 
 For a configured domain using an inherited parent DMARC record, scoring and
 maturity apply the record's `sp` policy, falling back to `p` when `sp` is

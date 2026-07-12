@@ -153,6 +153,42 @@ func TestEvaluateDNSHealthProfilesStalenessAndExactContributions(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthStaleUnknownPortfolioRemainsUnknown(t *testing.T) {
+	portfolio := dnsHealthTestPortfolio(t)
+	overrides := make(map[string]DNSObservationStatus)
+	for name := range dnsHealthTestRecordValues() {
+		overrides[name] = DNSObservationTimeout
+	}
+	authentication := dnsHealthTestAuthentication(t, portfolio, dnsHealthTestTime, overrides)
+	options := DNSHealthOptions{
+		GeneratedAt:    dnsHealthTestTime.Add(48 * time.Hour),
+		MaxSnapshotAge: 24 * time.Hour,
+	}
+
+	preserved, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preservedScore := preserved.PortfolioScore()
+	if preservedScore.Available || preservedScore.Evaluation.State != EvaluationStateUnknown {
+		t.Fatalf("stale preserved-unknown score=%+v", preservedScore)
+	}
+	stale := findDNSHealthFinding(t, preserved.Findings(), "dns.health.snapshot_stale")
+	if stale.ScoreImpact != 0 || scoreHasContribution(preservedScore, stale.Code) {
+		t.Fatalf("stale unknown finding=%+v score=%+v", stale, preservedScore)
+	}
+
+	options.UnknownPolicy = DNSHealthUnknownPenalize
+	penalized, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	penalizedScore := penalized.PortfolioScore()
+	if !penalizedScore.Available || !scoreHasContribution(penalizedScore, "dns.health.snapshot_stale") {
+		t.Fatalf("stale penalized-unknown score=%+v", penalizedScore)
+	}
+}
+
 func TestEvaluateDNSHealthPreservesOptionalDNSSECEvidence(t *testing.T) {
 	portfolio := dnsHealthTestPortfolio(t)
 	authentication := dnsHealthTestAuthenticationEvidence(t, portfolio, dnsHealthTestTime, nil, map[string]DNSSECEvidence{
@@ -708,6 +744,17 @@ func hasDNSHealthFinding(findings []DNSHealthFinding, code FindingCode) bool {
 		}
 	}
 	return false
+}
+
+func findDNSHealthFinding(t testing.TB, findings []DNSHealthFinding, code FindingCode) DNSHealthFinding {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.Code == code {
+			return finding
+		}
+	}
+	t.Fatalf("finding %s not found", code)
+	return DNSHealthFinding{}
 }
 
 func hasDNSHealthScope(findings []DNSHealthFinding, scope DNSHealthScope) bool {

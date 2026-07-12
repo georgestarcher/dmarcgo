@@ -1012,11 +1012,17 @@ func (evaluator *dnsHealthEvaluator) addStaleSnapshotFinding(score *DNSHealthSco
 	if evaluator.options.MaxSnapshotAge == 0 || evaluator.options.GeneratedAt.Sub(observedAt) <= evaluator.options.MaxSnapshotAge {
 		return
 	}
+	impact := -evaluator.profile.StaleSnapshot
+	if !score.Available {
+		impact = 0
+	}
 	finding := evaluator.newFinding("dns.health.snapshot_stale", FindingSeverityMedium, FindingConfidenceHigh, DNSHealthScopePortfolio,
-		"", "", "", "", nil, EvaluationStateEvaluated, -evaluator.profile.StaleSnapshot,
+		"", "", "", "", nil, EvaluationStateEvaluated, impact,
 		"The DNS snapshot is older than the caller's maximum accepted age.", "Collect a new explicit DNS snapshot before making current-posture decisions.", "")
 	evaluator.findings = append(evaluator.findings, finding)
-	applyDNSHealthFindings(score, []DNSHealthFinding{finding})
+	if score.Available {
+		applyDNSHealthFindings(score, []DNSHealthFinding{finding})
+	}
 }
 
 func evaluatedDNSHealthScore(maximum int) DNSHealthScore {

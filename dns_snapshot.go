@@ -108,13 +108,14 @@ type DNSSOAEvidence struct {
 	TTL     uint32 `json:"ttl"`
 }
 
-// TXTRecord preserves one TXT resource record and its normalized joined
-// representation. FragmentsAvailable is false when a limited resolver cannot
-// recover the original DNS character-string boundaries.
+// TXTRecord preserves one TXT resource record, received TTL, and its normalized
+// joined representation. FragmentsAvailable is false when a limited resolver
+// cannot recover the original DNS character-string boundaries.
 type TXTRecord struct {
-	Fragments          []string `json:"fragments"`
-	FragmentsAvailable bool     `json:"fragments_available"`
-	Joined             string   `json:"joined"`
+	Fragments          []string            `json:"fragments"`
+	FragmentsAvailable bool                `json:"fragments_available"`
+	Joined             string              `json:"joined"`
+	TTL                DNSDurationEvidence `json:"ttl"`
 }
 
 // TXTLookupResult is returned by a TXTResolver. Resolver implementations may

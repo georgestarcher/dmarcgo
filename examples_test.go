@@ -111,6 +111,27 @@ entities:
 	// Output: example.test
 }
 
+func ExampleParseSPFRecord() {
+	record, diagnostics := ParseSPFRecord("v=spf1 include:sender.example.test -all")
+	fmt.Printf("status=%s terms=%d lookups=%d diagnostics=%d\n", record.Status, len(record.Terms), record.Lookup.DirectTerms, len(diagnostics))
+	// Output: status=valid terms=2 lookups=1 diagnostics=0
+}
+
+func ExampleParseDMARCPolicyRecord() {
+	record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; rua=mailto:reports@example.test")
+	fmt.Printf("status=%s policy=%s reports=%d diagnostics=%d\n", record.Status, record.Policy, len(record.AggregateReports), len(diagnostics))
+	// Output: status=valid policy=reject reports=1 diagnostics=0
+}
+
+func ExampleDMARCPolicyDiscoveryNames() {
+	names, err := DMARCPolicyDiscoveryNames("mail.example.test")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(names)
+	// Output: [_dmarc.mail.example.test _dmarc.example.test _dmarc.test]
+}
+
 // ExampleBuildFailureOutput demonstrates a stable error envelope for work that
 // could not be evaluated.
 func ExampleBuildFailureOutput() {

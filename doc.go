@@ -43,6 +43,13 @@
 // authority, and negative-cache SOA evidence. A DNSSnapshot is immutable and
 // reusable; consuming it never performs another lookup.
 //
+// ParseAuthenticationRecords performs the following pure stage over a supplied
+// DNSSnapshot. ParseSPFRecord, ParseDKIMKeyRecord, and ParseDMARCPolicyRecord
+// expose the same side-effect-free parsers for individual values.
+// DMARCPolicyDiscoveryNames computes RFC 9989 tree-walk names without resolving
+// them. Record-controlled notes, reporting URIs, and extension values remain
+// untrusted evidence and never become library-generated instructions.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

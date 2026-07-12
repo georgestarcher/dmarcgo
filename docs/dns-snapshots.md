@@ -51,6 +51,12 @@ define it. Set `Clock` when the snapshot timestamp must be reproducible.
 Concurrency, per-attempt timeout, attempts, retry delay, and failure policy are
 bounded by `DNSCollectionOptions`. Timeouts and temporary failures are retryable;
 NXDOMAIN, NODATA, malformed responses, and cancellation are terminal.
+
+The DNS-message adapter preserves each TXT RR's received TTL. If a configured
+resolver returns different TTLs within one RRset, the snapshot uses the lowest
+TTL for the RRset while retaining the per-record values, following RFC 2181
+Section 5.2 for clients configured to use that resolver. This produces usable
+evidence on the first response and does not trigger a retry.
 Before concurrent fan-out, collection resolves the first deterministic planned
 name serially. A resolver-wide configuration error therefore stops collection
 after one call and returns no snapshot evidence.

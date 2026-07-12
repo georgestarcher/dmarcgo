@@ -261,12 +261,8 @@ func maturityUsableSPF(record SPFRecord, status AuthenticationRecordStatus) bool
 	if status != AuthenticationRecordValid && status != AuthenticationRecordWeak {
 		return false
 	}
-	for _, term := range record.Terms {
-		if term.Mechanism == "all" && term.Qualifier == SPFQualifierPass {
-			return false
-		}
-	}
-	return true
+	all, ok := firstSPFAllTerm(record)
+	return !ok || all.Qualifier != SPFQualifierPass
 }
 
 func maturityUsableDKIM(record DKIMKeyRecord, status AuthenticationRecordStatus) bool {

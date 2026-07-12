@@ -279,6 +279,40 @@ func TestEvaluateDNSHealthBalancedMissingComponentScores(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthUsesFirstSPFAllMechanism(t *testing.T) {
+	tests := []struct {
+		name       string
+		value      string
+		permissive bool
+		usable     bool
+		score      int
+	}{
+		{name: "permissive first", value: "v=spf1 +all -all", permissive: true, usable: false, score: 70},
+		{name: "enforcing first", value: "v=spf1 -all +all", permissive: false, usable: true, score: 100},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			portfolio := dnsHealthTestPortfolio(t)
+			values := dnsHealthTestRecordValues()
+			values["example.test"] = test.value
+			authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, values)
+			result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			spf := findDNSRecordHealthForDomain(t, result.Records(), "example.test", DNSRecordSPF, "corporate", "example.test")
+			if got := scoreHasContribution(spf.Score, "dns.health.spf_permissive_all"); got != test.permissive || spf.Score.Value != test.score {
+				t.Fatalf("SPF score=%+v permissive=%t", spf.Score, got)
+			}
+			domain := findDNSDomainHealth(t, result.Domains(), "example.test", "corporate")
+			signal := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.spf_available")
+			if signal.Satisfied != test.usable {
+				t.Fatalf("SPF maturity signal=%+v", signal)
+			}
+		})
+	}
+}
+
 func TestEvaluateDNSHealthUsesInheritedDMARCSubdomainPolicy(t *testing.T) {
 	config := dnsHealthTestConfig()
 	config.Entities[0].Domains[1].Records.DMARC = nil
@@ -309,6 +343,59 @@ func TestEvaluateDNSHealthUsesInheritedDMARCSubdomainPolicy(t *testing.T) {
 	finding := findDNSHealthFindingForDomain(t, result.Findings(), "dns.health.dmarc_child_policy_weaker", "marketing.example.test")
 	if finding.ScoreImpact >= 0 {
 		t.Fatalf("child-policy finding=%+v", finding)
+	}
+}
+
+func TestEvaluateDNSHealthDMARCDiscoveryStopsAtUnusableExactRecord(t *testing.T) {
+	tests := []struct {
+		name           string
+		exactValue     string
+		exactStatus    DNSObservationStatus
+		scoreAvailable bool
+		score          int
+		presenceState  EvaluationState
+		presence       bool
+		enforcement    bool
+	}{
+		{
+			name: "invalid", exactValue: "v=DMARC1; p=block", exactStatus: DNSObservationSuccess,
+			scoreAvailable: true, score: 0, presenceState: EvaluationStateEvaluated,
+		},
+		{
+			name: "unavailable", exactStatus: DNSObservationTimeout,
+			scoreAvailable: false, presenceState: EvaluationStateUnknown,
+		},
+		{
+			name: "conclusively missing", exactStatus: DNSObservationNXDOMAIN,
+			scoreAvailable: true, score: 100, presenceState: EvaluationStateEvaluated, presence: true, enforcement: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			portfolio := dnsHealthTestPortfolio(t)
+			values := dnsHealthTestRecordValues()
+			if test.exactValue != "" {
+				values["_dmarc.marketing.example.test"] = test.exactValue
+			}
+			overrides := map[string]DNSObservationStatus{"_dmarc.marketing.example.test": test.exactStatus}
+			authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, overrides, nil, values)
+			result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			domain := findDNSDomainHealth(t, result.Domains(), "marketing.example.test", "corporate")
+			if domain.Mechanisms.DMARC.Available != test.scoreAvailable || domain.Mechanisms.DMARC.Value != test.score {
+				t.Fatalf("DMARC mechanism=%+v", domain.Mechanisms.DMARC)
+			}
+			presence := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.dmarc_published")
+			if presence.Evaluation.State != test.presenceState || presence.Satisfied != test.presence {
+				t.Fatalf("DMARC presence=%+v", presence)
+			}
+			enforcement := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.dmarc_enforced")
+			if enforcement.Satisfied != test.enforcement {
+				t.Fatalf("DMARC enforcement=%+v", enforcement)
+			}
+		})
 	}
 }
 

@@ -667,13 +667,8 @@ func (evaluator *dnsHealthEvaluator) statusFinding(status AuthenticationRecordSt
 func (evaluator *dnsHealthEvaluator) evaluateSPF(entityID, domain, name string, record SPFRecord, evidenceID EvidenceID) []DNSHealthFinding {
 	evaluator.collectProviderContexts(entityID, domain, name, record, evidenceID)
 	findings := make([]DNSHealthFinding, 0)
-	var all *SPFTerm
-	for index := range record.Terms {
-		if record.Terms[index].Mechanism == "all" {
-			all = &record.Terms[index]
-		}
-	}
-	if all == nil {
+	all, hasAll := firstSPFAllTerm(record)
+	if !hasAll {
 		findings = append(findings, evaluator.newFinding("dns.health.spf_no_all", FindingSeverityLow, FindingConfidenceHigh, DNSHealthScopeRecord,
 			entityID, domain, name, DNSRecordSPF, []EvidenceID{evidenceID}, EvaluationStateEvaluated, -evaluator.profile.SPFNoAll,
 			"The SPF record has no all mechanism and may not express a complete default result.", "Review whether an explicit terminal all mechanism is appropriate.", spfStandardReference))
@@ -699,6 +694,15 @@ func (evaluator *dnsHealthEvaluator) evaluateSPF(entityID, domain, name string, 
 			"The supplied snapshot does not contain a complete SPF dependency graph.", "Collect every declared SPF dependency when complete expanded-lookup evidence is required.", spfStandardReference))
 	}
 	return findings
+}
+
+func firstSPFAllTerm(record SPFRecord) (SPFTerm, bool) {
+	for _, term := range record.Terms {
+		if term.Mechanism == "all" {
+			return term, true
+		}
+	}
+	return SPFTerm{}, false
 }
 
 func (evaluator *dnsHealthEvaluator) indexProviderSenders() {
@@ -899,8 +903,15 @@ func (evaluator *dnsHealthEvaluator) domainDMARCPolicy(domain MonitoredDomain) (
 	if !ok {
 		return "", nil, false
 	}
-	set := evaluator.sets[dnsHealthRecordKey(name, DNSRecordDMARC)]
-	return dmarcPolicyForConfiguredDomain(domain.Name, name, *set.Records[0].DMARC), []EvidenceID{set.Records[0].EvidenceID}, true
+	set, ok := evaluator.sets[dnsHealthRecordKey(name, DNSRecordDMARC)]
+	if !ok || (set.Status != AuthenticationRecordValid && set.Status != AuthenticationRecordWeak) || len(set.Records) != 1 || set.Records[0].DMARC == nil {
+		return "", nil, false
+	}
+	policy := dmarcPolicyForConfiguredDomain(domain.Name, name, *set.Records[0].DMARC)
+	if policy == "" {
+		return "", nil, false
+	}
+	return policy, []EvidenceID{set.Records[0].EvidenceID}, true
 }
 
 type dmarcPolicyScope int
@@ -957,9 +968,12 @@ func (evaluator *dnsHealthEvaluator) domainDMARCRecordName(domain MonitoredDomai
 	}
 	for _, name := range names {
 		set, ok := evaluator.sets[dnsHealthRecordKey(name, DNSRecordDMARC)]
-		if !ok || len(set.Records) != 1 || set.Records[0].DMARC == nil || set.Records[0].DMARC.EffectivePolicy == "" {
+		if ok && set.Status == AuthenticationRecordMissing {
 			continue
 		}
+		// DMARC discovery may continue only after conclusive absence. An
+		// invalid, conflicting, or unavailable record at a closer owner blocks
+		// fallback to a more distant inherited policy.
 		return name, true
 	}
 	return "", false

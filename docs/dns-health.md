@@ -65,7 +65,8 @@ deducts 10, and testing or obsolete tags apply their separately inspectable
 deductions. A 1024-bit RSA DKIM key receives a 15-point maturity deduction;
 SPF soft-fail and neutral terminal policies deduct 10 and 30 respectively.
 SPF and DKIM absence produce zero for those configured components in the
-balanced profile.
+balanced profile. SPF scoring uses the first `all` mechanism because it always
+matches and makes every later mechanism unreachable.
 
 For a configured domain using an inherited parent DMARC record, scoring and
 maturity apply the record's `sp` policy, falling back to `p` when `sp` is
@@ -73,6 +74,11 @@ absent. The `np` policy is evaluated separately when determining whether the
 published record enforces all descendant scopes. Because this stage performs no
 DNS queries beyond the supplied snapshot, it does not infer that a configured
 domain is nonexistent.
+
+DMARC discovery falls back to an inherited owner only when the closer configured
+owner has conclusively missing record evidence. Invalid, conflicting, or
+unavailable exact records block fallback so a parent policy cannot conceal the
+closer owner's failure or uncertainty.
 
 Scores are posture indicators, not proof of compromise, sender authorization,
 or malicious activity. Applications should use finding codes and evidence,

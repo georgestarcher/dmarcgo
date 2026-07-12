@@ -69,6 +69,10 @@ parses supplied SPF, DKIM, and current RFC 9989 DMARC values without performing
 lookups, and preserves missing or unavailable evidence explicitly. See
 [Authentication-record parsing](docs/authentication-records.md).
 
+The reviewed provider catalog adds versioned context for documented SPF and
+DKIM setup models without turning recognition into authorization or health
+credit. See [Provider catalog](docs/provider-catalog.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -115,6 +119,9 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want parsed SPF, DKIM, and DMARC semantics | `dmarcgo.ParseAuthenticationRecords(snapshot)` | Purely parses an existing snapshot; performs no DNS, report, filesystem, or time access. |
 | You need to validate one supplied record string | `dmarcgo.ParseSPFRecord`, `dmarcgo.ParseDKIMKeyRecord`, or `dmarcgo.ParseDMARCPolicyRecord` | Returns typed semantics plus value-safe diagnostics without I/O. |
 | You need RFC 9989 DMARC tree-walk names | `dmarcgo.DMARCPolicyDiscoveryNames(domain)` | Computes at most eight owner names but never resolves them. |
+| You want reviewed provider context | `dmarcgo.DefaultProviderCatalog()` | Loads the strict embedded catalog without network access. |
+| You want to recognize a parsed SPF dependency | `catalog.MatchSPFRelationship(relationship)` | Exact-by-default context only; it never authorizes a sender or validates live DNS. |
+| You maintain private provider metadata | `dmarcgo.LoadProviderCatalogYAML(data)` or `dmarcgo.OverlayProviderCatalog(base, overlay)` | Strict, bounded caller data with explicit replacement provenance and no remote updates. |
 
 ## Automation and AI-agent output
 

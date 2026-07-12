@@ -35,6 +35,10 @@ and this project uses semantic versioning for public API changes.
   reusable DNS snapshots, with typed semantics, deterministic diagnostics,
   bounded SPF dependency analysis, DKIM key-strength metadata, DMARC tree-walk
   planning, IDN normalization, fuzz coverage, and explicit unknown evidence.
+- Strict, versioned, embedded email-provider metadata with reviewed first-party
+  citations, exact-by-default SPF dependency matching, immutable accessors,
+  explicit private overlays, deterministic provenance, review-date checks, and
+  context-only semantics that never imply authorization or DNS health.
 
 ### Changed
 

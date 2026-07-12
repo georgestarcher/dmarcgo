@@ -1,0 +1,659 @@
+schema_version: 1
+catalog_version: "2026-07-12"
+providers:
+  - id: adobe-marketo
+    name: Adobe Marketo Engage
+    aliases: [marketo, marketo-engage]
+    status: active
+    official_domains: [adobe.com, mktomail.com]
+    spf:
+      includes:
+        - name: mktomail.com
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific TXT public key supplied by Marketo Engage
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: false
+      note: Retrieve each DKIM host and value from the Marketo Engage administration interface.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Adobe recommends using DKIM for DMARC alignment on the reviewed Marketo stream.
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://experienceleague.adobe.com/en/docs/marketo/using/getting-started/initial-setup/configure-protocols-for-marketo
+        title: Configure SPF and DKIM for Adobe Marketo Engage
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: amazon-ses
+    name: Amazon Simple Email Service
+    aliases: [ses, aws-ses]
+    status: active
+    official_domains: [amazon.com, aws.amazon.com]
+    spf:
+      includes:
+        - name: amazonses.com
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+      live_expansion_required: true
+    dkim:
+      setup_model: Easy DKIM or caller-managed BYODKIM
+      custom_domain_signing_expected: true
+      preferred_rsa_bits: 2048
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Easy DKIM uses tenant-specific DNS records; exact names and values come from SES.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: A custom MAIL FROM domain is required when DMARC must align through SPF rather than DKIM.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: custom-mail-from-mx
+        type: MX
+        condition: A custom MAIL FROM domain is configured.
+        purpose: Route bounces to the regional SES feedback endpoint supplied by AWS.
+      - id: custom-mail-from-spf
+        type: TXT
+        condition: A custom MAIL FROM domain is configured.
+        purpose: Publish the SES SPF authorization supplied by AWS.
+    documentation:
+      - url: https://docs.aws.amazon.com/ses/latest/dg/mail-from.html
+        title: Amazon SES custom MAIL FROM
+      - url: https://docs.aws.amazon.com/ses/latest/dg/send-email-authentication-dkim.html
+        title: Amazon SES DKIM authentication
+      - url: https://docs.aws.amazon.com/ses/latest/dg/send-email-authentication-dmarc.html
+        title: Amazon SES DMARC compliance
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: aweber
+    name: AWeber
+    aliases: [aweber-email]
+    status: active
+    official_domains: [aweber.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Three customer-domain CNAME selectors delegated to AWeber
+      custom_domain_signing_expected: true
+      selector_patterns: [aweber_key_a, aweber_key_b, aweber_key_c]
+      tenant_specific: false
+      provider_managed_rotation: true
+      note: AWeber documents three fixed selector CNAMEs and may automate their publication through supported DNS providers.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: The reviewed page establishes aligned DKIM and DMARC setup but does not establish custom MAIL FROM behavior.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: dkim-cnames
+        type: CNAME
+        condition: A custom sender domain is authenticated manually.
+        purpose: Publish all three AWeber DKIM selector targets documented for the domain.
+      - id: dmarc-policy
+        type: TXT
+        condition: The domain is authenticated manually and does not already publish DMARC.
+        purpose: Publish DMARC separately after the AWeber DKIM records.
+    documentation:
+      - url: https://help.aweber.com/hc/en-us/articles/360023682313-How-do-I-set-up-DKIM-authentication-records-for-my-domain
+        title: Set up AWeber DKIM authentication
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: campaign-monitor
+    name: Campaign Monitor
+    aliases: [createsend]
+    status: active
+    official_domains: [campaignmonitor.com, createsend.com]
+    spf:
+      includes:
+        - name: _spf.createsend.com
+          status: active
+          match: exact
+          evidence_confidence: high
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific sending-domain authentication records
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: DKIM is the documented path to DMARC alignment when Campaign Monitor uses its default return path.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Default Campaign Monitor SPF can pass for its return-path domain without aligning to the visible From domain.
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://help.campaignmonitor.com/articles/Knowledge/email-authentication
+        title: Campaign Monitor email authentication
+      - url: https://help.campaignmonitor.com/articles/Knowledge/allowlist-campaign-monitors-addresses
+        title: Campaign Monitor sending domains and SPF include
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: constant-contact
+    name: Constant Contact
+    aliases: [constantcontact]
+    status: active
+    official_domains: [constantcontact.com, ccsend.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific self-authentication records supplied by Constant Contact
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Exact selector and DNS values remain tenant-specific and are not catalog templates.
+    alignment:
+      custom_mail_from: not_supported
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Constant Contact documents that its service return path does not SPF-align with the visible From domain; use aligned DKIM for DMARC.
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://knowledgebase.constantcontact.com/email-digital-marketing/tutorials/KnowledgeBase/5865-Understanding-email-authentication?lang=en_US
+        title: Constant Contact email authentication
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: google-workspace
+    name: Google Workspace
+    aliases: [google-apps, gmail-workspace]
+    status: active
+    official_domains: [google.com]
+    spf:
+      includes:
+        - name: _spf.google.com
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+      live_expansion_required: true
+    dkim:
+      setup_model: Customer publishes a selector TXT key generated by Google Admin
+      custom_domain_signing_expected: true
+      selector_patterns: [google]
+      preferred_rsa_bits: 2048
+      tenant_specific: true
+      provider_managed_rotation: false
+      note: Google is the recommended default selector, but administrators may choose another valid selector.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: DKIM alignment can satisfy DMARC for the reviewed Workspace stream.
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://knowledge.workspace.google.com/admin/security/set-up-spf
+        title: Set up SPF for Google Workspace
+      - url: https://knowledge.workspace.google.com/admin/security/set-up-dkim
+        title: Set up DKIM for Google Workspace
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: hubspot
+    name: HubSpot Marketing Email
+    aliases: [hubspot-marketing]
+    status: active
+    official_domains: [hubspot.com, hubspotemail.net]
+    spf:
+      includes:
+        - name: hubspotemail.net
+          status: active
+          match: suffix
+          evidence_confidence: high
+          expected_terminal_behavior: hardfail
+          note: HubSpot supplies a tenant and cluster-specific subdomain beneath hubspotemail.net.
+      live_expansion_required: true
+    dkim:
+      setup_model: Two tenant-specific CNAME records supplied by HubSpot
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Use the exact CNAME hosts and targets returned by HubSpot.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Connect the email sending subdomain shown in the visible From address and publish all three authentication record types; custom MAIL FROM behavior was not established by the reviewed page.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: dkim-cnames
+        type: CNAME
+        condition: A HubSpot email sending domain is connected.
+        purpose: Publish both tenant-specific DKIM targets returned by HubSpot.
+      - id: dmarc-policy
+        type: TXT
+        condition: The sending domain does not already publish DMARC.
+        purpose: Publish DMARC separately from the HubSpot SPF and DKIM records.
+    documentation:
+      - url: https://knowledge.hubspot.com/marketing-email/manage-email-authentication-in-hubspot?page=1
+        title: Manage email authentication in HubSpot
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: klaviyo
+    name: Klaviyo
+    aliases: [klaviyo-email]
+    status: active
+    official_domains: [klaviyo.com, klaviyodns.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Dynamic NS delegation or static tenant-specific CNAME records
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Dynamic routing delegates a sending subdomain; static routing uses send-type-specific selector pairs supplied by Klaviyo.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: The branded sending subdomain provides aligned authentication; DMARC remains a separate root-domain policy.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: dynamic-routing-delegation
+        type: NS
+        condition: Dynamic routing is selected.
+        purpose: Delegate the branded sending subdomain to the exact Klaviyo name servers shown during setup.
+      - id: static-routing-cnames
+        type: CNAME
+        condition: Static routing is selected.
+        purpose: Publish the sending-domain and DKIM CNAME records generated by Klaviyo.
+      - id: domain-verification
+        type: TXT
+        condition: A branded sending domain is configured.
+        purpose: Publish the account-specific public domain-verification value generated by Klaviyo.
+    documentation:
+      - url: https://help.klaviyo.com/hc/en-us/articles/115000357752
+        title: Set up a branded sending domain in Klaviyo
+      - url: https://help.klaviyo.com/hc/en-us/articles/4402601857307
+        title: Klaviyo email authentication
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: mailchimp
+    name: Mailchimp
+    aliases: [intuit-mailchimp]
+    status: active
+    official_domains: [mailchimp.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific CNAME authentication records supplied by Mailchimp
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: No static SPF include is asserted because current first-party setup documentation supplies account-specific CNAME records.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: DMARC is configured separately from the Mailchimp authentication CNAME records.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: domain-authentication-cnames
+        type: CNAME
+        condition: A custom sending domain is authenticated.
+        purpose: Publish the two tenant-specific authentication records supplied by Mailchimp.
+      - id: dmarc-policy
+        type: TXT
+        condition: The sending domain does not already publish DMARC.
+        purpose: Publish a DMARC policy separately from Mailchimp domain authentication.
+    documentation:
+      - url: https://mailchimp.com/help/set-up-email-domain-authentication/
+        title: Set up email domain authentication in Mailchimp
+    reviewed_at: "2026-07-12"
+    contract_note: The older servers.mcsv.net include is intentionally not cataloged without current first-party setup documentation.
+    evidence_confidence: high
+  - id: mailchimp-transactional
+    name: Mailchimp Transactional
+    aliases: [mandrill, mandrillapp]
+    status: active
+    official_domains: [mailchimp.com, mandrillapp.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Two customer-domain CNAME selectors delegated to Mailchimp Transactional
+      custom_domain_signing_expected: true
+      selector_patterns: [mte1, mte2]
+      tenant_specific: false
+      provider_managed_rotation: true
+      note: The documented CNAME targets are dkim1.mandrillapp.com and dkim2.mandrillapp.com.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: A custom return-path subdomain can be delegated by CNAME; DKIM and a DMARC policy are required for sending-domain authentication.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: dkim-cnames
+        type: CNAME
+        condition: A Mailchimp Transactional sending domain is authenticated.
+        purpose: Publish the mte1 and mte2 DKIM CNAME records documented by Mailchimp.
+      - id: domain-verification
+        type: TXT
+        condition: DNS ownership verification is selected.
+        purpose: Publish the tenant-specific mandrill_verify value returned by Mailchimp Transactional.
+      - id: dmarc-policy
+        type: TXT
+        condition: A Mailchimp Transactional sending domain is authenticated.
+        purpose: Publish a DMARC policy; Mailchimp documents monitoring policy as the minimum.
+      - id: custom-return-path
+        type: CNAME
+        condition: A custom return-path subdomain is configured.
+        purpose: Delegate the caller-selected return-path subdomain to mandrillapp.com.
+    documentation:
+      - url: https://mailchimp.com/developer/transactional/docs/authentication-delivery/
+        title: Mailchimp Transactional authentication and delivery
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: mailgun
+    name: Mailgun
+    aliases: [mailgun-email]
+    status: active
+    official_domains: [mailgun.com, mailgun.org]
+    spf:
+      includes:
+        - name: mailgun.org
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific TXT or CNAME public-key records supplied by Mailgun
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Mailgun may display multiple keys during rotation; use the key required by the domain configuration.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: Verify the dedicated sending domain and use the exact DNS records returned by Mailgun.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: tracking-cname
+        type: CNAME
+        condition: Mailgun tracking is enabled.
+        purpose: Publish the tracking target returned by Mailgun.
+      - id: inbound-routing-mx
+        type: MX
+        condition: Mailgun inbound routing or storage is used.
+        purpose: Publish both Mailgun inbound MX targets shown for the domain.
+    documentation:
+      - url: https://documentation.mailgun.com/docs/mailgun/user-manual/domains/domains-verify
+        title: Verify a sending domain in Mailgun
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: microsoft-365
+    name: Microsoft 365
+    aliases: [office-365, exchange-online]
+    status: active
+    official_domains: [microsoft.com]
+    spf:
+      includes:
+        - name: spf.protection.outlook.com
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: hardfail
+          region: worldwide
+        - name: spf.protection.office365.us
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: hardfail
+          region: GCC High and DoD
+        - name: spf.protection.partner.outlook.cn
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: hardfail
+          region: 21Vianet
+      live_expansion_required: true
+    dkim:
+      setup_model: Two tenant-specific CNAME selectors delegated to Microsoft
+      custom_domain_signing_expected: true
+      selector_patterns: [selector1, selector2]
+      preferred_rsa_bits: 2048
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Retrieve exact CNAME targets from Microsoft 365; do not construct tenant targets.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Custom-domain DKIM is the documented alignment mechanism for outbound Microsoft 365 mail.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: dkim-selector-cnames
+        type: CNAME
+        condition: Custom-domain DKIM is enabled.
+        purpose: Publish both tenant-specific selector targets returned by Microsoft 365.
+    documentation:
+      - url: https://learn.microsoft.com/en-us/defender-office-365/email-authentication-spf-configure
+        title: Set up SPF to identify valid email sources for Microsoft 365
+      - url: https://learn.microsoft.com/en-us/defender-office-365/email-authentication-dkim-configure
+        title: Set up DKIM to sign mail from a custom domain in Microsoft 365
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: omnisend
+    name: Omnisend
+    aliases: [omnisend-email]
+    status: active
+    official_domains: [omnisend.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific authentication records supplied by Omnisend
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Retrieve the exact SPF, DKIM, and DMARC records from the Omnisend domain setup page.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: Omnisend recommends relaxed SPF and DKIM alignment; custom MAIL FROM behavior was not established by the reviewed pages.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: authentication-records
+        type: TXT
+        condition: A custom sender domain is signed in Omnisend.
+        purpose: Publish the exact SPF, DKIM, and DMARC values generated for the domain.
+    documentation:
+      - url: https://support.omnisend.com/en/articles/3385292-set-up-your-email-domain-in-omnisend
+        title: Set up an email domain in Omnisend
+      - url: https://support.omnisend.com/en/articles/3030641-set-up-spf-dkim-and-dmarc-for-email-authentication
+        title: Omnisend SPF DKIM and DMARC authentication
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: postmark
+    name: Postmark
+    aliases: [activecampaign-postmark]
+    status: active
+    official_domains: [postmarkapp.com, mtasv.net]
+    spf:
+      includes:
+        - name: spf.mtasv.net
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+          note: Postmark still documents this include, but recommends a custom return-path CNAME for SPF alignment instead of adding it at the root.
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific TXT public key supplied by Postmark
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: false
+      note: Current Postmark selectors may contain an account-specific numeric prefix; retrieve the exact host and value.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: A custom return-path subdomain CNAME is required for SPF-based DMARC alignment and supports relaxed, not strict, SPF alignment.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: custom-return-path
+        type: CNAME
+        condition: SPF-based DMARC alignment is required.
+        purpose: Delegate the custom return-path subdomain to pm.mtasv.net.
+    documentation:
+      - url: https://postmarkapp.com/support/article/how-do-i-set-up-spf-for-postmark
+        title: Postmark SPF and custom return-path guidance
+      - url: https://postmarkapp.com/support/article/setting-up-dkim-for-your-domain
+        title: Set up Postmark DKIM
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: salesforce
+    name: Salesforce
+    aliases: [salesforce-platform]
+    status: active
+    official_domains: [salesforce.com]
+    spf:
+      includes:
+        - name: _spf.salesforce.com
+          status: active
+          match: exact
+          evidence_confidence: high
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific DKIM configuration
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: false
+      note: Selector details are intentionally unknown until a current first-party DKIM contract is reviewed.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://help.salesforce.com/s/articleView?id=000386321&type=1
+        title: Salesforce SPF include guidance
+    reviewed_at: "2026-07-12"
+    evidence_confidence: medium
+  - id: shopify
+    name: Shopify
+    aliases: [shopify-email]
+    status: active
+    official_domains: [shopify.com]
+    spf:
+      includes: []
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific CNAME records supplied by Shopify
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: No static SPF include is asserted because current first-party documentation directs callers to Shopify-provided CNAME records.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+      note: DMARC remains a separate domain record.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: sender-authentication-cnames
+        type: CNAME
+        condition: A third-party domain is used as the sender address.
+        purpose: Publish the SPF and DKIM CNAME records supplied by Shopify.
+      - id: dmarc-policy
+        type: TXT
+        condition: A third-party domain is used as the sender address.
+        purpose: Publish DMARC separately from the Shopify authentication CNAME records.
+    documentation:
+      - url: https://help.shopify.com/en/manual/intro-to-shopify/initial-setup/setup-your-email
+        title: Setting up your sender email address in Shopify
+    reviewed_at: "2026-07-12"
+    contract_note: The older shops.shopify.com include is intentionally not cataloged without current first-party setup documentation.
+    evidence_confidence: high
+  - id: twilio-sendgrid
+    name: Twilio SendGrid
+    aliases: [sendgrid]
+    status: active
+    official_domains: [twilio.com, sendgrid.com, sendgrid.net]
+    spf:
+      includes:
+        - name: sendgrid.net
+          status: active
+          match: exact
+          evidence_confidence: high
+          expected_terminal_behavior: softfail
+          note: This include applies to manual TXT authentication; automated security normally delegates tenant-specific records by CNAME.
+      live_expansion_required: true
+    dkim:
+      setup_model: Two tenant-specific CNAME selectors with automated or manual security
+      custom_domain_signing_expected: true
+      selector_patterns: [s1, s2]
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Automated security lets SendGrid manage SPF, DKIM, and selector rotation through CNAME records.
+    alignment:
+      custom_mail_from: supported
+      custom_mail_from_required_for_spf_dmarc_alignment: true
+      note: Domain authentication creates a branded return-path subdomain; a caller may select its label.
+    infrastructure:
+      shared: true
+    companion_records:
+      - id: authentication-cnames
+        type: CNAME
+        condition: Automated security is enabled.
+        purpose: Publish the return-path and two DKIM targets generated for the SendGrid account.
+      - id: link-branding-cnames
+        type: CNAME
+        condition: Link branding is configured.
+        purpose: Publish the tenant-specific tracking targets returned by SendGrid.
+      - id: dmarc-policy
+        type: TXT
+        condition: The authenticated domain does not already publish DMARC.
+        purpose: Publish DMARC separately from the SendGrid authentication CNAME records.
+    documentation:
+      - url: https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-domain-authentication
+        title: Configure Twilio SendGrid domain authentication
+      - url: https://www.twilio.com/docs/sendgrid/ui/account-and-settings/troubleshooting-sender-authentication
+        title: Troubleshoot Twilio SendGrid sender authentication
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high
+  - id: zendesk
+    name: Zendesk
+    aliases: [zendesk-support]
+    status: active
+    official_domains: [zendesk.com]
+    spf:
+      includes:
+        - name: mail.zendesk.com
+          status: active
+          match: exact
+          evidence_confidence: high
+      live_expansion_required: true
+    dkim:
+      setup_model: Tenant-specific custom-domain signing configuration
+      custom_domain_signing_expected: true
+      tenant_specific: true
+      provider_managed_rotation: true
+      note: Exact DKIM metadata is intentionally unknown until separately verified from current first-party documentation.
+    alignment:
+      custom_mail_from: unknown
+      custom_mail_from_required_for_spf_dmarc_alignment: false
+    infrastructure:
+      shared: true
+    documentation:
+      - url: https://support.zendesk.com/hc/en-us/articles/4408832543770-Allowing-Zendesk-to-send-email-on-behalf-of-your-email-domain
+        title: Allow Zendesk to send email on behalf of your domain
+    reviewed_at: "2026-07-12"
+    evidence_confidence: high

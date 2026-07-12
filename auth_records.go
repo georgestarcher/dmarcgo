@@ -267,13 +267,18 @@ func candidateTXTRecords(records []TXTRecord, recordType DNSRecordType) []TXTRec
 		case DNSRecordDKIM:
 			result = append(result, record)
 		case DNSRecordDMARC:
-			if len(value) >= len("v=DMARC1") && strings.EqualFold(value[:len("v=DMARC1")], "v=DMARC1") &&
-				(len(value) == len("v=DMARC1") || value[len("v=DMARC1")] == ';' || value[len("v=DMARC1")] == ' ' || value[len("v=DMARC1")] == '\t') {
+			if hasDMARCVersionTag(value) {
 				result = append(result, record)
 			}
 		}
 	}
 	return result
+}
+
+func hasDMARCVersionTag(value string) bool {
+	first, _, _ := strings.Cut(value, ";")
+	name, tagValue, found := strings.Cut(first, "=")
+	return found && strings.EqualFold(strings.TrimSpace(name), "v") && strings.EqualFold(strings.TrimSpace(tagValue), "DMARC1")
 }
 
 func parseAuthenticationCandidate(recordType DNSRecordType, value string) (ParsedAuthenticationRecord, []AuthenticationDiagnostic) {

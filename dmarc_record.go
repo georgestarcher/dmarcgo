@@ -78,7 +78,11 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 	policyPresent := false
 	domainPolicyInvalid := false
 	validAggregateURI := false
+	var failureOptionsTag *authenticationTag
 	for _, tag := range tags {
+		if tag.name == "p" {
+			policyPresent = true
+		}
 		if tag.value == "" {
 			diagnostics = append(diagnostics, parserDiagnostic("dmarc.malformed_empty_value", FindingSeverityHigh, "tags."+tag.name, tag.offset, "A DMARC tag has an empty value.", dmarcStandardReference))
 			continue
@@ -87,7 +91,6 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 		case "v":
 			continue
 		case "p":
-			policyPresent = true
 			policy, ok := parseDMARCPolicy(tag.value)
 			if !ok {
 				domainPolicyInvalid = true
@@ -139,7 +142,8 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 			record.FailureReports = uris
 			diagnostics = append(diagnostics, uriDiagnostics...)
 		case "fo":
-			record.FailureOptions, diagnostics = parseDMARCFailureOptions(tag.value, tag.offset, diagnostics)
+			tagCopy := tag
+			failureOptionsTag = &tagCopy
 		case "pct", "ri", "rf":
 			record.RemovedLegacyTags = append(record.RemovedLegacyTags, tag.name)
 			diagnostics = append(diagnostics, parserDiagnostic("dmarc.deprecated_removed_tag", FindingSeverityMedium, "removed_legacy_tags", tag.offset, "A tag removed from RFC 9989 is preserved but ignored.", dmarcStandardReference))
@@ -148,7 +152,13 @@ func ParseDMARCPolicyRecord(value string) (DMARCPolicyRecord, []AuthenticationDi
 			diagnostics = append(diagnostics, parserDiagnostic("dmarc.unknown_tag", FindingSeverityInfo, "unknown_tags", tag.offset, "An unknown DMARC tag is preserved and ignored as required by RFC 9989.", dmarcStandardReference))
 		}
 	}
-	if domainPolicyInvalid || !policyPresent || record.Policy == "" {
+	if failureOptionsTag != nil && len(record.FailureReports) > 0 {
+		record.FailureOptions, diagnostics = parseDMARCFailureOptions(failureOptionsTag.value, failureOptionsTag.offset, diagnostics)
+	}
+	if !policyPresent {
+		record.EffectivePolicy = DMARCPolicyNone
+		record.RecoveredMonitoring = true
+	} else if domainPolicyInvalid || record.Policy == "" {
 		if validAggregateURI {
 			record.EffectivePolicy = DMARCPolicyNone
 			record.RecoveredMonitoring = true
@@ -254,6 +264,9 @@ func parseDMARCURI(raw string) (DMARCReportURI, bool) {
 			result.LegacySize = legacy
 			uriValue = uriValue[:bang]
 		}
+	}
+	if strings.Contains(uriValue, "!") {
+		return result, false
 	}
 	parsed, err := url.Parse(uriValue)
 	if err != nil || parsed.Scheme == "" {

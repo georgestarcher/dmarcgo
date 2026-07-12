@@ -150,8 +150,12 @@ func TestParseDMARCPolicyRecordRFC9989(t *testing.T) {
 
 func TestParseDMARCPolicyRecordFallbackAndErrors(t *testing.T) {
 	monitoring, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; rua=mailto:reports@example.test")
-	if monitoring.Status != AuthenticationRecordWeak || !monitoring.RecoveredMonitoring || monitoring.EffectivePolicy != DMARCPolicyNone || !hasAuthenticationDiagnostic(diagnostics, "dmarc.weak_recovered_monitoring") {
+	if monitoring.Status != AuthenticationRecordValid || !monitoring.RecoveredMonitoring || monitoring.EffectivePolicy != DMARCPolicyNone || len(diagnostics) != 0 {
 		t.Fatalf("monitoring=%+v diagnostics=%+v", monitoring, diagnostics)
+	}
+	defaultPolicy, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; adkim=s")
+	if defaultPolicy.Status != AuthenticationRecordValid || !defaultPolicy.RecoveredMonitoring || defaultPolicy.EffectivePolicy != DMARCPolicyNone || len(diagnostics) != 0 {
+		t.Fatalf("default policy=%+v diagnostics=%+v", defaultPolicy, diagnostics)
 	}
 	invalidSubdomain, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; sp=block; rua=mailto:reports@example.test")
 	if invalidSubdomain.Status != AuthenticationRecordInvalid || invalidSubdomain.RecoveredMonitoring || invalidSubdomain.EffectivePolicy != DMARCPolicyReject || !hasAuthenticationDiagnostic(diagnostics, "dmarc.invalid_subdomain_policy") {
@@ -168,8 +172,9 @@ func TestParseDMARCPolicyRecordFallbackAndErrors(t *testing.T) {
 	}{
 		{value: "v=dmarc1; p=reject", code: "dmarc.invalid_version"},
 		{value: "v=DMARC1; p=block", code: "dmarc.invalid_policy"},
-		{value: "v=DMARC1; p=reject; fo=0:1", code: "dmarc.invalid_failure_options"},
+		{value: "v=DMARC1; p=reject; ruf=mailto:fail@example.test; fo=0:1", code: "dmarc.invalid_failure_options"},
 		{value: "v=DMARC1; p=reject; rua=not-a-uri", code: "dmarc.invalid_reporting_uri"},
+		{value: "v=DMARC1; p=reject; rua=https://reports.example/path!oops", code: "dmarc.invalid_reporting_uri"},
 		{value: "v=DMARC1; p=reject; future=", code: "dmarc.malformed_empty_value"},
 		{value: "v=DMARC1; p=reject; 1future=value", code: "dns.authentication.malformed_tag"},
 	} {
@@ -180,6 +185,20 @@ func TestParseDMARCPolicyRecordFallbackAndErrors(t *testing.T) {
 		if !hasAuthenticationDiagnostic(gotDiagnostics, test.code) {
 			t.Fatalf("value=%q diagnostics=%+v", test.value, gotDiagnostics)
 		}
+	}
+}
+
+func TestParseDMARCPolicyRecordIgnoresFailureOptionsWithoutDestination(t *testing.T) {
+	record, diagnostics := ParseDMARCPolicyRecord("v=DMARC1; p=reject; fo=bad")
+	if record.Status != AuthenticationRecordValid || len(diagnostics) != 0 || len(record.FailureOptions) != 1 || record.FailureOptions[0] != "0" {
+		t.Fatalf("record=%+v diagnostics=%+v", record, diagnostics)
+	}
+}
+
+func TestCandidateTXTRecordsAcceptsDMARCVersionWhitespace(t *testing.T) {
+	records := []TXTRecord{{Joined: "v = DMARC1; p=reject"}}
+	if candidates := candidateTXTRecords(records, DNSRecordDMARC); len(candidates) != 1 {
+		t.Fatalf("candidates=%+v", candidates)
 	}
 }
 

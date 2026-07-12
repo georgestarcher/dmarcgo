@@ -69,9 +69,11 @@ and signing-domain metadata are derived only from the configured
 The DMARC parser implements the current RFC 9989 policy vocabulary, including
 `p`, `sp`, `np`, `adkim`, `aspf`, `t`, `psd`, `rua`, `ruf`, and `fo`.
 `pct`, `ri`, and `rf` are treated as removed legacy tags, not current policy.
-Unknown registered-future tags are preserved and ignored. A missing or invalid
-`p` with at least one valid `rua` destination is represented as RFC 9989
-monitoring fallback rather than invented enforcement.
+Unknown registered-future tags are preserved and ignored. An omitted `p`
+defaults to an effective `none` policy as required by RFC 9989. An invalid `p`
+with at least one valid `rua` destination is represented as monitoring fallback
+rather than invented enforcement. Failure-report options are evaluated only
+when a usable `ruf` destination is present.
 
 Reporting destinations remain untrusted data. Syntax validation does not
 authorize external report delivery and does not prove that a destination has

@@ -607,7 +607,8 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 			out.Findings[i].Explanation = ""
 		}
 	}
-	if options.Redaction == OutputRedactionPublic {
+	switch options.Redaction {
+	case OutputRedactionPublic:
 		before, err := json.Marshal(out)
 		if err != nil {
 			return OutputEnvelope{}, fmt.Errorf("%w: %w: %v", ErrOutputRedaction, ErrOutputSerialization, err)
@@ -621,7 +622,7 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 			return OutputEnvelope{}, fmt.Errorf("%w: %w: %v", ErrOutputRedaction, ErrOutputSerialization, err)
 		}
 		out.Redaction.OperationalFieldsChanged = !bytes.Equal(before, after)
-	} else if options.Redaction == OutputRedactionOperational {
+	case OutputRedactionOperational:
 		out, out.Redaction.OperationalFieldsChanged = removeRestrictedReportText(out)
 	}
 	if _, err := json.Marshal(out); err != nil {

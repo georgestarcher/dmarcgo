@@ -50,13 +50,13 @@ func ReadGZWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer fi.Close()
+	defer closeAfterRead(fi)
 
 	fgz, err := gzip.NewReader(fi)
 	if err != nil {
 		return nil, err
 	}
-	defer fgz.Close()
+	defer closeAfterRead(fgz)
 	return readAllLimited(fgz, maxBytes)
 }
 
@@ -71,13 +71,13 @@ func ReadZZWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer fi.Close()
+	defer closeAfterRead(fi)
 
 	fgz, err := zlib.NewReader(fi)
 	if err != nil {
 		return nil, err
 	}
-	defer fgz.Close()
+	defer closeAfterRead(fgz)
 	return readAllLimited(fgz, maxBytes)
 }
 
@@ -98,7 +98,7 @@ func ReadZipWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer zipReader.Close()
+	defer closeAfterRead(zipReader)
 
 	for _, zipFile := range zipReader.File {
 		zipFileInfo := zipFile.FileInfo()
@@ -151,13 +151,13 @@ func ReadTarGZWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer closeAfterRead(file)
 
 	gzipReader, err := gzip.NewReader(file)
 	if err != nil {
 		return nil, err
 	}
-	defer gzipReader.Close()
+	defer closeAfterRead(gzipReader)
 	return readTarReader(tar.NewReader(gzipReader), maxBytes, filepath)
 }
 
@@ -169,7 +169,7 @@ func ReadTarWithLimit(filepath string, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer closeAfterRead(file)
 	return readTarReader(tar.NewReader(file), maxBytes, filepath)
 }
 
@@ -183,8 +183,14 @@ func readZipFile(zf *zip.File, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeAfterRead(f)
 	return readAllLimited(f, maxBytes)
+}
+
+// closeAfterRead explicitly acknowledges cleanup-only close errors. Complete
+// reads surface archive integrity and I/O failures before this resource cleanup.
+func closeAfterRead(closer io.Closer) {
+	_ = closer.Close()
 }
 
 func readTarReader(tarReader *tar.Reader, maxBytes int64, filepath string) ([]byte, error) {

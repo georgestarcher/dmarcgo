@@ -302,7 +302,7 @@ func (r *FileReport) Load() error {
 	if err != nil {
 		return &ReportLoadError{Path: r.FilePath, Err: err}
 	}
-	defer file.Close()
+	defer closeAfterRead(file)
 
 	report, err := LoadReader(file, WithMaxDecompressedBytes(r.MaxDecompressedBytes))
 	if err != nil {

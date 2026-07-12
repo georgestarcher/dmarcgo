@@ -130,15 +130,17 @@ func (r AggregateReport) Summary() ReportSummary {
 			summary.FailedMessages += count
 			source.FailedMessages += count
 		}
-		if record.Row.PolicyEvaluated.DKIM == "pass" {
+		switch record.Row.PolicyEvaluated.DKIM {
+		case "pass":
 			summary.DKIMPassMessages += count
-		} else if record.Row.PolicyEvaluated.DKIM == "fail" {
+		case "fail":
 			summary.DKIMFailMessages += count
 			source.DKIMFailMessages += count
 		}
-		if record.Row.PolicyEvaluated.SPF == "pass" {
+		switch record.Row.PolicyEvaluated.SPF {
+		case "pass":
 			summary.SPFPassMessages += count
-		} else if record.Row.PolicyEvaluated.SPF == "fail" {
+		case "fail":
 			summary.SPFFailMessages += count
 			source.SPFFailMessages += count
 		}

@@ -281,7 +281,7 @@ func readGzipBytes(payload []byte, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer closeAfterRead(reader)
 	return readAllLimited(reader, maxBytes)
 }
 
@@ -298,7 +298,7 @@ func readZlibBytes(payload []byte, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer closeAfterRead(reader)
 	return readAllLimited(reader, maxBytes)
 }
 
@@ -350,8 +350,14 @@ func readZipEntryBytes(file *zip.File, maxBytes int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer closeAfterRead(reader)
 	return readAllLimited(reader, maxBytes)
+}
+
+// closeAfterRead explicitly acknowledges cleanup-only close errors. Complete
+// reads surface archive integrity and I/O failures before this resource cleanup.
+func closeAfterRead(closer io.Closer) {
+	_ = closer.Close()
 }
 
 func readTarBytes(payload []byte, maxBytes int64) ([]byte, error) {

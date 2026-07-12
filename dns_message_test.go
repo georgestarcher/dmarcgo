@@ -1,7 +1,9 @@
 package dmarcgo
 
 import (
+	"encoding/binary"
 	"errors"
+	"net"
 	"testing"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -106,6 +108,86 @@ func TestDNSMessageResolverRequiresExplicitServer(t *testing.T) {
 	if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
 		t.Fatalf("error = %v", err)
 	}
+}
+
+func TestDNSMessageResolverRetriesMalformedTruncatedUDPOverTCP(t *testing.T) {
+	tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.ParseIP("127.0.0.1")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := tcpListener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			t.Errorf("close TCP fixture listener: %v", err)
+		}
+	})
+	tcpAddress := tcpListener.Addr().(*net.TCPAddr)
+	udpListener, err := net.ListenUDP("udp4", &net.UDPAddr{IP: tcpAddress.IP, Port: tcpAddress.Port})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := udpListener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			t.Errorf("close UDP fixture listener: %v", err)
+		}
+	})
+
+	udpErrors := make(chan error, 1)
+	tcpErrors := make(chan error, 1)
+	go serveMalformedTruncatedUDPFixture(udpListener, udpErrors)
+	go func() {
+		connection, err := tcpListener.Accept()
+		if err != nil {
+			tcpErrors <- err
+			return
+		}
+		serveNetResolverFixture(connection, tcpErrors)
+	}()
+
+	result, err := (DNSMessageResolver{
+		Server: tcpListener.Addr().String(), ResolverID: "truncation-fixture",
+	}).LookupTXT(t.Context(), "example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := <-udpErrors; err != nil {
+		t.Fatalf("UDP fixture: %v", err)
+	}
+	if err := <-tcpErrors; err != nil {
+		t.Fatalf("TCP fixture: %v", err)
+	}
+	if result.Status != DNSObservationSuccess || len(result.Records) != 1 || result.Records[0].Joined != "v=spf1 -all" {
+		t.Fatalf("TCP fallback result = %+v", result)
+	}
+}
+
+func serveMalformedTruncatedUDPFixture(connection *net.UDPConn, result chan<- error) {
+	message := make([]byte, 65535)
+	count, address, err := connection.ReadFromUDP(message)
+	if err != nil {
+		result <- err
+		return
+	}
+	var parser dnsmessage.Parser
+	header, err := parser.Start(message[:count])
+	if err != nil {
+		result <- err
+		return
+	}
+	question, err := parser.Question()
+	if err != nil {
+		result <- err
+		return
+	}
+	response, err := buildNetResolverResponse(header.ID, question)
+	if err != nil {
+		result <- err
+		return
+	}
+	flags := binary.BigEndian.Uint16(response[2:4]) | 0x0200
+	binary.BigEndian.PutUint16(response[2:4], flags)
+	response = response[:len(response)-3]
+	_, err = connection.WriteToUDP(response, address)
+	result <- err
 }
 
 func FuzzParseTXTResponse(f *testing.F) {

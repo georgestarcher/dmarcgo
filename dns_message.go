@@ -46,9 +46,6 @@ func (resolver DNSMessageResolver) LookupTXT(ctx context.Context, name string) (
 		return TXTLookupResult{Name: normalizeDNSDisplayName(name)}, err
 	}
 	result, truncated, err := parseTXTResponse(response, id, name, resolver.ResolverID)
-	if err != nil {
-		return result, err
-	}
 	if truncated && network == "udp" {
 		response, err = exchangeDNSMessage(ctx, "tcp", server, query)
 		if err != nil {
@@ -58,6 +55,8 @@ func (resolver DNSMessageResolver) LookupTXT(ctx context.Context, name string) (
 		if err != nil {
 			return result, err
 		}
+	} else if err != nil {
+		return result, err
 	}
 	if truncated {
 		return result, ErrDNSMalformedResponse

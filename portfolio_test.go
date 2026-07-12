@@ -222,6 +222,12 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 		{name: "IP record name", mutate: func(config *PortfolioConfig) {
 			config.Entities[0].Domains[0].Records.SPF = []string{"192.0.2.1"}
 		}, code: "configuration.record.invalid_name"},
+		{name: "IDN record name expanded beyond DNS limit", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Domains[0].Records.SPF = []string{strings.Repeat("é.", 40) + "example"}
+		}, code: "configuration.record.invalid_name"},
+		{name: "IDN record label expanded beyond DNS limit", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Domains[0].Records.SPF = []string{"一俷凮句嗜埓姊寁嶸徯憦掝斔枋概歹浰潧煞獕.example"}
+		}, code: "configuration.record.invalid_name"},
 		{name: "entity parent cycle", mutate: func(config *PortfolioConfig) {
 			config.Entities = append(config.Entities, EntityConfig{ID: "second", Parent: "primary"})
 			config.Entities[0].Parent = "second"

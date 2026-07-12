@@ -858,7 +858,7 @@ func normalizeDomainName(value string) (string, error) {
 
 func normalizeRecordName(value string) (string, error) {
 	value = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(value)), ".")
-	if value == "" || len(value) > 253 || net.ParseIP(value) != nil {
+	if value == "" || net.ParseIP(value) != nil {
 		return "", errors.New("invalid record name")
 	}
 	labels := strings.Split(value, ".")
@@ -866,22 +866,26 @@ func normalizeRecordName(value string) (string, error) {
 		return "", errors.New("record name requires a DNS suffix")
 	}
 	for index, label := range labels {
-		if label == "" || len(label) > 63 {
+		if label == "" {
 			return "", errors.New("invalid record name")
 		}
 		if strings.HasPrefix(label, "_") {
-			if !underscoredLabelPattern.MatchString(label) {
+			if len(label) > 63 || !underscoredLabelPattern.MatchString(label) {
 				return "", errors.New("invalid record name")
 			}
 			continue
 		}
 		ascii, err := idna.Lookup.ToASCII(label)
-		if err != nil || ascii == "" || strings.HasPrefix(ascii, "-") || strings.HasSuffix(ascii, "-") {
+		if err != nil || ascii == "" || len(ascii) > 63 || strings.HasPrefix(ascii, "-") || strings.HasSuffix(ascii, "-") {
 			return "", errors.New("invalid record name")
 		}
 		labels[index] = strings.ToLower(ascii)
 	}
-	return strings.Join(labels, "."), nil
+	normalized := strings.Join(labels, ".")
+	if len(normalized) > 253 {
+		return "", errors.New("invalid record name")
+	}
+	return normalized, nil
 }
 
 func hasConfigurationErrors(diagnostics []ConfigurationDiagnostic) bool {

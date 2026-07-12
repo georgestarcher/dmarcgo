@@ -50,6 +50,13 @@
 // them. Record-controlled notes, reporting URIs, and extension values remain
 // untrusted evidence and never become library-generated instructions.
 //
+// DefaultProviderCatalog loads reviewed, versioned provider metadata without
+// network access. LoadProviderCatalogYAML accepts strict caller-owned metadata,
+// and OverlayProviderCatalog adds or explicitly replaces entries without global
+// mutation. MatchSPFRelationship recognizes only static parsed dependencies.
+// Provider matches are context only: they never authorize senders, validate
+// live DNS, grant health points, or trust provider IP space.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

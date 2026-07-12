@@ -9,8 +9,9 @@ orchestrator may compose them, but composition is not the foundational API.
 
 ```text
 portfolio/configuration -> DNS collection -> DNS parsing -> DNS health
+provider catalog + parsed static SPF dependencies -> provider context
 reports -> normalized report evidence
-portfolio + DNS health + report evidence -> correlation
+portfolio + DNS health + provider context + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 completed result values -> output encoders
@@ -102,6 +103,13 @@ current report and output modes. They also inspect the output implementation to
 reject report loading, parsing, evaluation, summarization, and network imports.
 Each future collection or enrichment interface must add counting and failing
 spies that prove unrelated modes never invoke it.
+
+The provider catalog is inert, versioned context rather than a collection
+stage. Catalog loading reads only caller-supplied bytes or the embedded file.
+Matching consumes normalized static SPF relationships and never resolves DNS.
+Recognition does not authorize a sender, repair broken DNS, grant health points,
+or trust an IP range. Health and correlation retain live DNS and the portfolio's
+expected-sender inventory as their authoritative inputs.
 
 ## Cancellation and failures
 

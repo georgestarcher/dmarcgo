@@ -639,9 +639,10 @@ func (evaluator *dnsHealthEvaluator) statusFinding(status AuthenticationRecordSt
 	switch status {
 	case AuthenticationRecordMissing:
 		impact := evaluator.profile.MissingDMARCRecord
-		if recordType == DNSRecordSPF {
+		switch recordType {
+		case DNSRecordSPF:
 			impact = evaluator.profile.MissingSPFRecord
-		} else if recordType == DNSRecordDKIM {
+		case DNSRecordDKIM:
 			impact = evaluator.profile.MissingDKIMRecord
 		}
 		return "dns.health.record_missing", FindingSeverityHigh, -impact, "A configured authentication record is missing.", "Publish or correct the configured authentication record."

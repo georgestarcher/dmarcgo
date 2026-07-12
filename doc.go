@@ -37,6 +37,12 @@
 // deterministic, and side-effect free; it never resolves DNS or reads process
 // environment variables implicitly.
 //
+// CollectDNSSnapshot performs the explicit networked stage for configured TXT
+// owner names. Callers supply a context-aware TXTResolver and may choose the
+// limited NetTXTResolver adapter or DNSMessageResolver for TTL, RCODE, CNAME,
+// authority, and negative-cache SOA evidence. A DNSSnapshot is immutable and
+// reusable; consuming it never performs another lookup.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

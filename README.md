@@ -60,6 +60,10 @@ record names, expected senders, reusable authentication policies, ownership,
 inheritance, and scoped exclusions. See
 [Organization portfolio configuration](docs/portfolio-configuration.md).
 
+DNS snapshot collection is an explicit, separate stage. It deduplicates the
+portfolio's monitored TXT owner names and records immutable evidence through a
+caller-selected resolver. See [DNS snapshot collection](docs/dns-snapshots.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -102,6 +106,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You have strict versioned organization YAML | `dmarcgo.LoadPortfolioYAML(data)` | Rejects unknown and secret-bearing fields and performs no DNS or report access. |
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
+| You want reusable DNS evidence for a portfolio | `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)` | Explicitly queries only configured TXT names; use `DNSMessageResolver` when TTL and authority evidence matter. |
 
 ## Automation and AI-agent output
 

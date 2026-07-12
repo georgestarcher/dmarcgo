@@ -9,6 +9,7 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - It accepts gzip, zip, tar, zlib, and raw XML payloads through the public loading helpers.
 - It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, DNS policy parser, or spoofing-risk scoring engine.
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
+- It can explicitly collect reusable TXT evidence for record names already declared in a normalized organization portfolio. DNS collection is never implicit in report parsing or output generation.
 
 ## Install in an application project
 
@@ -37,6 +38,7 @@ Version 2 is the supported API line. Import
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
+- Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
 - Strict organization YAML: `dmarcgo.LoadPortfolioYAML(data)`
 - Programmatic organization configuration: `dmarcgo.NormalizePortfolio(config)`
 - Configuration diagnostics: `dmarcgo.ValidatePortfolio(config, generatedAt)`
@@ -54,7 +56,8 @@ Version 2 is the supported API line. Import
 9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
 10. Use `AnonymizeReport` before turning any real report into a committed fixture.
 11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
-12. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+12. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
+13. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
 
 ## Organization portfolio configuration
 

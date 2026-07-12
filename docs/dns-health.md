@@ -80,7 +80,9 @@ domain is nonexistent.
 DMARC discovery falls back to an inherited owner only when the closer configured
 owner has conclusively missing record evidence. Invalid, conflicting, or
 unavailable exact records block fallback so a parent policy cannot conceal the
-closer owner's failure or uncertainty.
+closer owner's failure or uncertainty. When multiple configured ancestors are
+available, discovery evaluates them from the closest DNS parent outward rather
+than using their lexical configuration order.
 
 Scores are posture indicators, not proof of compromise, sender authorization,
 or malicious activity. Applications should use finding codes and evidence,

@@ -967,14 +967,7 @@ func dmarcPolicyIsEnforced(policy DMARCPolicy) bool {
 }
 
 func (evaluator *dnsHealthEvaluator) domainDMARCRecordName(domain MonitoredDomain) (string, bool) {
-	names := append([]string(nil), domain.Records.DMARC...)
-	exact := "_dmarc." + domain.Name
-	for index, name := range names {
-		if name == exact {
-			names[0], names[index] = names[index], names[0]
-			break
-		}
-	}
+	names := orderedDMARCRecordNames(domain.Name, domain.Records.DMARC)
 	for _, name := range names {
 		set, ok := evaluator.sets[dnsHealthRecordKey(name, DNSRecordDMARC)]
 		if ok && set.Status == AuthenticationRecordMissing {
@@ -986,6 +979,37 @@ func (evaluator *dnsHealthEvaluator) domainDMARCRecordName(domain MonitoredDomai
 		return name, true
 	}
 	return "", false
+}
+
+func orderedDMARCRecordNames(domain string, names []string) []string {
+	ordered := append([]string(nil), names...)
+	sort.Slice(ordered, func(i, j int) bool {
+		leftDistance, leftAncestor := dmarcRecordDistance(domain, ordered[i])
+		rightDistance, rightAncestor := dmarcRecordDistance(domain, ordered[j])
+		if leftAncestor != rightAncestor {
+			return leftAncestor
+		}
+		if leftAncestor && leftDistance != rightDistance {
+			return leftDistance < rightDistance
+		}
+		return ordered[i] < ordered[j]
+	})
+	return ordered
+}
+
+func dmarcRecordDistance(domain, name string) (int, bool) {
+	const prefix = "_dmarc."
+	if !strings.HasPrefix(name, prefix) {
+		return 0, false
+	}
+	policyDomain := strings.TrimPrefix(name, prefix)
+	if domain == policyDomain {
+		return 0, true
+	}
+	if !strings.HasSuffix(domain, "."+policyDomain) {
+		return 0, false
+	}
+	return strings.Count(domain, ".") - strings.Count(policyDomain, "."), true
 }
 
 func (evaluator *dnsHealthEvaluator) newFinding(code FindingCode, severity FindingSeverity, confidence FindingConfidence, scope DNSHealthScope,

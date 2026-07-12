@@ -368,6 +368,36 @@ func TestEvaluateDNSHealthUsesInheritedDMARCSubdomainPolicy(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthOrdersInheritedDMARCByTreeProximity(t *testing.T) {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "tree-order"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{
+			{Name: "example.test", Records: MonitoredRecordsConfig{DMARC: []string{"_dmarc.example.test"}}},
+			{Name: "z.example.test", Parent: "example.test", Records: MonitoredRecordsConfig{DMARC: []string{"_dmarc.z.example.test"}}},
+			{Name: "a.z.example.test", Parent: "z.example.test", Records: MonitoredRecordsConfig{DMARC: []string{"_dmarc.a.z.example.test"}}},
+		}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, map[string]string{
+		"_dmarc.example.test":   "v=DMARC1; p=reject; rua=mailto:reports@example.test",
+		"_dmarc.z.example.test": "v=DMARC1; p=none; rua=mailto:reports@example.test",
+	})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := findDNSDomainHealth(t, result.Domains(), "a.z.example.test", "primary")
+	if child.Mechanisms.DMARC.Value != 70 || !scoreHasContribution(child.Mechanisms.DMARC, "dns.health.dmarc_component_rollup") {
+		t.Fatalf("child DMARC mechanism=%+v", child.Mechanisms.DMARC)
+	}
+	if signal := findDNSHealthMaturitySignal(t, child.Maturity, "dns.maturity.dmarc_enforced"); signal.Satisfied {
+		t.Fatalf("farther enforcing policy replaced closer monitoring policy: %+v", signal)
+	}
+}
+
 func TestEvaluateDNSHealthDMARCDiscoveryStopsAtUnusableExactRecord(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -526,6 +556,17 @@ func TestDNSHealthMaturityBasicRequiresUsableRecord(t *testing.T) {
 			domain := findDNSDomainHealth(t, result.Domains(), "maturity.example.test", "primary")
 			if !domain.Maturity.Available || domain.Maturity.Level != DNSHealthMaturityUnmanaged || domain.Maturity.Coverage.Percent != 100 {
 				t.Fatalf("unusable-record maturity=%+v", domain.Maturity)
+			}
+			encoded, err := json.Marshal(domain.Maturity)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(encoded, &fields); err != nil {
+				t.Fatal(err)
+			}
+			if level, ok := fields["level"]; !ok || string(level) != "0" {
+				t.Fatalf("available unmanaged maturity must retain level in JSON: %s", encoded)
 			}
 			signal := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.records_published")
 			if signal.Satisfied || signal.Evaluation.State != EvaluationStateEvaluated {

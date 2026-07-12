@@ -55,10 +55,11 @@ type DNSHealthMaturityDistribution struct {
 // DNSHealthMaturity is an evidence-backed classification and its guardrails.
 // DNS-only evidence can establish at most Enforced. Managed and Adaptive also
 // require operational evidence that this evaluator intentionally does not infer.
+// Available distinguishes the valid unmanaged level zero from unavailable data.
 type DNSHealthMaturity struct {
 	Version                string                        `json:"version"`
 	Available              bool                          `json:"available"`
-	Level                  DNSHealthMaturityLevel        `json:"level,omitempty"`
+	Level                  DNSHealthMaturityLevel        `json:"level"`
 	Name                   string                        `json:"name"`
 	Evaluation             Evaluation                    `json:"evaluation"`
 	MaximumObservableLevel DNSHealthMaturityLevel        `json:"maximum_observable_level"`

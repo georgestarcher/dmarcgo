@@ -219,6 +219,12 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 		{name: "invalid DKIM name", mutate: func(config *PortfolioConfig) {
 			config.Entities[0].Domains[0].Records.DKIM = []string{"not-dkim.example.test"}
 		}, code: "configuration.record.invalid_name"},
+		{name: "DMARC marker before DKIM marker", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Domains[0].Records.DMARC = []string{"_dmarc._domainkey.example.test"}
+		}, code: "configuration.record.invalid_name"},
+		{name: "DMARC marker in DKIM domain", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Domains[0].Records.DKIM = []string{"s1._domainkey._dmarc.example.test"}
+		}, code: "configuration.record.invalid_name"},
 		{name: "IP record name", mutate: func(config *PortfolioConfig) {
 			config.Entities[0].Domains[0].Records.SPF = []string{"192.0.2.1"}
 		}, code: "configuration.record.invalid_name"},

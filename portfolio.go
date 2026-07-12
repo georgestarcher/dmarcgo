@@ -651,7 +651,7 @@ func (normalizer *portfolioNormalizer) normalizeRecordList(values []string, path
 	seen := map[string]struct{}{}
 	for index, value := range values {
 		name, err := normalizeRecordName(value)
-		if err != nil || (kind == "dmarc" && !strings.HasPrefix(name, "_dmarc.")) || (kind == "dkim" && !strings.Contains(name, "._domainkey.")) {
+		if err != nil || !validMonitoredRecordName(name, kind) {
 			normalizer.add("configuration.record.invalid_name", fmt.Sprintf("%s[%d]", path, index), "The monitored record name is invalid for its record type.")
 			continue
 		}
@@ -802,6 +802,7 @@ func (normalizer *portfolioNormalizer) validateOwnership(entities []Entity) {
 var configIDPattern = regexp.MustCompile(`^[a-z][a-z0-9._-]*$`)
 var underscoredLabelPattern = regexp.MustCompile(`^_[a-z0-9_-]+$`)
 var selectorPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
+var dnsLabelPattern = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$`)
 
 func normalizeConfigID(value string) (string, bool) {
 	value = strings.ToLower(strings.TrimSpace(value))
@@ -846,7 +847,7 @@ func normalizeDomainName(value string) (string, error) {
 		return "", errors.New("invalid domain")
 	}
 	for _, label := range strings.Split(ascii, ".") {
-		if label == "" || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
+		if label == "" || len(label) > 63 || !dnsLabelPattern.MatchString(label) {
 			return "", errors.New("invalid domain")
 		}
 	}
@@ -876,7 +877,7 @@ func normalizeRecordName(value string) (string, error) {
 			continue
 		}
 		ascii, err := idna.Lookup.ToASCII(label)
-		if err != nil || ascii == "" || len(ascii) > 63 || strings.HasPrefix(ascii, "-") || strings.HasSuffix(ascii, "-") {
+		if err != nil || ascii == "" || len(ascii) > 63 || !dnsLabelPattern.MatchString(strings.ToLower(ascii)) {
 			return "", errors.New("invalid record name")
 		}
 		labels[index] = strings.ToLower(ascii)
@@ -886,6 +887,33 @@ func normalizeRecordName(value string) (string, error) {
 		return "", errors.New("invalid record name")
 	}
 	return normalized, nil
+}
+
+func validMonitoredRecordName(name, kind string) bool {
+	switch kind {
+	case "dmarc":
+		const marker = "_dmarc."
+		if !strings.HasPrefix(name, marker) {
+			return false
+		}
+		domain, err := normalizeDomainName(strings.TrimPrefix(name, marker))
+		return err == nil && name == marker+domain
+	case "dkim":
+		const marker = "._domainkey."
+		parts := strings.Split(name, marker)
+		if len(parts) != 2 || parts[0] == "" {
+			return false
+		}
+		for _, label := range strings.Split(parts[0], ".") {
+			if !dnsLabelPattern.MatchString(label) {
+				return false
+			}
+		}
+		domain, err := normalizeDomainName(parts[1])
+		return err == nil && parts[1] == domain
+	default:
+		return true
+	}
 }
 
 func hasConfigurationErrors(diagnostics []ConfigurationDiagnostic) bool {

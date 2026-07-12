@@ -99,7 +99,7 @@ func TestCollectDNSSnapshotDeduplicatesAndPreservesEvidence(t *testing.T) {
 	if resolver.callCount(shared) != 1 || len(sharedObservation.References) != 2 {
 		t.Fatalf("shared lookup calls=%d references=%+v", resolver.callCount(shared), sharedObservation.References)
 	}
-	if sharedObservation.Records[0].Joined != "v=DKIM1; p=example-key" || !slices.Equal(sharedObservation.Records[0].Fragments, []string{"v=DKIM1; p=", "example-key"}) {
+	if sharedObservation.Records[0].Joined != "v=DKIM1; p=example-key" || !sharedObservation.Records[0].FragmentsAvailable || !slices.Equal(sharedObservation.Records[0].Fragments, []string{"v=DKIM1; p=", "example-key"}) {
 		t.Fatalf("TXT evidence = %+v", sharedObservation.Records)
 	}
 	if !sharedObservation.TTL.Available || sharedObservation.TTL.Seconds != 300 || sharedObservation.AnswerSource != DNSAnswerSourceAuthoritative {
@@ -227,6 +227,25 @@ func TestCollectDNSSnapshotCanonicalizesRRSetOrder(t *testing.T) {
 	}
 }
 
+func TestCollectDNSSnapshotAcceptsUnavailableFragmentEvidence(t *testing.T) {
+	portfolio := singleDNSNamePortfolio(t)
+	resolver := newFixtureTXTResolver()
+	resolver.results["one.test"] = TXTLookupResult{
+		Name: "one.test", Status: DNSObservationSuccess,
+		Records: []TXTRecord{{Fragments: []string{}, Joined: "joined-only-value"}},
+	}
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{
+		Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxAttempts: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := snapshot.Observations()[0].Records[0]
+	if record.Joined != "joined-only-value" || record.FragmentsAvailable || len(record.Fragments) != 0 {
+		t.Fatalf("record = %+v", record)
+	}
+}
+
 func TestCollectDNSSnapshotTimeoutAndCancellation(t *testing.T) {
 	portfolio := singleDNSNamePortfolio(t)
 	t.Run("timeout", func(t *testing.T) {
@@ -269,7 +288,7 @@ func TestCollectDNSSnapshotFailurePolicies(t *testing.T) {
 		resolver := successfulFixtureResolver(portfolio)
 		resolver.results["_dmarc.one.test"] = TXTLookupResult{Name: "_dmarc.one.test", Status: DNSObservationNXDOMAIN}
 		snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{
-			Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxConcurrency: 1, MaxAttempts: 1, FailurePolicy: DNSFailureFailFast,
+			Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxConcurrency: 4, MaxAttempts: 1, FailurePolicy: DNSFailureFailFast,
 		})
 		if !errors.Is(err, ErrDNSCollectionFailed) || snapshot.Complete() || resolver.callCount("_dmarc.one.test") != 1 {
 			t.Fatalf("fail-fast snapshot complete=%v error=%v calls=%d", snapshot.Complete(), err, resolver.callCount("_dmarc.one.test"))
@@ -280,6 +299,20 @@ func TestCollectDNSSnapshotFailurePolicies(t *testing.T) {
 		}
 		if calls != 1 {
 			t.Fatalf("fail-fast performed %d resolver calls", calls)
+		}
+	})
+	t.Run("fail fast success", func(t *testing.T) {
+		resolver := successfulFixtureResolver(portfolio)
+		snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, resolver, DNSCollectionOptions{
+			Clock: ClockFunc(func() time.Time { return dnsTestTime }), MaxConcurrency: 4, MaxAttempts: 1, FailurePolicy: DNSFailureFailFast,
+		})
+		if err != nil || !snapshot.Complete() || len(snapshot.Diagnostics()) != 0 {
+			t.Fatalf("successful fail-fast snapshot complete=%v diagnostics=%+v error=%v", snapshot.Complete(), snapshot.Diagnostics(), err)
+		}
+		for _, observation := range snapshot.Observations() {
+			if resolver.callCount(observation.Name) != 1 {
+				t.Fatalf("lookup calls for %q = %d", observation.Name, resolver.callCount(observation.Name))
+			}
 		}
 	})
 }

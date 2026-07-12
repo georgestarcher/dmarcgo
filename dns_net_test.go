@@ -31,8 +31,18 @@ func TestNetTXTResolverMarksMessageEvidenceUnavailable(t *testing.T) {
 	if result.Status != DNSObservationSuccess || len(result.Records) != 1 || result.Records[0].Joined != "v=spf1 -all" {
 		t.Fatalf("TXT result = %+v", result)
 	}
+	if result.Records[0].FragmentsAvailable || len(result.Records[0].Fragments) != 0 {
+		t.Fatalf("limited adapter invented TXT fragment boundaries: %+v", result.Records[0])
+	}
 	if result.TTL.Available || result.NegativeTTL.Available || result.SOA != nil || result.AnswerSource != DNSAnswerSourceUnknown || result.RCode.Available {
 		t.Fatalf("limited adapter invented DNS-message evidence: %+v", result)
+	}
+}
+
+func TestNetTXTResolverRequiresExplicitResolver(t *testing.T) {
+	_, err := (NetTXTResolver{}).LookupTXT(t.Context(), "example.test")
+	if !errors.Is(err, ErrInvalidDNSCollectionOptions) {
+		t.Fatalf("error = %v", err)
 	}
 }
 

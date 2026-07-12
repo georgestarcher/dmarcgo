@@ -2,6 +2,7 @@ package dmarcgo
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 )
@@ -15,10 +16,12 @@ type NetTXTResolver struct {
 }
 
 // LookupTXT performs one explicit TXT lookup through the configured resolver.
+// Resolver is required; callers that want the process default must pass
+// net.DefaultResolver explicitly.
 func (resolver NetTXTResolver) LookupTXT(ctx context.Context, name string) (TXTLookupResult, error) {
 	backend := resolver.Resolver
 	if backend == nil {
-		backend = net.DefaultResolver
+		return TXTLookupResult{Name: normalizeDNSDisplayName(name)}, fmt.Errorf("%w: net resolver is required", ErrInvalidDNSCollectionOptions)
 	}
 	result := TXTLookupResult{
 		Name:         normalizeDNSDisplayName(name),
@@ -32,7 +35,7 @@ func (resolver NetTXTResolver) LookupTXT(ctx context.Context, name string) (TXTL
 		return result, err
 	}
 	for _, value := range values {
-		result.Records = append(result.Records, TXTRecord{Fragments: []string{value}, Joined: value})
+		result.Records = append(result.Records, TXTRecord{Fragments: []string{}, Joined: value})
 	}
 	if len(result.Records) == 0 {
 		result.Status = DNSObservationNoData

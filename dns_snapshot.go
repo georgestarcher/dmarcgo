@@ -107,11 +107,13 @@ type DNSSOAEvidence struct {
 	TTL     uint32 `json:"ttl"`
 }
 
-// TXTRecord preserves the original fragment boundaries of one TXT resource
-// record and its normalized joined representation.
+// TXTRecord preserves one TXT resource record and its normalized joined
+// representation. FragmentsAvailable is false when a limited resolver cannot
+// recover the original DNS character-string boundaries.
 type TXTRecord struct {
-	Fragments []string `json:"fragments"`
-	Joined    string   `json:"joined"`
+	Fragments          []string `json:"fragments"`
+	FragmentsAvailable bool     `json:"fragments_available"`
+	Joined             string   `json:"joined"`
 }
 
 // TXTLookupResult is returned by a TXTResolver. Resolver implementations may
@@ -272,6 +274,9 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	if len(plan) == 0 {
 		return newDNSSnapshot(observedAt, portfolio.Digest(), []DNSObservation{}, []DNSCollectionDiagnostic{}), nil
 	}
+	if options.FailurePolicy == DNSFailureFailFast {
+		return collectDNSSnapshotFailFast(ctx, portfolio.Digest(), observedAt, plan, resolver, options)
+	}
 	observations := make([]DNSObservation, len(plan))
 	completed := make([]bool, len(plan))
 	for index, query := range plan {
@@ -281,8 +286,6 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		}
 	}
 
-	workCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	jobs := make(chan int)
 	results := make(chan dnsLookupOutcome, len(plan))
 	var workers sync.WaitGroup
@@ -295,12 +298,9 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		go func() {
 			defer workers.Done()
 			for index := range jobs {
-				outcome := collectDNSObservation(workCtx, plan[index], resolver, options)
+				outcome := collectDNSObservation(ctx, plan[index], resolver, options)
 				outcome.index = index
 				results <- outcome
-				if outcome.failed && options.FailurePolicy == DNSFailureFailFast {
-					cancel()
-				}
 			}
 		}()
 	}
@@ -310,7 +310,7 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 		for index := range plan {
 			select {
 			case jobs <- index:
-			case <-workCtx.Done():
+			case <-ctx.Done():
 				return
 			}
 		}
@@ -321,22 +321,16 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	}()
 
 	diagnostics := make([]DNSCollectionDiagnostic, 0)
-	failed := false
 	for outcome := range results {
 		observations[outcome.index] = outcome.observation
 		completed[outcome.index] = true
 		if outcome.diagnostic != nil {
 			diagnostics = append(diagnostics, *outcome.diagnostic)
 		}
-		failed = failed || outcome.failed
-	}
-	if err := ctx.Err(); err != nil {
-		failed = true
 	}
 	for index := range observations {
 		if !completed[index] {
 			diagnostics = append(diagnostics, diagnosticForObservation(observations[index]))
-			failed = true
 		}
 	}
 	sort.Slice(diagnostics, func(i, j int) bool {
@@ -350,7 +344,47 @@ func CollectDNSSnapshot(ctx context.Context, portfolio Portfolio, resolver TXTRe
 	if err := ctx.Err(); err != nil {
 		return snapshot, &DNSCollectionError{cause: err}
 	}
-	if failed && options.FailurePolicy == DNSFailureFailFast {
+	return snapshot, nil
+}
+
+func collectDNSSnapshotFailFast(ctx context.Context, portfolioID AnalysisID, observedAt time.Time, plan []dnsQueryPlan, resolver TXTResolver, options DNSCollectionOptions) (DNSSnapshot, error) {
+	observations := make([]DNSObservation, len(plan))
+	for index, query := range plan {
+		observations[index] = DNSObservation{
+			Name: query.name, References: cloneDNSReferences(query.references), Status: DNSObservationCanceled,
+			Records: []TXTRecord{}, CNAMEPath: []string{}, AnswerSource: DNSAnswerSourceUnknown,
+		}
+	}
+	diagnostics := make([]DNSCollectionDiagnostic, 0)
+	completed := 0
+	for index, query := range plan {
+		if err := ctx.Err(); err != nil {
+			break
+		}
+		outcome := collectDNSObservation(ctx, query, resolver, options)
+		observations[index] = outcome.observation
+		completed = index + 1
+		if outcome.diagnostic != nil {
+			diagnostics = append(diagnostics, *outcome.diagnostic)
+		}
+		if outcome.failed {
+			break
+		}
+	}
+	for index := completed; index < len(observations); index++ {
+		diagnostics = append(diagnostics, diagnosticForObservation(observations[index]))
+	}
+	sort.Slice(diagnostics, func(i, j int) bool {
+		if diagnostics[i].Name != diagnostics[j].Name {
+			return diagnostics[i].Name < diagnostics[j].Name
+		}
+		return diagnostics[i].Code < diagnostics[j].Code
+	})
+	snapshot := newDNSSnapshot(observedAt, portfolioID, observations, diagnostics)
+	if err := ctx.Err(); err != nil {
+		return snapshot, &DNSCollectionError{cause: err}
+	}
+	if completed < len(plan) || observations[completed-1].Status != DNSObservationSuccess {
 		return snapshot, &DNSCollectionError{cause: ErrDNSCollectionFailed}
 	}
 	return snapshot, nil
@@ -550,11 +584,15 @@ func observationFromLookup(query dnsQueryPlan, result TXTLookupResult, status DN
 		observation.Status = DNSObservationMalformed
 	}
 	for index := range observation.Records {
-		if len(observation.Records[index].Fragments) == 0 {
-			observation.Status = DNSObservationMalformed
+		record := &observation.Records[index]
+		if len(record.Fragments) > 0 {
+			record.FragmentsAvailable = true
+			record.Joined = strings.Join(record.Fragments, "")
 			continue
 		}
-		observation.Records[index].Joined = strings.Join(observation.Records[index].Fragments, "")
+		if record.FragmentsAvailable || record.Joined == "" {
+			observation.Status = DNSObservationMalformed
+		}
 	}
 	sort.Slice(observation.Records, func(i, j int) bool {
 		if observation.Records[i].Joined != observation.Records[j].Joined {

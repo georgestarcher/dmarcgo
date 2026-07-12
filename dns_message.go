@@ -244,7 +244,7 @@ func parseTXTResponse(message []byte, id uint16, queryName, resolverID string) (
 		if len(fragments) == 0 {
 			return result, header.Truncated, ErrDNSMalformedResponse
 		}
-		result.Records = append(result.Records, TXTRecord{Fragments: fragments, Joined: strings.Join(fragments, "")})
+		result.Records = append(result.Records, TXTRecord{Fragments: fragments, FragmentsAvailable: true, Joined: strings.Join(fragments, "")})
 	}
 	if ttlSet {
 		result.TTL = DNSDurationEvidence{Available: true, Seconds: ttl}

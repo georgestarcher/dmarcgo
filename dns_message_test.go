@@ -29,7 +29,7 @@ func TestParseTXTResponsePreservesPositiveEvidence(t *testing.T) {
 			if result.Status != DNSObservationSuccess || result.AnswerSource != test.wantSource || !result.TTL.Available || result.TTL.Seconds != test.ttl || !result.RCode.Available || result.RCode.Value != 0 {
 				t.Fatalf("positive evidence = %+v", result)
 			}
-			if len(result.Records) != 1 || result.Records[0].Joined != "v=DKIM1; p=key" || len(result.Records[0].Fragments) != 2 {
+			if len(result.Records) != 1 || result.Records[0].Joined != "v=DKIM1; p=key" || !result.Records[0].FragmentsAvailable || len(result.Records[0].Fragments) != 2 {
 				t.Fatalf("TXT fragments = %+v", result.Records)
 			}
 			if result.CanonicalName != "selector._domainkey.provider.test" || len(result.CNAMEPath) != 1 {

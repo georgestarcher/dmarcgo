@@ -41,6 +41,7 @@ define it. Set `Clock` when the snapshot timestamp must be reproducible.
 - `NetTXTResolver` adapts a caller-supplied `net.Resolver`. The standard API
   exposes TXT strings but not their original fragments, TTL, RCODE, CNAME path,
   authority, or negative-cache SOA. Those fields remain explicitly unavailable.
+  `Resolver` is required; pass `net.DefaultResolver` explicitly when desired.
 - Applications may implement `TXTResolver` for another DNS client, recorded
   evidence, or deterministic tests. Implementations must honor cancellation and
   must not invent unavailable evidence.
@@ -52,8 +53,9 @@ bounded by `DNSCollectionOptions`. Timeouts and temporary failures are retryable
 NXDOMAIN, NODATA, malformed responses, and cancellation are terminal.
 
 `DNSFailureCollectAll` records every terminal outcome and returns a complete
-snapshot with value-safe diagnostics. `DNSFailureFailFast` cancels remaining
-work after the first failed observation and returns the immutable partial
+snapshot with value-safe diagnostics. `DNSFailureFailFast` stops remaining
+work after the first failed observation and resolves serially so no new query
+can begin after that failure. It returns the immutable partial
 snapshot with an error matching `ErrDNSCollectionFailed`. Parent cancellation
 returns a partial snapshot with an error matching the context error. Timeout or
 cancellation observations never contain invented TTL evidence.

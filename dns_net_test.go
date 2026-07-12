@@ -13,11 +13,12 @@ import (
 
 func TestNetTXTResolverMarksMessageEvidenceUnavailable(t *testing.T) {
 	serverErrors := make(chan error, 1)
+	questions := make(chan string, 1)
 	backend := &net.Resolver{
 		PreferGo: true,
 		Dial: func(context.Context, string, string) (net.Conn, error) {
 			client, server := net.Pipe()
-			go serveNetResolverFixture(server, serverErrors)
+			go serveNetResolverFixtureWithQuestions(server, serverErrors, questions)
 			return client, nil
 		},
 	}
@@ -27,6 +28,9 @@ func TestNetTXTResolverMarksMessageEvidenceUnavailable(t *testing.T) {
 	}
 	if err := <-serverErrors; err != nil {
 		t.Fatalf("fixture server: %v", err)
+	}
+	if question := <-questions; question != "example.test." {
+		t.Fatalf("DNS question name = %q, want rooted configured owner", question)
 	}
 	if result.Status != DNSObservationSuccess || len(result.Records) != 1 || result.Records[0].Joined != "v=spf1 -all" {
 		t.Fatalf("TXT result = %+v", result)
@@ -47,6 +51,10 @@ func TestNetTXTResolverRequiresExplicitResolver(t *testing.T) {
 }
 
 func serveNetResolverFixture(connection net.Conn, result chan<- error) {
+	serveNetResolverFixtureWithQuestions(connection, result, nil)
+}
+
+func serveNetResolverFixtureWithQuestions(connection net.Conn, result chan<- error, questions chan<- string) {
 	var operationErr error
 	defer func() { result <- errors.Join(operationErr, connection.Close()) }()
 	var size [2]byte
@@ -69,6 +77,9 @@ func serveNetResolverFixture(connection net.Conn, result chan<- error) {
 	if err != nil {
 		operationErr = err
 		return
+	}
+	if questions != nil {
+		questions <- question.Name.String()
 	}
 	response, err := buildNetResolverResponse(header.ID, question)
 	if err != nil {

@@ -17,7 +17,8 @@ type NetTXTResolver struct {
 
 // LookupTXT performs one explicit TXT lookup through the configured resolver.
 // Resolver is required; callers that want the process default must pass
-// net.DefaultResolver explicitly.
+// net.DefaultResolver explicitly. The lookup name is rooted so platform search
+// domains cannot redirect evidence to a different owner name.
 func (resolver NetTXTResolver) LookupTXT(ctx context.Context, name string) (TXTLookupResult, error) {
 	backend := resolver.Resolver
 	if backend == nil {
@@ -30,7 +31,7 @@ func (resolver NetTXTResolver) LookupTXT(ctx context.Context, name string) (TXTL
 		AnswerSource: DNSAnswerSourceUnknown,
 		CNAMEPath:    []string{},
 	}
-	values, err := backend.LookupTXT(ctx, name)
+	values, err := backend.LookupTXT(ctx, absoluteDNSName(name))
 	if err != nil {
 		return result, err
 	}

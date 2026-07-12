@@ -173,6 +173,8 @@ func TestParseDMARCPolicyRecordFallbackAndErrors(t *testing.T) {
 		{value: "v=dmarc1; p=reject", code: "dmarc.invalid_version"},
 		{value: "v=DMARC1; p=block", code: "dmarc.invalid_policy"},
 		{value: "v=DMARC1; p=reject; ruf=mailto:fail@example.test; fo=0:1", code: "dmarc.invalid_failure_options"},
+		{value: "v=DMARC1; p=reject; ruf=mailto:fail@example.test; fo=0:", code: "dmarc.invalid_failure_options"},
+		{value: "v=DMARC1; p=reject; ruf=mailto:fail@example.test; fo=d:d", code: "dmarc.invalid_failure_options"},
 		{value: "v=DMARC1; p=reject; rua=not-a-uri", code: "dmarc.invalid_reporting_uri"},
 		{value: "v=DMARC1; p=reject; rua=https://reports.example/path!oops", code: "dmarc.invalid_reporting_uri"},
 		{value: "v=DMARC1; p=reject; future=", code: "dmarc.malformed_empty_value"},
@@ -196,8 +198,11 @@ func TestParseDMARCPolicyRecordIgnoresFailureOptionsWithoutDestination(t *testin
 }
 
 func TestCandidateTXTRecordsAcceptsDMARCVersionWhitespace(t *testing.T) {
-	records := []TXTRecord{{Joined: "v = DMARC1; p=reject"}}
-	if candidates := candidateTXTRecords(records, DNSRecordDMARC); len(candidates) != 1 {
+	records := []TXTRecord{
+		{Joined: "v = DMARC1; p=reject"},
+		{Joined: "v=dmarc1; p=reject"},
+	}
+	if candidates := candidateTXTRecords(records, DNSRecordDMARC); len(candidates) != 1 || candidates[0].Joined != records[0].Joined {
 		t.Fatalf("candidates=%+v", candidates)
 	}
 }

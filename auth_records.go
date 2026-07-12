@@ -278,7 +278,7 @@ func candidateTXTRecords(records []TXTRecord, recordType DNSRecordType) []TXTRec
 func hasDMARCVersionTag(value string) bool {
 	first, _, _ := strings.Cut(value, ";")
 	name, tagValue, found := strings.Cut(first, "=")
-	return found && strings.EqualFold(strings.TrimSpace(name), "v") && strings.EqualFold(strings.TrimSpace(tagValue), "DMARC1")
+	return found && strings.EqualFold(strings.TrimSpace(name), "v") && strings.TrimSpace(tagValue) == "DMARC1"
 }
 
 func parseAuthenticationCandidate(recordType DNSRecordType, value string) (ParsedAuthenticationRecord, []AuthenticationDiagnostic) {

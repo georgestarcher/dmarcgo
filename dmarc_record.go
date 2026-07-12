@@ -328,15 +328,17 @@ func validLegacyReportSize(value string) bool {
 }
 
 func parseDMARCFailureOptions(value string, offset int, diagnostics []AuthenticationDiagnostic) ([]string, []AuthenticationDiagnostic) {
-	values, truncated := normalizedColonList(value)
-	if truncated {
+	values := strings.SplitN(value, ":", maxAuthenticationListItems+1)
+	if len(values) > maxAuthenticationListItems {
 		diagnostics = append(diagnostics, parserDiagnostic("dmarc.malformed_failure_option_limit", FindingSeverityHigh, "failure_options", offset, "The DMARC failure-option list contains too many values.", dmarcStandardReference))
 		return []string{"0"}, diagnostics
 	}
 	seen := map[string]bool{}
 	valid := true
-	for _, option := range values {
-		if seen[option] || (option != "0" && option != "1" && option != "d" && option != "s") {
+	for index, option := range values {
+		option = strings.ToLower(strings.TrimSpace(option))
+		values[index] = option
+		if option == "" || seen[option] || (option != "0" && option != "1" && option != "d" && option != "s") {
 			valid = false
 		}
 		seen[option] = true

@@ -219,6 +219,9 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 		{name: "invalid DKIM name", mutate: func(config *PortfolioConfig) {
 			config.Entities[0].Domains[0].Records.DKIM = []string{"not-dkim.example.test"}
 		}, code: "configuration.record.invalid_name"},
+		{name: "IP record name", mutate: func(config *PortfolioConfig) {
+			config.Entities[0].Domains[0].Records.SPF = []string{"192.0.2.1"}
+		}, code: "configuration.record.invalid_name"},
 		{name: "entity parent cycle", mutate: func(config *PortfolioConfig) {
 			config.Entities = append(config.Entities, EntityConfig{ID: "second", Parent: "primary"})
 			config.Entities[0].Parent = "second"
@@ -247,8 +250,8 @@ func TestPortfolioValidationDiagnostics(t *testing.T) {
 func TestPortfolioConflictingOwnership(t *testing.T) {
 	config := minimalPortfolioConfig()
 	config.Owners = []OwnerConfig{{ID: "one"}, {ID: "two"}}
-	config.Organization.Owner = "one"
 	config.Entities[0].Owner = "one"
+	config.Entities = append(config.Entities, EntityConfig{ID: "aaa-unowned", Domains: []DomainConfig{{Name: "unowned.example.test", Records: MonitoredRecordsConfig{DKIM: []string{"s1._domainkey.shared.example.test"}}}}})
 	config.Entities = append(config.Entities, EntityConfig{ID: "second", Owner: "two", Domains: []DomainConfig{{Name: "second.example.test", Records: MonitoredRecordsConfig{DKIM: []string{"s1._domainkey.shared.example.test"}}}}})
 	config.Entities[0].Domains[0].Records.DKIM = []string{"s1._domainkey.shared.example.test"}
 	_, err := NormalizePortfolio(config)

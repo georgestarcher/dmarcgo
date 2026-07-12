@@ -783,16 +783,16 @@ func (normalizer *portfolioNormalizer) validateOwnership(entities []Entity) {
 	recordOwners := map[string]string{}
 	for _, entity := range entities {
 		for _, domain := range entity.Domains {
-			if existing, ok := domainOwners[domain.Name]; ok && existing != domain.Owner && existing != "" && domain.Owner != "" {
-				normalizer.add("configuration.ownership.domain_conflict", "entities", "The same normalized domain has conflicting owners.")
-			} else if !ok {
+			if existing, ok := domainOwners[domain.Name]; !ok || existing == "" {
 				domainOwners[domain.Name] = domain.Owner
+			} else if domain.Owner != "" && existing != domain.Owner {
+				normalizer.add("configuration.ownership.domain_conflict", "entities", "The same normalized domain has conflicting owners.")
 			}
 			for _, name := range append(append(cloneStrings(domain.Records.SPF), domain.Records.DKIM...), domain.Records.DMARC...) {
-				if existing, ok := recordOwners[name]; ok && existing != domain.Owner && existing != "" && domain.Owner != "" {
-					normalizer.add("configuration.ownership.record_conflict", "entities", "The same normalized record name has conflicting owners.")
-				} else if !ok {
+				if existing, ok := recordOwners[name]; !ok || existing == "" {
 					recordOwners[name] = domain.Owner
+				} else if domain.Owner != "" && existing != domain.Owner {
+					normalizer.add("configuration.ownership.record_conflict", "entities", "The same normalized record name has conflicting owners.")
 				}
 			}
 		}
@@ -858,7 +858,7 @@ func normalizeDomainName(value string) (string, error) {
 
 func normalizeRecordName(value string) (string, error) {
 	value = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(value)), ".")
-	if value == "" || len(value) > 253 {
+	if value == "" || len(value) > 253 || net.ParseIP(value) != nil {
 		return "", errors.New("invalid record name")
 	}
 	labels := strings.Split(value, ".")

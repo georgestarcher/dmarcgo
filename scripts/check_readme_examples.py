@@ -39,7 +39,7 @@ def main() -> int:
             (block_dir / "main.go").write_text(block, encoding="utf-8")
 
             result = subprocess.run(
-                ["go", "build", "."],
+                ["go", "build", "-mod=mod", "."],
                 cwd=block_dir,
                 env=os.environ.copy(),
                 text=True,

@@ -31,6 +31,12 @@
 // accept explicit dependencies and Clock values; pure analysis and output
 // stages consume already completed values without hidden I/O.
 //
+// PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
+// explicit monitored record names, expected senders, reusable policies,
+// ownership, inheritance, and scoped exclusions. Portfolio loading is strict,
+// deterministic, and side-effect free; it never resolves DNS or reads process
+// environment variables implicitly.
+//
 // DMARC failure reports, also called ruf or forensic reports, are described by
 // RFC 9991 and use a different ARF/MARF message format. They are intentionally
 // out of scope for this package.

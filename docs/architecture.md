@@ -31,7 +31,7 @@ structure containing every possible input or output.
 | Report validation | `report_validation`, `ReportValidationResult` | Current report package |
 | Report summaries | `report_summary`, `aggregate_summary`, `ReportSummary`, `AggregateSummary` | Current report package |
 | Report rows and source review | `report_rows`, `source_review`, `FeatureRow`, `SourceReview` | Current report package |
-| Portfolio validation | `configuration_validation` | Portfolio feature |
+| Portfolio validation | `configuration_validation`, `ConfigurationValidationResult` | Portfolio feature |
 | Portfolio health | `configuration_health` | Portfolio and health features |
 | DNS collection | `dns_snapshot` | DNS snapshot feature |
 | DNS record parsing | `dns_authentication_records` | Authentication-record feature |

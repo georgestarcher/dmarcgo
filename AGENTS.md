@@ -37,6 +37,9 @@ Version 2 is the supported API line. Import
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
+- Strict organization YAML: `dmarcgo.LoadPortfolioYAML(data)`
+- Programmatic organization configuration: `dmarcgo.NormalizePortfolio(config)`
+- Configuration diagnostics: `dmarcgo.ValidatePortfolio(config, generatedAt)`
 
 ## Recommended app integration flow
 
@@ -51,6 +54,18 @@ Version 2 is the supported API line. Import
 9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
 10. Use `AnonymizeReport` before turning any real report into a committed fixture.
 11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
+12. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+
+## Organization portfolio configuration
+
+- `PortfolioConfig` is mutable input; `Portfolio` is normalized and returns defensive copies.
+- Store complete SPF, DKIM, and DMARC record names, not live TXT values.
+- DKIM selectors must be represented by their complete `_domainkey` names.
+- YAML decoding is strict, versioned, single-document, and rejects unknown or secret-bearing fields.
+- Environment expansion is disabled unless the caller supplies `WithPortfolioEnvironment`; the library never reads process environment variables itself.
+- Parent entity owner/tags and parent domain collections use the documented inheritance rules in `docs/portfolio-configuration.md`.
+- Do not interpret a provider ID as sender authorization; domains must reference expected-sender IDs explicitly.
+- Use only synthetic committed portfolio fixtures. Private operational record-name lists may be exercised by ignored local tests but must not be copied into public fixtures or test output.
 
 ## AI and automation consumer output
 

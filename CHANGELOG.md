@@ -9,6 +9,14 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- Versioned organization portfolio configuration for entities, domains,
+  monitored SPF/DKIM/DMARC names, expected senders, reusable policies,
+  ownership, inheritance, and scoped exclusions.
+- Strict single-document YAML loading with unknown-field, secret-field, alias,
+  size, schema-version, and explicit environment-expansion controls.
+- Deterministic internationalized-domain normalization, value-safe diagnostics,
+  defensive-copy accessors, portfolio digests, synthetic multi-entity fixtures,
+  private record-name compatibility testing, and configuration fuzz coverage.
 - Shared analysis-mode, result-metadata, evaluation-state, sensitivity,
   identifier, and clock contracts for independently callable organizational
   analysis stages.

@@ -55,6 +55,11 @@ stages with explicit side-effect boundaries. See
 direction, deterministic metadata, and the rule that output serialization never
 initiates analysis or network access.
 
+Organization portfolios can describe entities, domains, monitored SPF/DKIM/DMARC
+record names, expected senders, reusable authentication policies, ownership,
+inheritance, and scoped exclusions. See
+[Organization portfolio configuration](docs/portfolio-configuration.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -94,6 +99,9 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 | You want versioned automation or AI-agent output | `dmarcgo.BuildReportSummaryOutput(summary, options)` | Produces a self-describing envelope with findings, evidence, actions, provenance, redaction, and truncation metadata. |
+| You have strict versioned organization YAML | `dmarcgo.LoadPortfolioYAML(data)` | Rejects unknown and secret-bearing fields and performs no DNS or report access. |
+| You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
+| You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
 
 ## Automation and AI-agent output
 

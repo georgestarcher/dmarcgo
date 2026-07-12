@@ -1,0 +1,80 @@
+schema_version: 1
+organization:
+  id: example-group
+  name: Example Group
+  owner: security-platform
+  tags: [production]
+owners:
+  - id: security-platform
+    name: Security Platform
+    contact: security@example.test
+  - id: mail-team
+    name: Messaging Engineering
+    contact: mail@example.test
+policies:
+  - id: either-aligned
+    require_either: true
+    allowed_selectors: [shared, secondary]
+  - id: dkim-required
+    require_dkim: true
+    allowed_selectors: [shared]
+expected_senders:
+  - id: shared-workspace
+    name: Shared Workspace
+    provider: documented-provider
+    owner: mail-team
+    policy: either-aligned
+  - id: transactional-mail
+    name: Transactional Mail
+    owner: mail-team
+    require_spf: true
+entities:
+  - id: corporate
+    name: Corporate
+    owner: mail-team
+    tags: [central]
+    domains:
+      - name: example.test
+        include_subdomains: true
+        policy: either-aligned
+        records:
+          spf: [example.test]
+          dmarc: [_dmarc.example.test]
+          dkim: [shared._domainkey.shared-mail.example.test]
+        expected_senders: [shared-workspace]
+        exclusions:
+          - id: accepted-transition
+            owner: mail-team
+            reason: Synthetic transition window
+            scope: sender
+            target: transactional-mail
+            created_at: 2026-07-01T12:00:00Z
+            expires_at: 2026-08-01T12:00:00Z
+      - name: marketing.example.test
+        parent: example.test
+        policy: dkim-required
+        records:
+          spf: [marketing.example.test]
+          dmarc: [_dmarc.marketing.example.test]
+        expected_senders: [transactional-mail]
+  - id: sister-company
+    name: Sister Company
+    owner: mail-team
+    domains:
+      - name: example-sister.test
+        records:
+          spf: [example-sister.test]
+          dmarc: [_dmarc.example-sister.test]
+          dkim: [shared._domainkey.shared-mail.example.test]
+        expected_senders: [shared-workspace]
+  - id: acquired-unit
+    name: Acquired Unit
+    parent: corporate
+    tags: [migration]
+    domains:
+      - name: acquired-example.test
+        records:
+          spf: [acquired-example.test]
+          dmarc: [_dmarc.acquired-example.test]
+          dkim: [secondary._domainkey.acquired-example.test]
+        expected_senders: [shared-workspace]

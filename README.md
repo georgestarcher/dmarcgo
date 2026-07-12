@@ -49,6 +49,12 @@ original API and is retained only for Go module history; it is not maintained.
 
 It does not provide a mailbox ingester, directory watcher, database, CLI, dashboard, or spoofing-risk scoring engine.
 
+The planned organizational-analysis features follow independently callable
+stages with explicit side-effect boundaries. See
+[Analysis architecture](docs/architecture.md) for result ownership, dependency
+direction, deterministic metadata, and the rule that output serialization never
+initiates analysis or network access.
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -151,7 +157,7 @@ Use these mode-specific builders:
 
 | Mode | Builder | Input is already computed |
 | --- | --- | --- |
-| `report_validation` | `BuildValidationOutput` | Parsed report and validation findings |
+| `report_validation` | `BuildValidationOutput` | `ReportValidationResult`, usually from `report.ValidationResult(mode, generatedAt)` |
 | `report_summary` | `BuildReportSummaryOutput` | `ReportSummary` |
 | `aggregate_summary` | `BuildAggregateSummaryOutput` | `AggregateSummary` |
 | `report_rows` | `BuildReportRowsOutput` | `[]FeatureRow` |

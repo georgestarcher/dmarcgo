@@ -184,14 +184,19 @@ func ExampleReport_LoadFile() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
+	defer func() {
+		// Removal is cleanup-only and cannot change the demonstrated result.
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	gzw := gzip.NewWriter(tmpFile)
 	if _, err := gzw.Write([]byte(exampleReportXML)); err != nil {
 		log.Fatal(err)
 	}
 	if err := gzw.Close(); err != nil {
+		log.Fatal(err)
+	}
+	if err := tmpFile.Close(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -223,14 +228,19 @@ func ExampleReport_LoadFile_error() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
+	defer func() {
+		// Removal is cleanup-only and cannot change the demonstrated result.
+		_ = os.Remove(tmpFile.Name())
+	}()
 
 	gzw := gzip.NewWriter(tmpFile)
 	if _, err := gzw.Write([]byte("<feedback><report_metadata></feedback")); err != nil {
 		log.Fatal(err)
 	}
 	if err := gzw.Close(); err != nil {
+		log.Fatal(err)
+	}
+	if err := tmpFile.Close(); err != nil {
 		log.Fatal(err)
 	}
 

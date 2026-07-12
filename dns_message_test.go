@@ -69,16 +69,19 @@ func TestParseTXTResponsePreservesNegativeEvidence(t *testing.T) {
 	}
 }
 
-func TestParseTXTResponseRejectsInconsistentRRSetTTL(t *testing.T) {
+func TestParseTXTResponseUsesMinimumInconsistentRRSetTTL(t *testing.T) {
 	message := buildDNSResponse(t, dnsResponseFixture{
 		id: 12, name: "example.test", txt: [][]string{{"first"}, {"second"}}, ttl: 60, secondTTL: 120,
 	})
 	result, _, err := parseTXTResponse(message, 12, "example.test", "fixture")
-	if !errors.Is(err, ErrDNSMalformedResponse) {
-		t.Fatalf("error = %v", err)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if result.TTL.Available || result.NegativeTTL.Available {
-		t.Fatalf("malformed response invented TTL evidence: %+v", result)
+	if result.Status != DNSObservationSuccess || !result.TTL.Available || result.TTL.Seconds != 60 || len(result.Records) != 2 {
+		t.Fatalf("result = %+v", result)
+	}
+	if result.Records[0].TTL.Seconds != 60 || result.Records[1].TTL.Seconds != 120 {
+		t.Fatalf("per-record TTL evidence = %+v", result.Records)
 	}
 }
 

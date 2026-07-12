@@ -34,7 +34,7 @@ structure containing every possible input or output.
 | Portfolio validation | `configuration_validation`, `ConfigurationValidationResult` | Portfolio feature |
 | Portfolio health | `configuration_health` | Portfolio and health features |
 | DNS collection | `dns_snapshot`, `DNSSnapshot` | DNS snapshot feature |
-| DNS record parsing | `dns_authentication_records` | Authentication-record feature |
+| DNS record parsing | `dns_authentication_records`, `DNSAuthenticationResult` | Authentication-record feature |
 | DNS health | `dns_health` | DNS health feature |
 | Normalized report evidence | `report_evidence` | Report-evidence feature |
 | Expected/observed variance | `sender_variance` | Correlation feature |
@@ -122,6 +122,13 @@ collection timestamp, resolver identity, RRset evidence, references back to all
 dependent portfolio scopes, and unavailable-evidence markers. It has no global
 cache and never loads aggregate reports. DNS parsing and health stages consume
 the completed snapshot without initiating new lookups.
+
+`ParseAuthenticationRecords` is the pure DNS parsing stage. It consumes only a
+completed `DNSSnapshot`, preserves the snapshot digest and observation time,
+and produces deterministic typed SPF, DKIM, and RFC 9989 DMARC semantics.
+Direct record parsers and DMARC tree-walk planning also perform no I/O. SPF
+graph evidence is limited to relationships present in the snapshot; unavailable
+void-lookup and macro-expansion evidence remains indeterminate.
 
 ## Persistence and composition
 

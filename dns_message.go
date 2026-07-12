@@ -253,15 +253,18 @@ func parseTXTResponse(message []byte, id uint16, queryName, resolverID string) (
 		if normalizeDNSDisplayName(answer.Header.Name.String()) != currentName {
 			return result, header.Truncated, ErrDNSMalformedResponse
 		}
-		if ttlSet && ttl != answer.Header.TTL {
-			return result, header.Truncated, ErrDNSMalformedResponse
+		if !ttlSet || answer.Header.TTL < ttl {
+			ttl = answer.Header.TTL
 		}
-		ttl, ttlSet = answer.Header.TTL, true
+		ttlSet = true
 		fragments := append([]string(nil), body.TXT...)
 		if len(fragments) == 0 {
 			return result, header.Truncated, ErrDNSMalformedResponse
 		}
-		result.Records = append(result.Records, TXTRecord{Fragments: fragments, FragmentsAvailable: true, Joined: strings.Join(fragments, "")})
+		result.Records = append(result.Records, TXTRecord{
+			Fragments: fragments, FragmentsAvailable: true, Joined: strings.Join(fragments, ""),
+			TTL: DNSDurationEvidence{Available: true, Seconds: answer.Header.TTL},
+		})
 	}
 	if ttlSet {
 		result.TTL = DNSDurationEvidence{Available: true, Seconds: ttl}

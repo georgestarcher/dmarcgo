@@ -64,6 +64,11 @@ DNS snapshot collection is an explicit, separate stage. It deduplicates the
 portfolio's monitored TXT owner names and records immutable evidence through a
 caller-selected resolver. See [DNS snapshot collection](docs/dns-snapshots.md).
 
+Authentication-record parsing is the following side-effect-free stage. It
+parses supplied SPF, DKIM, and current RFC 9989 DMARC values without performing
+lookups, and preserves missing or unavailable evidence explicitly. See
+[Authentication-record parsing](docs/authentication-records.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -107,6 +112,9 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
 | You want reusable DNS evidence for a portfolio | `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)` | Explicitly queries only configured TXT names; use `DNSMessageResolver` when TTL and authority evidence matter. |
+| You want parsed SPF, DKIM, and DMARC semantics | `dmarcgo.ParseAuthenticationRecords(snapshot)` | Purely parses an existing snapshot; performs no DNS, report, filesystem, or time access. |
+| You need to validate one supplied record string | `dmarcgo.ParseSPFRecord`, `dmarcgo.ParseDKIMKeyRecord`, or `dmarcgo.ParseDMARCPolicyRecord` | Returns typed semantics plus value-safe diagnostics without I/O. |
+| You need RFC 9989 DMARC tree-walk names | `dmarcgo.DMARCPolicyDiscoveryNames(domain)` | Computes at most eight owner names but never resolves them. |
 
 ## Automation and AI-agent output
 

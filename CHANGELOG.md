@@ -31,6 +31,10 @@ and this project uses semantic versioning for public API changes.
   preserves TTL, authoritative/recursive source, RCODE, CNAME path, SOA, and
   RFC 2308 negative-cache TTL evidence; limited adapters mark unavailable
   evidence instead of inventing values.
+- Side-effect-free SPF, DKIM key, and RFC 9989 DMARC policy parsing over
+  reusable DNS snapshots, with typed semantics, deterministic diagnostics,
+  bounded SPF dependency analysis, DKIM key-strength metadata, DMARC tree-walk
+  planning, IDN normalization, fuzz coverage, and explicit unknown evidence.
 
 ### Changed
 
@@ -38,6 +42,12 @@ and this project uses semantic versioning for public API changes.
   instead of a report plus findings. Use `report.ValidationResult(mode,
   generatedAt)` to perform validation before serialization; output conversion
   no longer reruns report analysis.
+
+### Fixed
+
+- DNS-message TXT collection now preserves per-record TTLs and applies the
+  RFC 2181 minimum TTL when an explicitly configured resolver returns an RRset
+  with inconsistent TTLs, instead of discarding otherwise usable evidence.
 
 ## [2.1.0] - 2026-07-11
 

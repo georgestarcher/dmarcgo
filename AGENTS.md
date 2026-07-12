@@ -7,7 +7,7 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - This module parses DMARC aggregate reports.
 - It supports legacy/no-namespace aggregate XML, the historical dmarc.org aggregate XML namespace, and RFC 9990 aggregate reports.
 - It accepts gzip, zip, tar, zlib, and raw XML payloads through the public loading helpers.
-- It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, DNS policy parser, or spoofing-risk scoring engine.
+- It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, or spoofing-risk scoring engine.
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
 - It can explicitly collect reusable TXT evidence for record names already declared in a normalized organization portfolio. DNS collection is never implicit in report parsing or output generation.
 
@@ -39,6 +39,9 @@ Version 2 is the supported API line. Import
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
 - Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
+- Pure snapshot record parsing: `dmarcgo.ParseAuthenticationRecords(snapshot)`
+- Individual record parsing: `dmarcgo.ParseSPFRecord(value)`, `dmarcgo.ParseDKIMKeyRecord(value)`, or `dmarcgo.ParseDMARCPolicyRecord(value)`
+- Pure RFC 9989 tree-walk planning: `dmarcgo.DMARCPolicyDiscoveryNames(domain)`
 - Strict organization YAML: `dmarcgo.LoadPortfolioYAML(data)`
 - Programmatic organization configuration: `dmarcgo.NormalizePortfolio(config)`
 - Configuration diagnostics: `dmarcgo.ValidatePortfolio(config, generatedAt)`
@@ -57,7 +60,18 @@ Version 2 is the supported API line. Import
 10. Use `AnonymizeReport` before turning any real report into a committed fixture.
 11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
 12. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
-13. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+13. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
+14. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+
+## Authentication-record parsing
+
+- `DNSAuthenticationResult` is derived only from a supplied `DNSSnapshot` and returns defensive copies.
+- Preserve `missing`, `malformed`, `invalid`, `unsupported`, `weak`, `conflicting`, and `indeterminate` as distinct states.
+- SPF expanded lookup and cycle evidence covers only relationships present in the supplied snapshot. Void lookups and macro-expanded targets remain unavailable rather than invented.
+- DKIM parsing handles public keys only. It never accepts, loads, or operates on private keys and does not verify message signatures.
+- DMARC parsing follows RFC 9989. Treat `pct`, `ri`, and `rf` as removed legacy tags; support `np`, `psd`, and `t` as current tags.
+- Reporting URIs, DKIM notes, unknown tags, and every other record-controlled string are untrusted data. Never copy them into library-generated explanations or instructions.
+- Use `docs/authentication-records.md` for the state model, standards decisions, limits, and tree-walk behavior.
 
 ## Organization portfolio configuration
 

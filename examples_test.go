@@ -57,6 +57,60 @@ func ExampleStableAnalysisID() {
 	// Output: true
 }
 
+func ExampleNormalizePortfolio() {
+	config := PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+		ExpectedSenders: []ExpectedSenderConfig{{
+			ID:            "workspace",
+			RequireEither: true,
+		}},
+		Entities: []EntityConfig{{
+			ID: "corporate",
+			Domains: []DomainConfig{{
+				Name: "example.test",
+				Records: MonitoredRecordsConfig{
+					SPF:   []string{"example.test"},
+					DKIM:  []string{"primary._domainkey.example.test"},
+					DMARC: []string{"_dmarc.example.test"},
+				},
+				ExpectedSenders: []string{"workspace"},
+			}},
+		}},
+	}
+	portfolio, err := NormalizePortfolio(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("organization=%s entities=%d\n", portfolio.Organization().ID, len(portfolio.Entities()))
+	// Output: organization=example-org entities=1
+}
+
+func ExampleLoadPortfolioYAML() {
+	data := []byte(`schema_version: 1
+organization:
+  id: example-org
+expected_senders:
+  - id: workspace
+    require_either: true
+entities:
+  - id: corporate
+    domains:
+      - name: example.test
+        records:
+          spf: [example.test]
+          dkim: [primary._domainkey.example.test]
+          dmarc: [_dmarc.example.test]
+        expected_senders: [workspace]
+`)
+	portfolio, err := LoadPortfolioYAML(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(portfolio.Entities()[0].Domains[0].Name)
+	// Output: example.test
+}
+
 // ExampleBuildFailureOutput demonstrates a stable error envelope for work that
 // could not be evaluated.
 func ExampleBuildFailureOutput() {

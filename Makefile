@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check ci
 
 build:
 	go build ./...
@@ -40,12 +40,22 @@ api-check:
 output-contract-check:
 	go test -run 'Test.*Output|Test.*Schema|Test.*Redaction|Test.*Truncation' ./...
 
+portfolio-check:
+	go test -run 'Test.*Portfolio|Test.*Configuration|TestYAML' ./...
+
 mod-verify:
-	go mod tidy
-	@if [ -f go.sum ]; then \
-		git diff --exit-code go.mod go.sum; \
-	else \
-		git diff --exit-code go.mod; \
+	@set -e; \
+	tmp_dir=$$(mktemp -d); \
+	trap 'rm -rf "$${tmp_dir}"' EXIT; \
+	cp go.mod "$${tmp_dir}/go.mod"; \
+	if [ -f go.sum ]; then cp go.sum "$${tmp_dir}/go.sum"; fi; \
+	go mod tidy; \
+	diff -u "$${tmp_dir}/go.mod" go.mod; \
+	if [ -f "$${tmp_dir}/go.sum" ]; then \
+		diff -u "$${tmp_dir}/go.sum" go.sum; \
+	elif [ -f go.sum ]; then \
+		echo "go mod tidy unexpectedly created go.sum"; \
+		exit 1; \
 	fi
 
 mod-verify-local:
@@ -63,11 +73,12 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzParseBytes -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzLoadBytes -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzOutputEnvelopeSerialization -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzParsePortfolioYAML -fuzztime=5s -timeout=2m .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

@@ -62,3 +62,32 @@ func FuzzAnalyzeReportEvidence(f *testing.F) {
 		}
 	})
 }
+
+func FuzzCorrelateReportEvidence(f *testing.F) {
+	portfolio, health := correlationTestDNSHealth(f, correlationTestConfig(AuthenticationPolicyConfig{}), correlationHealthyDNSValues())
+	f.Add("192.0.2.1", "example.test", "mk1", "example.test", "1", "pass", "fail")
+	f.Add("not-an-ip", "", "", "", "0", "unknown", "")
+	f.Fuzz(func(t *testing.T, sourceIP, domain, selector, spfDomain, count, dkim, spf string) {
+		report := correlationTestReport("fuzz", "receiver", 1, 2,
+			correlationTestRecord(sourceIP, count, domain, dkim, spf, domain, selector, spfDomain),
+		)
+		evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: time.Unix(3, 0)})
+		if err != nil {
+			if !errors.Is(err, ErrReportEvidenceOverflow) {
+				t.Fatalf("unexpected evidence error: %v", err)
+			}
+			return
+		}
+		first, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{GeneratedAt: time.Unix(1000, 0)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{GeneratedAt: time.Unix(1000, 0)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first.Digest() != second.Digest() {
+			t.Fatalf("non-deterministic digests: %q != %q", first.Digest(), second.Digest())
+		}
+	})
+}

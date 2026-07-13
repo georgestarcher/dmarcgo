@@ -79,6 +79,11 @@ The reviewed provider catalog adds versioned context for documented SPF and
 DKIM setup models without turning recognition into authorization or health
 credit. See [Provider catalog](docs/provider-catalog.md).
 
+DNS/report correlation is the following pure stage. It compares declared
+sender intent, current DNS health, and historical report evidence while keeping
+their observation times separate. See
+[DNS and report correlation](docs/dns-report-correlation.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -110,6 +115,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want quick counts for one report | `report.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
 | You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
 | You want reusable normalized report evidence | `dmarcgo.AnalyzeReportEvidence(reports, options)` | Produces deterministic, persistable report-only evidence with filtering and aggregation; it performs no DNS, enrichment, or sender-inventory interpretation. |
+| You want expected-sender and DNS/report variance | `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)` | Correlates already completed values without DNS, parsing, enrichment, storage, or malicious attribution. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
@@ -738,6 +744,28 @@ Report evidence is independent of organization configuration. Portfolio entity
 and expected-sender attribution belongs to the later correlation stage. See
 [`docs/report-evidence.md`](docs/report-evidence.md) for grouping, time-window,
 duplicate, persistence, and privacy semantics.
+
+## DNS and report correlation
+
+Use `CorrelateReportEvidence` after portfolio normalization, DNS health, and
+report-evidence analysis are complete. It resolves report streams to effective
+entity/domain scopes, matches only declared DKIM selectors or unambiguous
+monitored SPF identities to expected senders, and emits stable operational
+findings for onboarding gaps, sender failures, unknown sources, new identities,
+and caller-supplied prior-result drift.
+
+Provider matches remain context-only. A recognized provider never authorizes a
+stream, hides authentication failure, or improves health. Missing selectors and
+other unavailable report values remain unknown.
+
+Every stream and finding preserves current DNS observation time separately from
+historical report bounds. Current DNS is never claimed to be the cause of an
+older outcome. Count, duration, reporter-diversity, and recency thresholds are
+explicit, and below-threshold streams remain visible as not evaluated.
+
+See [`docs/dns-report-correlation.md`](docs/dns-report-correlation.md) for the
+finding taxonomy, prior-result comparisons, temporal semantics, and safe sender
+onboarding sequence.
 
 ## Attachment filename metadata
 

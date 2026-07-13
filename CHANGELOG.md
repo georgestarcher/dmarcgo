@@ -50,6 +50,11 @@ and this project uses semantic versioning for public API changes.
   provenance, explicit unknown values, checked 64-bit counts, deterministic
   duplicate handling, filtering and multi-dimensional aggregation, strict JSON
   persistence, fuzz coverage, and report-only side-effect isolation.
+- Pure DNS/report/expected-sender correlation with immutable inventory and
+  stream evidence, context-only provider references, explicit temporal and
+  threshold semantics, stable onboarding and variance findings, caller-owned
+  prior-result drift comparison, preserved DNS snapshot observation time, and
+  no hidden collection or attribution.
 
 ### Changed
 

@@ -224,6 +224,7 @@ type DNSEntityHealth struct {
 // defensive copies and never perform parsing, DNS, report, or filesystem I/O.
 type DNSHealthResult struct {
 	metadata              ResultMetadata
+	observedAt            time.Time
 	portfolioDigest       AnalysisID
 	snapshotDigest        AnalysisID
 	authenticationDigest  AnalysisID
@@ -241,8 +242,12 @@ type DNSHealthResult struct {
 }
 
 func (result DNSHealthResult) ResultMetadata() ResultMetadata { return result.metadata }
-func (result DNSHealthResult) PortfolioDigest() AnalysisID    { return result.portfolioDigest }
-func (result DNSHealthResult) SnapshotDigest() AnalysisID     { return result.snapshotDigest }
+
+// ObservedAt returns the timestamp of the DNS snapshot used by the health
+// evaluation. It can be earlier than ResultMetadata().GeneratedAt.
+func (result DNSHealthResult) ObservedAt() time.Time       { return result.observedAt }
+func (result DNSHealthResult) PortfolioDigest() AnalysisID { return result.portfolioDigest }
+func (result DNSHealthResult) SnapshotDigest() AnalysisID  { return result.snapshotDigest }
 
 // AuthenticationDigest returns the exact parsed authentication input digest.
 func (result DNSHealthResult) AuthenticationDigest() AnalysisID {
@@ -431,6 +436,7 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 		ProviderCatalogDigest AnalysisID                 `json:"provider_catalog_digest"`
 		ProviderProvenance    ProviderCatalogProvenance  `json:"provider_provenance"`
 		GeneratedAt           time.Time                  `json:"generated_at"`
+		ObservedAt            time.Time                  `json:"observed_at"`
 		Profile               DNSHealthScoringProfile    `json:"profile"`
 		PortfolioScore        DNSHealthScore             `json:"portfolio_score"`
 		PortfolioMaturity     DNSHealthMaturity          `json:"portfolio_maturity"`
@@ -439,13 +445,14 @@ func EvaluateDNSHealth(portfolio Portfolio, authentication DNSAuthenticationResu
 		Entities              []DNSEntityHealth          `json:"entities"`
 		Findings              []DNSHealthFinding         `json:"findings"`
 		ProviderContexts      []DNSHealthProviderContext `json:"provider_contexts"`
-	}{portfolio.Digest(), authentication.SnapshotDigest(), authentication.Digest(), providerCatalog.Digest(), providerCatalog.Provenance(), generatedAt, profile, portfolioScore, portfolioMaturity,
+	}{portfolio.Digest(), authentication.SnapshotDigest(), authentication.Digest(), providerCatalog.Digest(), providerCatalog.Provenance(), generatedAt, metadata.GeneratedAt, profile, portfolioScore, portfolioMaturity,
 		evaluator.records, evaluator.domains, evaluator.entities, evaluator.findings, evaluator.providerContexts})
 	if err != nil {
 		return DNSHealthResult{}, errors.Join(ErrInvalidAnalysisResult, err)
 	}
 	return DNSHealthResult{
 		metadata:        ResultMetadata{ContractVersion: AnalysisContractVersion, Mode: AnalysisModeDNSHealth, GeneratedAt: generatedAt, Evaluation: Evaluation{State: EvaluationStateEvaluated}},
+		observedAt:      metadata.GeneratedAt,
 		portfolioDigest: portfolio.Digest(), snapshotDigest: authentication.SnapshotDigest(), authenticationDigest: authentication.Digest(),
 		providerCatalogDigest: providerCatalog.Digest(), providerProvenance: providerCatalog.Provenance(),
 		digest: StableAnalysisID("dns_health", string(canonical)), profile: profile, portfolioScore: cloneDNSHealthScore(portfolioScore), portfolioMaturity: cloneDNSHealthMaturity(portfolioMaturity),

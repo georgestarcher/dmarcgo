@@ -38,8 +38,8 @@ structure containing every possible input or output.
 | DNS record parsing | `dns_authentication_records`, `DNSAuthenticationResult` | Authentication-record feature |
 | DNS health | `dns_health` | DNS health feature |
 | Normalized report evidence | `report_evidence` | Report-evidence feature |
-| Expected/observed variance | `sender_variance` | Correlation feature |
-| DNS/report correlation | `dns_report_correlation` | Correlation feature |
+| Expected/observed variance | `sender_variance`, correlation findings | Correlation feature |
+| DNS/report correlation | `dns_report_correlation`, `DNSReportCorrelationResult` | Correlation feature |
 | Suspicious-source candidates | `threat_candidates` | Candidate-scoring feature |
 | Optional enrichment | `source_enrichment` | Enrichment feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
@@ -58,6 +58,13 @@ checked message counts, deterministic filtering/grouping, and a strict
 intermediate JSON persistence document. It deliberately does not attach
 portfolio entity or expected-sender identities; the correlation stage resolves
 those against the same evidence IDs.
+
+`DNSReportCorrelationResult` implements the pure correlation stage. It owns an
+effective inventory snapshot, deterministic observed streams, thresholds,
+current-DNS versus report-period relationships, stable findings, and optional
+prior-result provenance. Provider contexts remain evidence references and never
+authorize a stream. The result retains upstream digests without recollecting,
+reparsing, enriching, or loading history.
 
 ## Shared contracts
 

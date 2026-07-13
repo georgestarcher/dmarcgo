@@ -508,6 +508,23 @@ func collectBatchIPEnrichment(ctx context.Context, enricher BatchIPEnricher, ips
 	lookupCtx, cancel := context.WithTimeout(ctx, options.LookupTimeout)
 	defer cancel()
 	items, batchErr := enricher.EnrichIPs(lookupCtx, append([]netip.Addr{}, ips...))
+	if lookupErr := lookupCtx.Err(); lookupErr != nil {
+		outcomes := make(map[string]sourceEnrichmentOutcome, len(ips))
+		for _, ip := range ips {
+			if errors.Is(lookupErr, context.DeadlineExceeded) {
+				outcomes[ip.String()] = sourceEnrichmentTimeoutOutcome(ip)
+			} else {
+				outcomes[ip.String()] = sourceEnrichmentCanceledOutcome(ip)
+			}
+		}
+		if err := ctx.Err(); err != nil {
+			return outcomes, false, err
+		}
+		if errors.Is(lookupErr, context.DeadlineExceeded) && options.FailurePolicy == SourceEnrichmentFailFast {
+			return outcomes, true, ErrSourceEnrichmentFailed
+		}
+		return outcomes, true, nil
+	}
 	requested := make(map[string]netip.Addr, len(ips))
 	for _, ip := range ips {
 		requested[ip.String()] = ip
@@ -526,7 +543,7 @@ func collectBatchIPEnrichment(ctx context.Context, enricher BatchIPEnricher, ips
 			duplicates[ip.String()] = struct{}{}
 			continue
 		}
-		outcomes[ip.String()] = classifyIPMetadata(requestedIP, item.Metadata, item.Err, generatedAt, nil)
+		outcomes[ip.String()] = classifyIPMetadata(requestedIP, item.Metadata, item.Err, generatedAt, ctx)
 	}
 	for ip := range duplicates {
 		outcomes[ip] = sourceEnrichmentInvalidMetadataOutcome(requested[ip])
@@ -537,9 +554,13 @@ func collectBatchIPEnrichment(ctx context.Context, enricher BatchIPEnricher, ips
 			continue
 		}
 		switch {
-		case errors.Is(ctx.Err(), context.Canceled), errors.Is(batchErr, context.Canceled):
+		case errors.Is(ctx.Err(), context.Canceled):
 			outcomes[ip.String()] = sourceEnrichmentCanceledOutcome(ip)
-		case errors.Is(ctx.Err(), context.DeadlineExceeded), errors.Is(lookupCtx.Err(), context.DeadlineExceeded), errors.Is(batchErr, context.DeadlineExceeded):
+		case errors.Is(ctx.Err(), context.DeadlineExceeded), errors.Is(lookupCtx.Err(), context.DeadlineExceeded):
+			outcomes[ip.String()] = sourceEnrichmentTimeoutOutcome(ip)
+		case errors.Is(lookupCtx.Err(), context.Canceled), errors.Is(batchErr, context.Canceled):
+			outcomes[ip.String()] = sourceEnrichmentCanceledOutcome(ip)
+		case errors.Is(batchErr, context.DeadlineExceeded):
 			outcomes[ip.String()] = sourceEnrichmentTimeoutOutcome(ip)
 		case batchErr != nil:
 			outcomes[ip.String()] = sourceEnrichmentFailedOutcome(ip)
@@ -566,6 +587,9 @@ func lookupIPMetadata(ctx context.Context, enricher IPEnricher, ip netip.Addr, g
 	lookupCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	metadata, err := enricher.EnrichIP(lookupCtx, ip)
+	if contextErr := lookupCtx.Err(); contextErr != nil {
+		err = contextErr
+	}
 	return classifyIPMetadata(ip, metadata, err, generatedAt, ctx)
 }
 
@@ -573,6 +597,8 @@ func classifyIPMetadata(ip netip.Addr, metadata IPMetadata, lookupErr error, gen
 	switch {
 	case parent != nil && errors.Is(parent.Err(), context.Canceled):
 		return sourceEnrichmentCanceledOutcome(ip)
+	case parent != nil && errors.Is(parent.Err(), context.DeadlineExceeded):
+		return sourceEnrichmentTimeoutOutcome(ip)
 	case errors.Is(lookupErr, context.Canceled):
 		return sourceEnrichmentCanceledOutcome(ip)
 	case errors.Is(lookupErr, context.DeadlineExceeded):

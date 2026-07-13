@@ -211,6 +211,24 @@ func TestEnrichThreatCandidatesCancellationAndTimeout(t *testing.T) {
 			t.Fatalf("candidate=%+v complete=%v", result.Candidates()[0], result.Complete())
 		}
 	})
+
+	t.Run("provider returns metadata after timeout", func(t *testing.T) {
+		now := time.Unix(200_000, 0)
+		candidates := sourceEnrichmentTestCandidates(t, "192.0.2.1")
+		original := candidates.Candidates()[0]
+		result, err := EnrichThreatCandidates(context.Background(), candidates, sourceLateMetadataEnricher{
+			metadata: sourceTestMetadata(64500, "", "192.0.2.0/24", "", "", "late-fixture", now, nil),
+		}, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return now }), LookupTimeout: time.Millisecond})
+		if err != nil {
+			t.Fatal(err)
+		}
+		candidate := result.Candidates()[0]
+		if candidate.Status != SourceEnrichmentTimeout || !result.Complete() || len(candidate.Metadata.Assertions) != 0 ||
+			candidate.Candidate.Confidence != original.Confidence || !hasThreatCandidateConfidenceAdjustment(candidate.Candidate, "threat_candidate.unenriched") ||
+			len(result.Diagnostics()) != 1 || result.Diagnostics()[0].Code != "source_enrichment.timeout" {
+			t.Fatalf("candidate=%+v complete=%v diagnostics=%+v", candidate, result.Complete(), result.Diagnostics())
+		}
+	})
 }
 
 func TestEnrichThreatCandidatesBoundsConcurrency(t *testing.T) {
@@ -320,6 +338,29 @@ func TestEnrichThreatCandidatesUsesBatchAndHandlesMissingItems(t *testing.T) {
 	statuses := sourceEnrichmentStatusesByIP(result.Candidates())
 	if statuses["192.0.2.1"] != SourceEnrichmentSuccess || statuses["192.0.2.2"] != SourceEnrichmentUnavailable || statuses["2001:db8::1"] != SourceEnrichmentFailed || result.Complete() {
 		t.Fatalf("statuses=%+v complete=%v", statuses, result.Complete())
+	}
+}
+
+func TestEnrichThreatCandidatesBatchRejectsMetadataAfterTimeout(t *testing.T) {
+	now := time.Unix(200_000, 0)
+	candidates := sourceEnrichmentTestCandidates(t, "192.0.2.1", "192.0.2.2")
+	originals := candidates.Candidates()
+	result, err := EnrichThreatCandidates(context.Background(), candidates, sourceLateBatchEnricher{
+		metadata: sourceTestMetadata(64500, "", "192.0.2.0/24", "", "", "late-fixture", now, nil),
+	}, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return now }), LookupTimeout: time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := result.Candidates()
+	if !result.Complete() || len(values) != len(originals) || len(result.ASNs()) != 0 || len(result.Diagnostics()) != len(originals) {
+		t.Fatalf("complete=%v candidates=%+v ASNs=%+v diagnostics=%+v", result.Complete(), values, result.ASNs(), result.Diagnostics())
+	}
+	for index, candidate := range values {
+		if candidate.Status != SourceEnrichmentTimeout || len(candidate.Metadata.Assertions) != 0 ||
+			candidate.Candidate.Confidence != originals[index].Confidence || !hasThreatCandidateConfidenceAdjustment(candidate.Candidate, "threat_candidate.unenriched") ||
+			result.Diagnostics()[index].Code != "source_enrichment.timeout" {
+			t.Fatalf("candidate[%d]=%+v diagnostic=%+v", index, candidate, result.Diagnostics()[index])
+		}
 	}
 }
 
@@ -482,6 +523,32 @@ func BenchmarkEnrichThreatCandidatesLargeCandidateSet(b *testing.B) {
 type sourcePanicClock struct{}
 
 func (sourcePanicClock) Now() time.Time { panic("clock must not be called") }
+
+type sourceLateMetadataEnricher struct {
+	metadata IPMetadata
+}
+
+func (enricher sourceLateMetadataEnricher) EnrichIP(ctx context.Context, _ netip.Addr) (IPMetadata, error) {
+	<-ctx.Done()
+	return enricher.metadata, nil
+}
+
+type sourceLateBatchEnricher struct {
+	metadata IPMetadata
+}
+
+func (sourceLateBatchEnricher) EnrichIP(context.Context, netip.Addr) (IPMetadata, error) {
+	panic("batch enricher must not receive single-address calls")
+}
+
+func (enricher sourceLateBatchEnricher) EnrichIPs(ctx context.Context, ips []netip.Addr) ([]IPEnrichmentBatchItem, error) {
+	<-ctx.Done()
+	items := make([]IPEnrichmentBatchItem, len(ips))
+	for index, ip := range ips {
+		items[index] = IPEnrichmentBatchItem{IP: ip, Metadata: enricher.metadata}
+	}
+	return items, nil
+}
 
 type sourceFixtureEnricher struct {
 	mu        sync.Mutex

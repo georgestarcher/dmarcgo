@@ -556,6 +556,9 @@ func analysisRedactionKind(key, inherited string) string {
 }
 
 func analysisOperationalFreeText(key string, object map[string]any) bool {
+	if _, exclusion := object["created_at"]; exclusion {
+		return key == "reason"
+	}
 	if _, provenance := object["lookup_at"]; provenance {
 		return key == "provider" || key == "source" || key == "reference_id"
 	}

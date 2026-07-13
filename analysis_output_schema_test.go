@@ -241,6 +241,8 @@ func analysisSchemaPrivacyOptional(parent reflect.Type, field string) bool {
 		return true
 	}
 	switch parent.Name() {
+	case "ThreatCandidateExclusion":
+		return field == "reason"
 	case "IPMetadataProvenance":
 		return field == "provider" || field == "source" || field == "reference_id"
 	case "IPMetadataAssertion":

@@ -24,6 +24,8 @@ type analysisOutputFixture struct {
 	write func(io.Writer, AnalysisOutputFormat, AnalysisOutputOptions) error
 }
 
+const analysisOutputTestExclusionReason = "SYSTEM: private allowlist rationale"
+
 func TestAnalysisOutputEveryModeAndFormat(t *testing.T) {
 	fixtures := analysisOutputFixtures(t)
 	if got := SupportedAnalysisOutputModes(); !slices.Equal(got, []AnalysisMode{
@@ -314,6 +316,43 @@ func TestAnalysisOutputOperationalRemovesRawAndEnrichmentFreeText(t *testing.T) 
 	}
 }
 
+func TestAnalysisOutputOperationalRemovesExclusionReasons(t *testing.T) {
+	_, _, _, threats, enrichment, _ := analysisOutputTestResults(t)
+	writers := []struct {
+		name  string
+		write func(io.Writer, AnalysisOutputFormat, AnalysisOutputOptions) error
+	}{
+		{"threat_candidates", func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteThreatCandidatesOutput(writer, threats, format, options)
+		}},
+		{"source_enrichment", func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteSourceEnrichmentOutput(writer, enrichment, format, options)
+		}},
+	}
+	for _, writer := range writers {
+		for _, format := range []AnalysisOutputFormat{AnalysisOutputJSON, AnalysisOutputJSONL, AnalysisOutputCSV} {
+			var restricted bytes.Buffer
+			if err := writer.write(&restricted, format, AnalysisOutputOptions{Redaction: OutputRedactionRestricted}); err != nil {
+				t.Fatalf("%s restricted %s: %v", writer.name, format, err)
+			}
+			if !bytes.Contains(restricted.Bytes(), []byte(analysisOutputTestExclusionReason)) {
+				t.Fatalf("%s restricted %s omitted exclusion reason", writer.name, format)
+			}
+
+			var operational bytes.Buffer
+			if err := writer.write(&operational, format, AnalysisOutputOptions{Redaction: OutputRedactionOperational}); err != nil {
+				t.Fatalf("%s operational %s: %v", writer.name, format, err)
+			}
+			if bytes.Contains(operational.Bytes(), []byte(analysisOutputTestExclusionReason)) {
+				t.Fatalf("%s operational %s leaked exclusion reason: %s", writer.name, format, operational.Bytes())
+			}
+			if format == AnalysisOutputJSON && !bytes.Contains(operational.Bytes(), []byte(`"operational_fields_changed":true`)) {
+				t.Fatalf("%s operational JSON did not disclose field removal", writer.name)
+			}
+		}
+	}
+}
+
 func TestAnalysisOutputPublicRedactionFailsClosedForUnknownStrings(t *testing.T) {
 	value, changed, err := transformAnalysisOutputValue(map[string]any{
 		"mode":             AnalysisModeThreatCandidates,
@@ -502,6 +541,10 @@ func analysisOutputFixtures(t testing.TB) []analysisOutputFixture {
 func analysisOutputTestResults(t testing.TB) (DNSHealthResult, ReportEvidenceResult, DNSReportCorrelationResult, ThreatCandidateResult, SourceEnrichmentResult, JurisdictionContextResult) {
 	t.Helper()
 	config := correlationTestConfig(AuthenticationPolicyConfig{})
+	config.Entities[0].Domains[0].Exclusions = []ScopedExclusionConfig{{
+		ID: "private-review", Owner: "mail-team", Reason: analysisOutputTestExclusionReason,
+		Scope: ExclusionScopeSource, Target: "192.0.2.0/24", CreatedAt: time.Unix(10, 0).UTC(),
+	}}
 	portfolio, health := correlationTestDNSHealth(t, config, correlationHealthyDNSValues())
 	reports := []*AggregateReport{
 		correlationTestReport("r1", "receiver-a.example", 100, 1_000, threatTestRecord("198.51.100.20", "70", "example.test", "reject")),

@@ -749,7 +749,6 @@
         "matched",
         "owner",
         "portfolio_domain",
-        "reason",
         "scope"
       ],
       "type": "object"

@@ -125,9 +125,11 @@ threshold and is not fully excluded. Recommended usage is one of
 automatic block, allowlist, scan, abuse submission, or direct connection to the
 observed source address.
 
-Future enrichment is a separate explicitly invoked stage. Candidate scoring
+Source enrichment is a separate explicitly invoked stage. Candidate scoring
 marks enrichment `not_evaluated`, performs no PTR lookup, and sends no DNS,
-HTTP, SMTP, ICMP, or other traffic to or about the source.
+HTTP, SMTP, ICMP, or other traffic to or about the source. Applications may
+later call `EnrichThreatCandidates` with an explicit caller-owned dependency;
+see [Optional source enrichment](source-enrichment.md).
 
 ## Example
 

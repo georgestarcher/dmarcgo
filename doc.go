@@ -52,6 +52,14 @@
 // Results are review-only, never assert malicious ownership or safe-to-block
 // status, and perform no collection, parsing, enrichment, storage, or clock access.
 //
+// EnrichThreatCandidates is the separate optional source-enrichment stage.
+// It calls only an explicit caller-supplied IPEnricher for review-eligible,
+// non-excluded candidates, with bounded concurrency, cancellation, partial
+// failure, deterministic ASN views, and immutable enriched copies. Passing nil
+// is a no-op. The library ships no provider or credentials, performs no PTR
+// lookup, and never contacts an observed source IP. Enrichment never enables
+// promotion or automatic action.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

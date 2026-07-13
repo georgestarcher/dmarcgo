@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
+	"net/netip"
 	"os"
 	"time"
 )
@@ -21,6 +22,21 @@ func (resolver exampleTXTResolver) LookupTXT(_ context.Context, name string) (TX
 		Records: []TXTRecord{{Fragments: []string{value}, FragmentsAvailable: true, Joined: value, TTL: ttl}},
 		TTL:     ttl, AnswerSource: DNSAnswerSourceRecursive, RCode: DNSRCodeEvidence{Available: true}, CNAMEPath: []string{},
 	}, nil
+}
+
+type exampleIPEnricher map[netip.Addr]IPMetadata
+
+func (enricher exampleIPEnricher) EnrichIP(ctx context.Context, ip netip.Addr) (IPMetadata, error) {
+	select {
+	case <-ctx.Done():
+		return IPMetadata{}, ctx.Err()
+	default:
+	}
+	metadata, ok := enricher[ip]
+	if !ok {
+		return IPMetadata{}, ErrIPMetadataUnavailable
+	}
+	return metadata, nil
 }
 
 // ExampleEvaluateDNSHealth demonstrates explicit collection followed by pure
@@ -148,6 +164,41 @@ func ExampleCorrelateReportEvidence() {
 // ExampleScoreThreatCandidates demonstrates pure, review-only scoring from
 // completed report evidence and correlation.
 func ExampleScoreThreatCandidates() {
+	result, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := result.Candidates()[0]
+	fmt.Printf("candidates=%d score=%d confidence=%d usage=%s promotion=%t\n",
+		result.Summary().Candidates, candidate.Score, candidate.Confidence, candidate.RecommendedUsage, candidate.PromotionEligible)
+	// Output: candidates=1 score=35 confidence=45 usage=review_only promotion=false
+}
+
+// ExampleEnrichThreatCandidates demonstrates explicit, offline source
+// enrichment after candidate scoring. Applications may instead supply their
+// own context-aware third-party service adapter.
+func ExampleEnrichThreatCandidates() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	lookupAt := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
+	expiresAt := lookupAt.Add(24 * time.Hour)
+	enriched, err := EnrichThreatCandidates(context.Background(), candidates, exampleIPEnricher{
+		netip.MustParseAddr("198.51.100.25"): {Assertions: []IPMetadataAssertion{{
+			ASN: 64500, ASNName: "Example Network", NetworkPrefix: "198.51.100.0/24", Organization: "Example Org", CountryCode: "US",
+			Provenance: IPMetadataProvenance{Provider: "offline-example", Source: "embedded-fixture", LookupAt: lookupAt, ExpiresAt: &expiresAt},
+		}}},
+	}, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return lookupAt })})
+	if err != nil {
+		log.Fatal(err)
+	}
+	value := enriched.Candidates()[0]
+	fmt.Printf("status=%s asns=%d confidence=%d promotion=%t\n", value.Status, len(enriched.ASNs()), value.Candidate.Confidence, value.Candidate.PromotionEligible)
+	// Output: status=success asns=1 confidence=45 promotion=false
+}
+
+func exampleThreatCandidates() (ThreatCandidateResult, error) {
 	portfolio, err := NormalizePortfolio(PortfolioConfig{
 		SchemaVersion: PortfolioSchemaVersion,
 		Organization:  OrganizationConfig{ID: "example-org"},
@@ -158,7 +209,7 @@ func ExampleScoreThreatCandidates() {
 		}}}},
 	})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	observedAt := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
 	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver{
@@ -166,40 +217,37 @@ func ExampleScoreThreatCandidates() {
 		"_dmarc.example.com": "v=DMARC1; p=reject; rua=mailto:reports@example.com",
 	}, DNSCollectionOptions{Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	authentication, err := ParseAuthenticationRecords(snapshot)
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	catalog, err := DefaultProviderCatalog()
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: observedAt})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
 	result, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
 	if err != nil {
-		log.Fatal(err)
+		return ThreatCandidateResult{}, err
 	}
-	candidate := result.Candidates()[0]
-	fmt.Printf("candidates=%d score=%d confidence=%d usage=%s promotion=%t\n",
-		result.Summary().Candidates, candidate.Score, candidate.Confidence, candidate.RecommendedUsage, candidate.PromotionEligible)
-	// Output: candidates=1 score=35 confidence=45 usage=review_only promotion=false
+	return result, nil
 }
 
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.

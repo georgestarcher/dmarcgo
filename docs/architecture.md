@@ -74,6 +74,18 @@ Expected-sender-only failures are omitted by default, exclusions remain scoped,
 and promotion is always disabled. The stage performs no source enrichment or
 network access and never asserts malicious ownership or safe-to-block status.
 
+`SourceEnrichmentResult` implements the optional following collection stage. It
+calls only a caller-supplied `IPEnricher` for review-eligible, non-excluded
+candidates, deduplicates source IPs, bounds individual lookup concurrency, and
+returns immutable per-candidate statuses and ASN views. A nil dependency is a
+not-evaluated no-op. The library supplies no provider, credentials, PTR lookup,
+retry loop, remote dataset, or global cache. Enrichers must never contact the
+subject IP; network-backed adapters may contact only an explicitly selected
+third-party service. Successful enrichment replaces the earlier unenriched cap
+with a provider-confidence cap; missing confidence retains the original
+conservative maximum. It never changes the score, exclusions, review
+eligibility, recommended usage, or disabled promotion state.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -175,6 +187,15 @@ Maturity rollups preserve a level distribution and use the weakest available
 domain as a guardrail. Entities explicitly configured with `membership:
 reference` remain fully evaluated but are excluded from organization rollups.
 Report outcomes never alter DNS maturity; correlation is a separate later mode.
+
+`EnrichThreatCandidates` is the source-enrichment entry point. Individual
+providers implement `IPEnricher`; an optional `BatchIPEnricher` can consume the
+complete sorted, deduplicated address set in one caller-owned batch. The stage
+does not retry. Caller cancellation, per-lookup timeouts, collect-all partial
+failure, and fail-fast partial results remain explicit. Provider errors are
+converted to fixed diagnostics without copying their text. Stale and
+conflicting assertions remain visible, and ASN grouping retains every
+underlying source IP and assertion rather than selecting a preferred owner.
 
 ## Persistence and composition
 

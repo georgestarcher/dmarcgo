@@ -313,6 +313,42 @@ func TestCorrelateReportEvidencePriorResultDetectsDriftAndRetiredSelector(t *tes
 	if driftFinding.PreviousDigest != prior.Digest() {
 		t.Fatalf("drift finding previous digest=%q", driftFinding.PreviousDigest)
 	}
+	unknownPassing := correlationTestReport("unknown-prior", "receiver.example", 100, 200,
+		correlationTestRecord("198.51.100.20", "8", "example.test", "pass", "fail", "unknown.example", "rogue", "unknown.example"),
+	)
+	unknownPrior, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{unknownPassing}, time.Unix(200, 0)), DNSReportCorrelationOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknownFailing := correlationTestReport("unknown-current", "receiver.example", 201, 250,
+		correlationTestRecord("198.51.100.20", "8", "example.test", "fail", "fail", "unknown.example", "rogue", "unknown.example"),
+	)
+	unknownCurrent, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{unknownFailing}, time.Unix(250, 0)), DNSReportCorrelationOptions{GeneratedAt: time.Unix(301, 0), Previous: &unknownPrior})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertCorrelationClassification(t, unknownCurrent.Findings(), CorrelationUnknownSourceFailure, "198.51.100.20")
+	if hasCorrelationClassification(unknownCurrent.Findings(), CorrelationExpectedSenderBeganFailing, "198.51.100.20") {
+		t.Fatalf("unattributed stream was reported as expected-sender drift: %+v", unknownCurrent.Findings())
+	}
+	alreadyFailing := correlationTestReport("already-failing", "receiver.example", 100, 200,
+		correlationTestRecord("192.0.2.30", "4", "example.test", "pass", "fail", "example.test", "mk1", "example.test"),
+		correlationTestRecord("192.0.2.30", "4", "example.test", "fail", "fail", "example.test", "mk1", "example.test"),
+	)
+	alreadyFailingPrior, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{alreadyFailing}, time.Unix(200, 0)), DNSReportCorrelationOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stillFailing := correlationTestReport("still-failing", "receiver.example", 201, 250,
+		correlationTestRecord("192.0.2.30", "8", "example.test", "fail", "fail", "example.test", "mk1", "example.test"),
+	)
+	stillFailingCurrent, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{stillFailing}, time.Unix(250, 0)), DNSReportCorrelationOptions{GeneratedAt: time.Unix(301, 0), Previous: &alreadyFailingPrior})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasCorrelationClassification(stillFailingCurrent.Findings(), CorrelationExpectedSenderBeganFailing, "192.0.2.30") {
+		t.Fatalf("previously failing stream was reported as newly failing: %+v", stillFailingCurrent.Findings())
+	}
 	newSourceReport := correlationTestReport("new-source", "receiver.example", 201, 250,
 		correlationTestRecord("192.0.2.11", "8", "example.test", "pass", "fail", "example.test", "mk1", "example.test"),
 	)

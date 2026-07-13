@@ -870,7 +870,7 @@ func classifyCorrelationStream(stream DNSReportCorrelationStream, scope correlat
 			findings = append(findings, finding)
 		}
 	}
-	if previous.ID != "" && previous.Combined.Pass > 0 && stream.Combined.Fail > 0 {
+	if previous.ID != "" && expectedSenderBeganFailing(stream, previous, scope) {
 		finding := newCorrelationStreamFinding("correlation.expected_sender_began_failing", CorrelationExpectedSenderBeganFailing, FindingSeverityHigh, FindingConfidenceHigh, stream, dnsObservedAt)
 		finding.PreviousDigest = previousDigest
 		findings = append(findings, finding)
@@ -938,6 +938,23 @@ func evaluateCandidatePolicies(stream DNSReportCorrelationStream, scope correlat
 		return correlationPolicyFail
 	}
 	return correlationPolicyUnknown
+}
+
+func expectedSenderBeganFailing(current, previous DNSReportCorrelationStream, scope correlationScope) bool {
+	if current.CandidateBasis == SenderCandidateNone || previous.CandidateBasis == SenderCandidateNone ||
+		current.ThresholdEvaluation.State != EvaluationStateEvaluated || previous.ThresholdEvaluation.State != EvaluationStateEvaluated {
+		return false
+	}
+	for _, senderID := range current.ExpectedSenderIDs {
+		if !containsString(previous.ExpectedSenderIDs, senderID) {
+			continue
+		}
+		sender, ok := scope.senders[senderID]
+		if ok && evaluateSenderPolicy(previous, sender.Policy) == correlationPolicyPass && evaluateSenderPolicy(current, sender.Policy) == correlationPolicyFail {
+			return true
+		}
+	}
+	return false
 }
 
 func evaluateSenderPolicy(stream DNSReportCorrelationStream, policy AuthenticationPolicy) correlationPolicyState {

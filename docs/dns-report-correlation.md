@@ -78,7 +78,10 @@ traffic:
 `unknown_source_authentication_failure` means both policy-evaluated SPF and DKIM
 failed for an unattributed stream. It does not mean malicious, compromised,
 botnet, or safe to block. A declared selector or unambiguous SPF identity that
-fails its required policy remains an operational sender finding instead.
+fails its required policy remains an operational sender finding instead. If
+the stream is attributed but the supplied evidence cannot evaluate every
+required policy component, it remains `insufficient_evidence`; it is not an
+unknown stream and does not receive a recommendation to add it to inventory.
 
 Finding summaries and recommendations are fixed library text. Domains, source
 IPs, selectors, owner IDs, provider metadata, DNS values, reporter values, and

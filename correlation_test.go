@@ -89,6 +89,32 @@ func TestCorrelateReportEvidenceHonorsRequireEitherAndRequireDKIM(t *testing.T) 
 	}
 }
 
+func TestCorrelateReportEvidenceKeepsAttributedPolicyUnknownAsInsufficient(t *testing.T) {
+	config := correlationTestConfig(AuthenticationPolicyConfig{RequireDKIM: true, RequireSPF: true, AllowedSelectors: []string{"mk1"}})
+	portfolio, health := correlationTestDNSHealth(t, config, correlationHealthyDNSValues())
+	report := correlationTestReport("r1", "receiver.example", 100, 200,
+		correlationTestRecord("192.0.2.10", "10", "example.test", "pass", "unknown", "example.test", "mk1", "example.test"),
+	)
+	result, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{report}, time.Unix(200, 0)), DNSReportCorrelationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	streams := result.Streams()
+	if len(streams) != 1 || streams[0].CandidateBasis != SenderCandidateSelectorMatch || !slices.Equal(streams[0].ExpectedSenderIDs, []string{"marketing"}) {
+		t.Fatalf("partially evaluated sender was not retained as attributed: %+v", streams)
+	}
+	finding := findCorrelationClassification(t, result.Findings(), CorrelationInsufficientEvidence, "192.0.2.10")
+	if finding.Code != "correlation.authentication_evidence_incomplete" || finding.Evaluation.State != EvaluationStateUnknown ||
+		!slices.Equal(finding.ExpectedSenderIDs, []string{"marketing"}) {
+		t.Fatalf("attributed incomplete-evidence finding=%+v", finding)
+	}
+	if hasCorrelationClassification(result.Findings(), CorrelationUnknownPassingStream, "192.0.2.10") ||
+		hasCorrelationClassification(result.Findings(), CorrelationExpectedSenderHealthy, "192.0.2.10") ||
+		hasCorrelationClassification(result.Findings(), CorrelationExpectedSenderFailure, "192.0.2.10") {
+		t.Fatalf("unknown sender-policy outcome received a substantive classification: %+v", result.Findings())
+	}
+}
+
 func TestCorrelateReportEvidenceMatchesUniqueSPFOnlySenderByMonitoredIdentity(t *testing.T) {
 	config := correlationTestConfig(AuthenticationPolicyConfig{RequireSPF: true})
 	portfolio, health := correlationTestDNSHealth(t, config, correlationHealthyDNSValues())

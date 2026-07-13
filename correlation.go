@@ -888,6 +888,8 @@ func classifyCorrelationStream(stream DNSReportCorrelationStream, scope correlat
 				code = "correlation.probable_onboarding_gap"
 			}
 			findings = append(findings, newCorrelationStreamFinding(code, classification, FindingSeverityHigh, FindingConfidenceHigh, stream, dnsObservedAt))
+		case len(stream.ExpectedSenderIDs) > 0 && policyState == correlationPolicyUnknown:
+			findings = append(findings, newCorrelationStreamFinding("correlation.authentication_evidence_incomplete", CorrelationInsufficientEvidence, FindingSeverityInfo, FindingConfidenceHigh, stream, dnsObservedAt))
 		case stream.CandidateBasis != SenderCandidateNone && policyState == correlationPolicyFail:
 			findings = append(findings, newCorrelationStreamFinding("correlation.probable_onboarding_gap", CorrelationProbableOnboardingGap, FindingSeverityHigh, FindingConfidenceMedium, stream, dnsObservedAt))
 		case stream.CandidateBasis != SenderCandidateNone && policyState == correlationPolicyPass:

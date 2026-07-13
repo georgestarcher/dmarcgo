@@ -838,10 +838,10 @@ func (evaluator *dnsHealthEvaluator) evaluateDomainConfiguration(entity Entity, 
 			entity.ID, domain.Name, "", DNSRecordSPF, nil, EvaluationStateEvaluated, -evaluator.profile.MissingMonitoredMechanism,
 			"The domain has no configured SPF record name to evaluate.", "Declare the complete SPF owner name or document why the domain is outside SPF monitoring.", spfStandardReference))
 	}
-	if len(domain.Records.DMARC) == 0 {
+	if len(orderedDMARCRecordNames(domain.Name, domain.Records.DMARC)) == 0 {
 		findings = append(findings, evaluator.newFinding("dns.health.dmarc_not_monitored", FindingSeverityHigh, FindingConfidenceHigh, DNSHealthScopeDomain,
 			entity.ID, domain.Name, "", DNSRecordDMARC, nil, EvaluationStateEvaluated, -evaluator.profile.MissingMonitoredMechanism,
-			"The domain has no configured DMARC record name to evaluate.", "Declare the complete DMARC policy owner name.", dmarcStandardReference))
+			"The domain has no applicable configured DMARC record name to evaluate.", "Declare the complete DMARC policy owner name for the domain or one of its DNS ancestors.", dmarcStandardReference))
 	}
 	requireDKIM, requireSPF, requireEither, selectors := evaluator.domainSenderRequirements(domain)
 	if requireDKIM && len(domain.Records.DKIM) == 0 {

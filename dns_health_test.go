@@ -425,6 +425,34 @@ func TestEvaluateDNSHealthIgnoresNonAncestorDMARCRecord(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthRequiresApplicableDMARCRecordForMonitoring(t *testing.T) {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "unmonitored-dmarc"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "a.example.test", Records: MonitoredRecordsConfig{DMARC: []string{"_dmarc.other.test"}},
+		}}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, map[string]string{
+		"_dmarc.other.test": "v=DMARC1; p=reject; rua=mailto:reports@other.test",
+	})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	domain := findDNSDomainHealth(t, result.Domains(), "a.example.test", "primary")
+	if domain.Mechanisms.DMARC.Available {
+		t.Fatalf("unrelated DMARC owner made mechanism available: %+v", domain.Mechanisms.DMARC)
+	}
+	finding := findDNSHealthFindingForDomain(t, result.Findings(), "dns.health.dmarc_not_monitored", "a.example.test")
+	if finding.ScoreImpact >= 0 {
+		t.Fatalf("DMARC monitoring finding=%+v", finding)
+	}
+}
+
 func TestEvaluateDNSHealthDMARCDiscoveryStopsAtUnusableExactRecord(t *testing.T) {
 	tests := []struct {
 		name           string

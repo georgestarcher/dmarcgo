@@ -181,6 +181,44 @@ func TestAnalyzeReportEvidenceIsInputOrderDeterministic(t *testing.T) {
 	}
 }
 
+func TestAnalyzeReportEvidenceSortsInvalidDKIMDomainsDeterministically(t *testing.T) {
+	report := cloneAggregateReportForEvidence(reportEvidenceTestReports()[0])
+	report.Record = report.Record[:1]
+	report.Record[0].AuthResults.DKIM = []DKIMAuthResult{
+		{Domain: "invalid domain z", Selector: "same", Result: "fail"},
+		{Domain: "invalid domain a", Selector: "same", Result: "fail"},
+	}
+	reversed := cloneAggregateReportForEvidence(report)
+	slices.Reverse(reversed.Record[0].AuthResults.DKIM)
+
+	forward, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	backward, err := AnalyzeReportEvidence([]*AggregateReport{reversed}, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if forward.Digest() != backward.Digest() {
+		t.Fatalf("invalid DKIM domain order changed digest: %s != %s", forward.Digest(), backward.Digest())
+	}
+	forwardJSON, err := json.Marshal(forward)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backwardJSON, err := json.Marshal(backward)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(forwardJSON) != string(backwardJSON) {
+		t.Fatalf("invalid DKIM domain order changed serialization\n%s\n%s", forwardJSON, backwardJSON)
+	}
+	dkim := forward.Observations()[0].DKIM
+	if len(dkim) != 2 || dkim[0].Domain.RawValue != "invalid domain a" || dkim[1].Domain.RawValue != "invalid domain z" {
+		t.Fatalf("invalid DKIM domains not canonically ordered: %+v", dkim)
+	}
+}
+
 func TestAnalyzeReportEvidenceDeduplicatesAndRejectsIdentityConflicts(t *testing.T) {
 	report := reportEvidenceTestReports()[0]
 	duplicate := cloneAggregateReportForEvidence(report)

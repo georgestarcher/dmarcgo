@@ -467,11 +467,11 @@ func normalizedReportEvidenceObservation(record Record, reporter, targetDomain R
 		})
 	}
 	sort.Slice(dkim, func(i, j int) bool {
-		if dkim[i].Domain.Value != dkim[j].Domain.Value {
-			return dkim[i].Domain.Value < dkim[j].Domain.Value
+		if order := compareReportEvidenceValue(dkim[i].Domain, dkim[j].Domain); order != 0 {
+			return order < 0
 		}
-		if dkim[i].Selector.Value != dkim[j].Selector.Value {
-			return dkim[i].Selector.Value < dkim[j].Selector.Value
+		if order := compareReportEvidenceValue(dkim[i].Selector, dkim[j].Selector); order != 0 {
+			return order < 0
 		}
 		return dkim[i].Result < dkim[j].Result
 	})
@@ -507,6 +507,19 @@ func normalizedReportEvidenceObservation(record Record, reporter, targetDomain R
 		Disposition:   normalizeEvidenceToken(record.Row.PolicyEvaluated.Disposition), Count: normalizedEvidenceCount(record.Row.Count),
 		Sensitivity: SensitivityRestricted,
 	}
+}
+
+func compareReportEvidenceValue(left, right ReportEvidenceValue) int {
+	if order := strings.Compare(left.Value, right.Value); order != 0 {
+		return order
+	}
+	if order := strings.Compare(left.RawValue, right.RawValue); order != 0 {
+		return order
+	}
+	if order := strings.Compare(string(left.Evaluation.State), string(right.Evaluation.State)); order != 0 {
+		return order
+	}
+	return strings.Compare(left.Evaluation.Reason, right.Evaluation.Reason)
 }
 
 func normalizedReportIdentity(report AggregateReport) ReportIdentity {

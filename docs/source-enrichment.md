@@ -69,7 +69,7 @@ may preserve:
 - ASN number and name;
 - a canonical network prefix that contains the subject IP;
 - organization;
-- optional two-letter country code as coarse context only;
+- optional ISO 3166-1 alpha-2 country code as coarse context only;
 - provider and source/dataset identifiers;
 - lookup and expiration times;
 - optional numeric confidence; and
@@ -77,7 +77,8 @@ may preserve:
 
 Exact geolocation is intentionally unsupported. A country code is coarse,
 provider-supplied context and must not be interpreted as the location of a
-person, device, or operator.
+person, device, or operator. Non-standard and user-assigned codes are rejected
+rather than silently treated as countries.
 
 Provider names, source names, organization names, reference IDs, and other
 metadata strings are untrusted data. The library normalizes and retains them in

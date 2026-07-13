@@ -96,8 +96,9 @@ type IPMetadataProvenance struct {
 }
 
 // IPMetadataAssertion is one normalized provider assertion about an address.
-// CountryCode is intentionally coarse; exact geolocation is outside this
-// library. Freshness and ID are assigned by EnrichThreatCandidates.
+// CountryCode is an ISO 3166-1 alpha-2 code and intentionally coarse; exact
+// geolocation is outside this library. Freshness and ID are assigned by
+// EnrichThreatCandidates.
 type IPMetadataAssertion struct {
 	ID            AnalysisID                `json:"id"`
 	ASN           uint32                    `json:"asn,omitempty"`
@@ -729,10 +730,7 @@ func validSourceEnrichmentText(value string) bool {
 }
 
 func validCountryCode(value string) bool {
-	if len(value) != 2 {
-		return false
-	}
-	return value[0] >= 'A' && value[0] <= 'Z' && value[1] >= 'A' && value[1] <= 'Z'
+	return validISO3166Alpha2Code(value)
 }
 
 func sourceEnrichmentAssertionID(ip netip.Addr, assertion IPMetadataAssertion) AnalysisID {

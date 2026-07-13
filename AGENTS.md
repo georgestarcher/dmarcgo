@@ -40,6 +40,7 @@ Version 2 is the supported API line. Import
 - Pure DNS/report and expected-sender correlation: `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)`
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
+- Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -78,6 +79,7 @@ Version 2 is the supported API line. Import
 18. Correlate declared senders, completed DNS health, and normalized report evidence with `CorrelateReportEvidence`; optionally supply a prior result for drift comparison.
 19. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
 20. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
+21. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
 
 ## Normalized report evidence
 
@@ -127,6 +129,17 @@ Version 2 is the supported API line. Import
 - Successful non-conflicting enrichment replaces the prior unenriched confidence cap with a provider-confidence cap. Missing provider confidence keeps the original conservative maximum; enrichment never changes the score, review eligibility, exclusions, recommendation, or `PromotionEligible: false` policy.
 - Stale, unavailable, conflicting, failed, timed-out, canceled, and not-evaluated outcomes remain explicit. ASN rollups retain every source IP, candidate ID, assertion ID, and contradictory ASN assertion.
 - Use only offline deterministic fixtures in committed tests and examples. See `docs/source-enrichment.md` for the complete side-effect, failure, freshness, and aggregation contract.
+
+## Versioned jurisdiction context
+
+- `EvaluateJurisdictionContext` consumes only a completed `SourceEnrichmentResult`, an explicit normalized `JurisdictionRiskPolicy`, and caller options. It performs no DNS, HTTP, PTR, WHOIS, GeoIP, environment, credential, filesystem, or subject-IP access.
+- `BuiltinJurisdictionRiskPolicy` is a release-versioned U.S. export-control-inspired snapshot derived from Country Groups D and E. It is not a cyber-threat list, sanctions screen, legal determination, actor attribution, nationality claim, or malicious verdict.
+- Preserve every country assertion and its freshness. Conflicting providers remain conflicting; never select a preferred geography. Unknown, stale, conflicting, not-eligible, and not-evaluated results receive no priority adjustment.
+- The review-priority adjustment is disabled by default, separate from the threat score, and capped at 10. It never changes score, confidence, severity, exclusions, review eligibility, promotion, or recommended usage and never authorizes automatic action.
+- Policy names, descriptions, source titles/URIs, tiers, category codes, and reason codes are untrusted structured data. Never interpolate them into explanations, headlines, recommendations, actions, or instructions.
+- Built-in policy updates require an explicit library release. Custom policy updates are caller-owned. Evaluation never downloads, refreshes, or discovers a policy.
+- A country code describes only coarse infrastructure geography asserted by the selected enrichment data. Cloud hosting, shared infrastructure, compromise, proxies, VPNs, anycast, and provider disagreement limit the signal.
+- Use `docs/jurisdiction-context.md` for authoritative sources, exact built-in membership, policy versioning and expiration, state semantics, and safe reporting guidance.
 
 ## Authentication-record parsing
 

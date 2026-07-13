@@ -129,6 +129,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want expected-sender and DNS/report variance | `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)` | Correlates already completed values without DNS, parsing, enrichment, storage, or malicious attribution. |
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
+| You want versioned jurisdiction review context | `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)` | Purely evaluates fresh, unambiguous coarse country assertions against an explicit immutable policy; the optional separate priority adjustment is default-off and never changes threat scoring or authorizes action. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
@@ -801,6 +802,32 @@ authorize blocking or assert malicious ownership. The scoring stage performs no
 enrichment or network access. See
 [`docs/threat-candidates.md`](docs/threat-candidates.md) for the complete score,
 confidence, exclusion, and safety contract.
+
+## Versioned jurisdiction context
+
+`EvaluateJurisdictionContext` is an explicit pure stage after source
+enrichment. It retains every country assertion, freshness state, conflict,
+candidate reference, policy-entry reference, and policy provenance value. It
+performs no lookup or other I/O.
+
+`BuiltinJurisdictionRiskPolicy` returns a reviewed snapshot derived from all
+Country Groups D and E in Supplement No. 1 to 15 CFR Part 740 as of July 8,
+2026. Those are export-control categories, not cyber-threat or actor
+classifications. A match describes only coarse infrastructure geography and
+does not establish identity, nationality, intent, government affiliation,
+compromise, or a legal conclusion.
+
+The optional review-priority adjustment is disabled by default and capped at
+10. Only fresh, unambiguous matches can receive it. It remains separate from
+the candidate score, confidence, severity, exclusions, review eligibility,
+promotion state, and recommended usage, and it never authorizes automatic
+action. Callers can normalize their own immutable policy when the built-in
+source context is not appropriate.
+
+See [`docs/jurisdiction-context.md`](docs/jurisdiction-context.md) for the exact
+built-in membership and tier mapping, authoritative BIS/eCFR sources,
+expiration and replacement rules, state model, attribution limitations, and
+hostile-input boundary.
 
 ## Attachment filename metadata
 

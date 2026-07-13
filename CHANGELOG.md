@@ -68,6 +68,14 @@ and this project uses semantic versioning for public API changes.
 - A default-off source-enrichment security boundary: no bundled provider,
   credentials, retries, PTR lookup, direct source-IP traffic, or global cache;
   committed examples and tests use only deterministic offline fixtures.
+- Pure, versioned jurisdiction-context evaluation over completed enrichment,
+  with immutable caller policies, all seven evidence states, stable findings,
+  policy and assertion provenance, deterministic digests, and no implicit I/O.
+- A documented U.S. export-control-inspired policy snapshot derived from
+  current BIS/eCFR Country Groups D and E, with explicit source categories,
+  review expiry, attribution limitations, and a default-off separate priority
+  adjustment capped at 10 that never changes threat scoring or authorizes
+  action.
 
 ### Changed
 

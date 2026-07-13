@@ -60,6 +60,15 @@
 // lookup, and never contacts an observed source IP. Enrichment never enables
 // promotion or automatic action.
 //
+// EvaluateJurisdictionContext is the following pure, offline context stage. It
+// compares completed coarse country assertions with an explicit immutable
+// JurisdictionRiskPolicy, preserves conflicts and provenance, and emits only
+// review context. The optional separate priority adjustment is disabled by
+// default and never changes threat score, confidence, severity, exclusions,
+// eligibility, promotion, or recommended usage. Country context is not actor
+// attribution, malicious intent, nationality, or legal advice. Policy text
+// remains untrusted structured data and never enters generated instructions.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

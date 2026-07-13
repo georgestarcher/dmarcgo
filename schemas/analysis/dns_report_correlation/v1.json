@@ -1,0 +1,1069 @@
+{
+  "$defs": {
+    "DNSReportCorrelationClassificationCount": {
+      "additionalProperties": false,
+      "properties": {
+        "classification": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "classification",
+        "findings"
+      ],
+      "type": "object"
+    },
+    "DNSReportCorrelationFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "classification": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "declared_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dns_finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dns_observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "expected_sender_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "owner": {
+          "type": "string"
+        },
+        "previous_correlation_digest": {
+          "type": "string"
+        },
+        "provider_context_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "reporter_diversity": {
+          "type": "integer"
+        },
+        "reports": {
+          "type": "integer"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "shared_provider_context": {
+          "type": "boolean"
+        },
+        "source_ips": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "spf_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "standard": {
+          "type": "string"
+        },
+        "stream_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "temporal_relationship": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "author_domains",
+        "classification",
+        "code",
+        "confidence",
+        "declared_provider_ids",
+        "dkim_domains",
+        "dkim_selectors",
+        "dns_finding_ids",
+        "dns_observed_at",
+        "evaluation",
+        "expected_sender_ids",
+        "first_seen",
+        "id",
+        "last_seen",
+        "messages",
+        "observation_ids",
+        "provider_context_ids",
+        "reporter_diversity",
+        "reports",
+        "sensitivity",
+        "severity",
+        "shared_provider_context",
+        "source_ips",
+        "spf_domains",
+        "standard",
+        "stream_ids",
+        "summary",
+        "temporal_relationship"
+      ],
+      "type": "object"
+    },
+    "DNSReportCorrelationInventory": {
+      "additionalProperties": false,
+      "properties": {
+        "declared_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "expected_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "expected_sender_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "include_subdomains": {
+          "type": "boolean"
+        },
+        "monitored_dkim_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "monitored_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "monitored_spf_names": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "owner": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "declared_provider_ids",
+        "dkim_domains",
+        "domain",
+        "entity_id",
+        "expected_selectors",
+        "expected_sender_ids",
+        "id",
+        "include_subdomains",
+        "monitored_dkim_names",
+        "monitored_selectors",
+        "monitored_spf_names",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "DNSReportCorrelationStream": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domain": {
+          "type": "string"
+        },
+        "candidate_basis": {
+          "type": "string"
+        },
+        "combined": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        },
+        "declared_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        },
+        "dkim_domain": {
+          "type": "string"
+        },
+        "dkim_selector": {
+          "type": "string"
+        },
+        "dns_finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "expected_sender_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "id": {
+          "type": "string"
+        },
+        "inherited_scope": {
+          "type": "boolean"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "owner": {
+          "type": "string"
+        },
+        "provider_context_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "report_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reporter_diversity": {
+          "type": "integer"
+        },
+        "reports": {
+          "type": "integer"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "shared_provider_context": {
+          "type": "boolean"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "spf": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        },
+        "spf_domain": {
+          "type": "string"
+        },
+        "target_domain": {
+          "type": "string"
+        },
+        "temporal_relationship": {
+          "type": "string"
+        },
+        "threshold_evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        }
+      },
+      "required": [
+        "candidate_basis",
+        "combined",
+        "declared_provider_ids",
+        "dkim",
+        "dns_finding_ids",
+        "expected_sender_ids",
+        "first_seen",
+        "id",
+        "inherited_scope",
+        "last_seen",
+        "messages",
+        "observation_ids",
+        "provider_context_ids",
+        "report_evidence_ids",
+        "reporter_diversity",
+        "reports",
+        "sensitivity",
+        "shared_provider_context",
+        "spf",
+        "temporal_relationship",
+        "threshold_evaluation"
+      ],
+      "type": "object"
+    },
+    "DNSReportCorrelationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "classifications": {
+          "items": {
+            "$ref": "#/$defs/DNSReportCorrelationClassificationCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "expected_sender_streams": {
+          "type": "integer"
+        },
+        "findings": {
+          "type": "integer"
+        },
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "reporter_diversity": {
+          "type": "integer"
+        },
+        "reports": {
+          "type": "integer"
+        },
+        "streams": {
+          "type": "integer"
+        },
+        "thresholded_streams": {
+          "type": "integer"
+        },
+        "unknown_source_streams": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "classifications",
+        "expected_sender_streams",
+        "findings",
+        "first_seen",
+        "last_seen",
+        "messages",
+        "reporter_diversity",
+        "reports",
+        "streams",
+        "thresholded_streams",
+        "unknown_source_streams"
+      ],
+      "type": "object"
+    },
+    "DNSReportCorrelationThresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "max_report_age": {
+          "type": "integer"
+        },
+        "min_duration": {
+          "type": "integer"
+        },
+        "min_messages": {
+          "type": "integer"
+        },
+        "min_reporters": {
+          "type": "integer"
+        },
+        "min_reports": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_report_age",
+        "min_duration",
+        "min_messages",
+        "min_reporters",
+        "min_reports"
+      ],
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "ProviderCatalogProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "added_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "base_digest": {
+          "type": "string"
+        },
+        "catalog_version": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "overlay_digest": {
+          "type": "string"
+        },
+        "overlay_version": {
+          "type": "string"
+        },
+        "replaced_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "added_provider_ids",
+        "catalog_version",
+        "digest",
+        "replaced_provider_ids",
+        "source"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceOutcomeTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "fail": {
+          "type": "integer"
+        },
+        "pass": {
+          "type": "integer"
+        },
+        "unknown": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fail",
+        "pass",
+        "unknown"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceTimestamp": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "correlationOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "authentication_digest": {
+          "type": "string"
+        },
+        "dns_health_digest": {
+          "type": "string"
+        },
+        "dns_observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dns_snapshot_digest": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "previous_digest": {
+          "type": "string"
+        },
+        "provider_catalog_digest": {
+          "type": "string"
+        },
+        "provider_catalog_provenance": {
+          "$ref": "#/$defs/ProviderCatalogProvenance"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/DNSReportCorrelationSummary"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/DNSReportCorrelationThresholds"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authentication_digest",
+        "dns_health_digest",
+        "dns_observed_at",
+        "dns_snapshot_digest",
+        "metadata",
+        "organization_id",
+        "portfolio_digest",
+        "provider_catalog_digest",
+        "provider_catalog_provenance",
+        "report_evidence_digest",
+        "summary",
+        "thresholds",
+        "version"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domain": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_report_correlation"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "target_domain": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "entity_id",
+        "domain",
+        "target_domain",
+        "author_domain",
+        "source_ip",
+        "messages",
+        "classification",
+        "severity",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/correlationOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSReportCorrelationInventory"
+            },
+            "record_type": {
+              "const": "inventory"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSReportCorrelationStream"
+            },
+            "record_type": {
+              "const": "stream"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSReportCorrelationFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_report_correlation"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authentication_digest": {
+      "type": "string"
+    },
+    "dns_health_digest": {
+      "type": "string"
+    },
+    "dns_observed_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "dns_snapshot_digest": {
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/DNSReportCorrelationFinding"
+      },
+      "type": "array"
+    },
+    "inventory": {
+      "items": {
+        "$ref": "#/$defs/DNSReportCorrelationInventory"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "dns_report_correlation"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "dns_report_correlation"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "previous_digest": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "provider_catalog_digest": {
+      "type": "string"
+    },
+    "provider_catalog_provenance": {
+      "$ref": "#/$defs/ProviderCatalogProvenance"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "report_evidence_digest": {
+      "type": "string"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "streams": {
+      "items": {
+        "$ref": "#/$defs/DNSReportCorrelationStream"
+      },
+      "type": "array"
+    },
+    "summary": {
+      "$ref": "#/$defs/DNSReportCorrelationSummary"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/DNSReportCorrelationThresholds"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "authentication_digest",
+    "dns_health_digest",
+    "dns_observed_at",
+    "dns_snapshot_digest",
+    "findings",
+    "inventory",
+    "metadata",
+    "mode",
+    "organization_id",
+    "portfolio_digest",
+    "profile",
+    "provider_catalog_digest",
+    "provider_catalog_provenance",
+    "redaction",
+    "report_evidence_digest",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "streams",
+    "summary",
+    "thresholds",
+    "version"
+  ],
+  "title": "dmarcgo native dns report correlation output v1",
+  "type": "object"
+}

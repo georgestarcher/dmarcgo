@@ -1,0 +1,848 @@
+{
+  "$defs": {
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceAggregate": {
+      "additionalProperties": false,
+      "properties": {
+        "combinations": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceOutcomeCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "combined": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        },
+        "counted_records": {
+          "type": "integer"
+        },
+        "dispositions": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceDispositionCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        },
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "invalid_records": {
+          "type": "integer"
+        },
+        "key": {
+          "$ref": "#/$defs/ReportEvidenceGroupKey"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "records": {
+          "type": "integer"
+        },
+        "reporter_diversity": {
+          "type": "integer"
+        },
+        "reports": {
+          "type": "integer"
+        },
+        "spf": {
+          "$ref": "#/$defs/ReportEvidenceOutcomeTotals"
+        }
+      },
+      "required": [
+        "combinations",
+        "combined",
+        "counted_records",
+        "dispositions",
+        "dkim",
+        "first_seen",
+        "invalid_records",
+        "key",
+        "last_seen",
+        "messages",
+        "records",
+        "reporter_diversity",
+        "reports",
+        "spf"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceCount": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "raw_value": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available",
+        "evaluation",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceDKIM": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "result": {
+          "type": "string"
+        },
+        "selector": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        }
+      },
+      "required": [
+        "domain",
+        "selector"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "duplicate_occurrences": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "report_evidence_id": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "standard": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity",
+        "standard"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceDispositionCount": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "disposition",
+        "messages"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceGroupKey": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domain": {
+          "type": "string"
+        },
+        "combined_outcome": {
+          "type": "string"
+        },
+        "disposition": {
+          "type": "string"
+        },
+        "dkim_domain": {
+          "type": "string"
+        },
+        "dkim_outcome": {
+          "type": "string"
+        },
+        "dkim_selector": {
+          "type": "string"
+        },
+        "reporter": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "spf_domain": {
+          "type": "string"
+        },
+        "spf_outcome": {
+          "type": "string"
+        },
+        "target_domain": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "ReportEvidenceObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domain": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "count": {
+          "$ref": "#/$defs/ReportEvidenceCount"
+        },
+        "disposition": {
+          "type": "string"
+        },
+        "dkim": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceDKIM"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim_evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "id": {
+          "type": "string"
+        },
+        "period": {
+          "$ref": "#/$defs/ReportEvidencePeriod"
+        },
+        "policy_outcome": {
+          "$ref": "#/$defs/ReportEvidencePolicyOutcome"
+        },
+        "policy_override_types": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "record_index": {
+          "type": "integer"
+        },
+        "report_evidence_id": {
+          "type": "string"
+        },
+        "reporter": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "spf": {
+          "$ref": "#/$defs/ReportEvidenceSPF"
+        },
+        "target_domain": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        }
+      },
+      "required": [
+        "author_domain",
+        "count",
+        "dkim",
+        "dkim_evaluation",
+        "id",
+        "period",
+        "policy_outcome",
+        "policy_override_types",
+        "record_index",
+        "report_evidence_id",
+        "reporter",
+        "sensitivity",
+        "source_ip",
+        "spf",
+        "target_domain"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceOutcomeCount": {
+      "additionalProperties": false,
+      "properties": {
+        "dkim": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "spf": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dkim",
+        "messages",
+        "spf"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceOutcomeTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "fail": {
+          "type": "integer"
+        },
+        "pass": {
+          "type": "integer"
+        },
+        "unknown": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fail",
+        "pass",
+        "unknown"
+      ],
+      "type": "object"
+    },
+    "ReportEvidencePeriod": {
+      "additionalProperties": false,
+      "properties": {
+        "begin": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "end": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        }
+      },
+      "required": [
+        "begin",
+        "end",
+        "evaluation"
+      ],
+      "type": "object"
+    },
+    "ReportEvidencePolicyOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "combined": {
+          "type": "string"
+        },
+        "dkim": {
+          "type": "string"
+        },
+        "spf": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "combined",
+        "dkim",
+        "spf"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceReport": {
+      "additionalProperties": false,
+      "properties": {
+        "content_digest": {
+          "type": "string"
+        },
+        "counted_records": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "identity": {
+          "$ref": "#/$defs/ReportIdentity"
+        },
+        "invalid_records": {
+          "type": "integer"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "period": {
+          "$ref": "#/$defs/ReportEvidencePeriod"
+        },
+        "records": {
+          "type": "integer"
+        },
+        "reporter": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "target_domain": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        }
+      },
+      "required": [
+        "content_digest",
+        "counted_records",
+        "id",
+        "identity",
+        "invalid_records",
+        "messages",
+        "observation_ids",
+        "period",
+        "records",
+        "reporter",
+        "sensitivity",
+        "target_domain"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceSPF": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "result": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ReportEvidenceValue"
+        }
+      },
+      "required": [
+        "domain",
+        "evaluation",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceTimestamp": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceValue": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "raw_value": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "evaluation"
+      ],
+      "type": "object"
+    },
+    "ReportIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "begin": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "policy_domain": {
+          "type": "string"
+        },
+        "report_id": {
+          "type": "string"
+        },
+        "reporting_org": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "begin",
+        "end",
+        "policy_domain",
+        "report_id"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "author_domain": {
+          "type": "string"
+        },
+        "combined_outcome": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "disposition": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "report_evidence"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "reporter": {
+          "type": "string"
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "target_domain": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "reporter",
+        "target_domain",
+        "source_ip",
+        "author_domain",
+        "disposition",
+        "messages",
+        "combined_outcome",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/reportEvidenceOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/ReportEvidenceReport"
+            },
+            "record_type": {
+              "const": "report"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/ReportEvidenceObservation"
+            },
+            "record_type": {
+              "const": "observation"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/ReportEvidenceDiagnostic"
+            },
+            "record_type": {
+              "const": "diagnostic"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "report_evidence"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    },
+    "reportEvidenceOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_schema_version": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "summary": {
+          "$ref": "#/$defs/ReportEvidenceAggregate"
+        }
+      },
+      "required": [
+        "evidence_schema_version",
+        "metadata",
+        "summary"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/ReportEvidenceDiagnostic"
+      },
+      "type": "array"
+    },
+    "evidence_schema_version": {
+      "type": "string"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "report_evidence"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "report_evidence"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/ReportEvidenceObservation"
+      },
+      "type": "array"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "reports": {
+      "items": {
+        "$ref": "#/$defs/ReportEvidenceReport"
+      },
+      "type": "array"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "summary": {
+      "$ref": "#/$defs/ReportEvidenceAggregate"
+    }
+  },
+  "required": [
+    "diagnostics",
+    "evidence_schema_version",
+    "metadata",
+    "mode",
+    "observations",
+    "profile",
+    "redaction",
+    "reports",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "summary"
+  ],
+  "title": "dmarcgo native report evidence output v1",
+  "type": "object"
+}

@@ -76,6 +76,11 @@ and this project uses semantic versioning for public API changes.
   review expiry, attribution limitations, and a default-off separate priority
   adjustment capped at 10 that never changes threat scoring or authorizes
   action.
+- Independent versioned native JSON, JSONL, and CSV output for DNS health,
+  report evidence, DNS/report correlation, threat candidates, source
+  enrichment, and jurisdiction context, with embedded mode schemas,
+  deterministic streamed records, stable record IDs, spreadsheet-injection
+  protection, and public/operational/restricted privacy controls.
 
 ### Changed
 

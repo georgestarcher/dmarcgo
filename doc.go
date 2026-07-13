@@ -26,6 +26,15 @@
 // analysis, or network access. Use OutputSchemaForVersion() and
 // SupportedOutputModes() for contract discovery.
 //
+// WriteDNSHealthOutput(), WriteReportEvidenceOutput(),
+// WriteDNSReportCorrelationOutput(), WriteThreatCandidatesOutput(),
+// WriteSourceEnrichmentOutput(), and WriteJurisdictionContextOutput() provide
+// independent native JSON, JSONL, and CSV contracts for completed analysis
+// results. They preserve result timestamps, stream JSONL/CSV records, apply an
+// explicit privacy profile without mutation, and perform no upstream work.
+// Use AnalysisOutputDescriptorForMode() and AnalysisOutputSchema() for native
+// contract discovery.
+//
 // AnalysisMode, ResultMetadata, EvaluationState, and Result define the shared
 // conventions used by independently callable analysis stages. Networked stages
 // accept explicit dependencies and Clock values; pure analysis and output

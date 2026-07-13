@@ -1,0 +1,1219 @@
+{
+  "$defs": {
+    "DNSDomainHealth": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/DNSHealthMaturity"
+        },
+        "mechanisms": {
+          "$ref": "#/$defs/DNSHealthMechanismScores"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "record_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "score": {
+          "$ref": "#/$defs/DNSHealthScore"
+        }
+      },
+      "required": [
+        "domain",
+        "entity_id",
+        "finding_ids",
+        "id",
+        "maturity",
+        "mechanisms",
+        "record_ids",
+        "score"
+      ],
+      "type": "object"
+    },
+    "DNSEntityHealth": {
+      "additionalProperties": false,
+      "properties": {
+        "domain_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "maturity": {
+          "$ref": "#/$defs/DNSHealthMaturity"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "portfolio_evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "portfolio_included": {
+          "type": "boolean"
+        },
+        "score": {
+          "$ref": "#/$defs/DNSHealthScore"
+        }
+      },
+      "required": [
+        "domain_ids",
+        "entity_id",
+        "finding_ids",
+        "id",
+        "maturity",
+        "portfolio_evaluation",
+        "portfolio_included",
+        "score"
+      ],
+      "type": "object"
+    },
+    "DNSHealthCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "evaluated_records": {
+          "type": "integer"
+        },
+        "percent": {
+          "type": "integer"
+        },
+        "planned_records": {
+          "type": "integer"
+        },
+        "unknown_records": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evaluated_records",
+        "percent",
+        "planned_records",
+        "unknown_records"
+      ],
+      "type": "object"
+    },
+    "DNSHealthFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "score_impact": {
+          "type": "integer"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "standard": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "confidence",
+        "evaluation",
+        "evidence_ids",
+        "id",
+        "scope",
+        "score_impact",
+        "sensitivity",
+        "severity",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "DNSHealthMaturity": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "coverage": {
+          "$ref": "#/$defs/DNSHealthCoverage"
+        },
+        "distribution": {
+          "$ref": "#/$defs/DNSHealthMaturityDistribution"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "maximum_observable_level": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "signals": {
+          "items": {
+            "$ref": "#/$defs/DNSHealthMaturitySignal"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "available",
+        "coverage",
+        "distribution",
+        "evaluation",
+        "level",
+        "maximum_observable_level",
+        "name",
+        "signals",
+        "version"
+      ],
+      "type": "object"
+    },
+    "DNSHealthMaturityDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "adaptive": {
+          "type": "integer"
+        },
+        "basic": {
+          "type": "integer"
+        },
+        "enforced": {
+          "type": "integer"
+        },
+        "managed": {
+          "type": "integer"
+        },
+        "monitored": {
+          "type": "integer"
+        },
+        "unknown": {
+          "type": "integer"
+        },
+        "unmanaged": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "adaptive",
+        "basic",
+        "enforced",
+        "managed",
+        "monitored",
+        "unknown",
+        "unmanaged"
+      ],
+      "type": "object"
+    },
+    "DNSHealthMaturitySignal": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "satisfied": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "evaluation",
+        "explanation",
+        "satisfied"
+      ],
+      "type": "object"
+    },
+    "DNSHealthMechanismScores": {
+      "additionalProperties": false,
+      "properties": {
+        "dkim": {
+          "$ref": "#/$defs/DNSHealthScore"
+        },
+        "dmarc": {
+          "$ref": "#/$defs/DNSHealthScore"
+        },
+        "spf": {
+          "$ref": "#/$defs/DNSHealthScore"
+        }
+      },
+      "required": [
+        "dkim",
+        "dmarc",
+        "spf"
+      ],
+      "type": "object"
+    },
+    "DNSHealthProviderContext": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "expected_sender_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "inventory_state": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ProviderMatch"
+        },
+        "relationship_type": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "spf_record_name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain",
+        "entity_id",
+        "evaluation",
+        "evidence_id",
+        "expected_sender_ids",
+        "id",
+        "inventory_state",
+        "provider",
+        "relationship_type",
+        "sensitivity",
+        "spf_record_name"
+      ],
+      "type": "object"
+    },
+    "DNSHealthScore": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "contributions": {
+          "items": {
+            "$ref": "#/$defs/DNSHealthScoreContribution"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "grade": {
+          "type": "string"
+        },
+        "maximum": {
+          "type": "integer"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available",
+        "contributions",
+        "evaluation",
+        "grade",
+        "maximum",
+        "value"
+      ],
+      "type": "object"
+    },
+    "DNSHealthScoreContribution": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "points": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "explanation",
+        "finding_ids",
+        "points"
+      ],
+      "type": "object"
+    },
+    "DNSHealthScoringProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "child_policy_weaker": {
+          "type": "integer"
+        },
+        "conflicting_record": {
+          "type": "integer"
+        },
+        "dkim_revoked": {
+          "type": "integer"
+        },
+        "dkim_testing": {
+          "type": "integer"
+        },
+        "dkim_weak_key": {
+          "type": "integer"
+        },
+        "dkim_weight": {
+          "type": "integer"
+        },
+        "dmarc_legacy_tag": {
+          "type": "integer"
+        },
+        "dmarc_monitoring_only": {
+          "type": "integer"
+        },
+        "dmarc_no_aggregate_reporting": {
+          "type": "integer"
+        },
+        "dmarc_quarantine": {
+          "type": "integer"
+        },
+        "dmarc_relaxed_alignment": {
+          "type": "integer"
+        },
+        "dmarc_testing": {
+          "type": "integer"
+        },
+        "dmarc_weight": {
+          "type": "integer"
+        },
+        "invalid_record": {
+          "type": "integer"
+        },
+        "malformed_record": {
+          "type": "integer"
+        },
+        "maximum_score": {
+          "type": "integer"
+        },
+        "missing_dkim_record": {
+          "type": "integer"
+        },
+        "missing_dmarc_record": {
+          "type": "integer"
+        },
+        "missing_monitored_mechanism": {
+          "type": "integer"
+        },
+        "missing_spf_record": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "spf_neutral_all": {
+          "type": "integer"
+        },
+        "spf_no_all": {
+          "type": "integer"
+        },
+        "spf_permissive_all": {
+          "type": "integer"
+        },
+        "spf_softfail_all": {
+          "type": "integer"
+        },
+        "spf_weight": {
+          "type": "integer"
+        },
+        "stale_snapshot": {
+          "type": "integer"
+        },
+        "unknown_evidence": {
+          "type": "integer"
+        },
+        "unmonitored_required_selector": {
+          "type": "integer"
+        },
+        "unsupported_record": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "weak_record": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "child_policy_weaker",
+        "conflicting_record",
+        "dkim_revoked",
+        "dkim_testing",
+        "dkim_weak_key",
+        "dkim_weight",
+        "dmarc_legacy_tag",
+        "dmarc_monitoring_only",
+        "dmarc_no_aggregate_reporting",
+        "dmarc_quarantine",
+        "dmarc_relaxed_alignment",
+        "dmarc_testing",
+        "dmarc_weight",
+        "invalid_record",
+        "malformed_record",
+        "maximum_score",
+        "missing_dkim_record",
+        "missing_dmarc_record",
+        "missing_monitored_mechanism",
+        "missing_spf_record",
+        "name",
+        "spf_neutral_all",
+        "spf_no_all",
+        "spf_permissive_all",
+        "spf_softfail_all",
+        "spf_weight",
+        "stale_snapshot",
+        "unknown_evidence",
+        "unmonitored_required_selector",
+        "unsupported_record",
+        "version",
+        "weak_record"
+      ],
+      "type": "object"
+    },
+    "DNSRecordHealth": {
+      "additionalProperties": false,
+      "properties": {
+        "dnssec": {
+          "$ref": "#/$defs/DNSSECEvidence"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "score": {
+          "$ref": "#/$defs/DNSHealthScore"
+        },
+        "status": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dnssec",
+        "domain",
+        "entity_id",
+        "evidence_ids",
+        "finding_ids",
+        "id",
+        "name",
+        "observed_at",
+        "score",
+        "status",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DNSSECEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "authenticated_data": {
+          "type": "boolean"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "authenticated_data",
+        "available"
+      ],
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "ProviderCatalogProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "added_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "base_digest": {
+          "type": "string"
+        },
+        "catalog_version": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "overlay_digest": {
+          "type": "string"
+        },
+        "overlay_version": {
+          "type": "string"
+        },
+        "replaced_provider_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "added_provider_ids",
+        "catalog_version",
+        "digest",
+        "replaced_provider_ids",
+        "source"
+      ],
+      "type": "object"
+    },
+    "ProviderMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_include": {
+          "type": "string"
+        },
+        "catalog_version": {
+          "type": "string"
+        },
+        "context_only": {
+          "type": "boolean"
+        },
+        "evidence_confidence": {
+          "type": "string"
+        },
+        "include_status": {
+          "type": "string"
+        },
+        "match_rule": {
+          "type": "string"
+        },
+        "matched_include": {
+          "type": "string"
+        },
+        "provider_id": {
+          "type": "string"
+        },
+        "provider_name": {
+          "type": "string"
+        },
+        "provider_reviewed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "provider_status": {
+          "type": "string"
+        },
+        "shared_infrastructure": {
+          "type": "boolean"
+        },
+        "successor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog_include",
+        "catalog_version",
+        "context_only",
+        "evidence_confidence",
+        "include_status",
+        "match_rule",
+        "matched_include",
+        "provider_id",
+        "provider_name",
+        "provider_reviewed_at",
+        "provider_status",
+        "shared_infrastructure"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "data_json": {
+          "type": "string"
+        },
+        "dns_record_type": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "grade": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_health"
+        },
+        "name": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "score": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "entity_id",
+        "domain",
+        "name",
+        "dns_record_type",
+        "status",
+        "severity",
+        "score",
+        "grade",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "dnsHealthOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "authentication_digest": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "portfolio_maturity": {
+          "$ref": "#/$defs/DNSHealthMaturity"
+        },
+        "portfolio_score": {
+          "$ref": "#/$defs/DNSHealthScore"
+        },
+        "provider_catalog_digest": {
+          "type": "string"
+        },
+        "provider_catalog_provenance": {
+          "$ref": "#/$defs/ProviderCatalogProvenance"
+        },
+        "scoring_profile": {
+          "$ref": "#/$defs/DNSHealthScoringProfile"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authentication_digest",
+        "metadata",
+        "observed_at",
+        "portfolio_digest",
+        "portfolio_maturity",
+        "portfolio_score",
+        "provider_catalog_digest",
+        "provider_catalog_provenance",
+        "scoring_profile",
+        "snapshot_digest"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/dnsHealthOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSRecordHealth"
+            },
+            "record_type": {
+              "const": "record"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSDomainHealth"
+            },
+            "record_type": {
+              "const": "domain"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSEntityHealth"
+            },
+            "record_type": {
+              "const": "entity"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSHealthFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSHealthProviderContext"
+            },
+            "record_type": {
+              "const": "provider_context"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_health"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authentication_digest": {
+      "type": "string"
+    },
+    "domains": {
+      "items": {
+        "$ref": "#/$defs/DNSDomainHealth"
+      },
+      "type": "array"
+    },
+    "entities": {
+      "items": {
+        "$ref": "#/$defs/DNSEntityHealth"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/DNSHealthFinding"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "dns_health"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "dns_health"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "portfolio_maturity": {
+      "$ref": "#/$defs/DNSHealthMaturity"
+    },
+    "portfolio_score": {
+      "$ref": "#/$defs/DNSHealthScore"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "provider_catalog_digest": {
+      "type": "string"
+    },
+    "provider_catalog_provenance": {
+      "$ref": "#/$defs/ProviderCatalogProvenance"
+    },
+    "provider_contexts": {
+      "items": {
+        "$ref": "#/$defs/DNSHealthProviderContext"
+      },
+      "type": "array"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/DNSRecordHealth"
+      },
+      "type": "array"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "scoring_profile": {
+      "$ref": "#/$defs/DNSHealthScoringProfile"
+    },
+    "snapshot_digest": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "authentication_digest",
+    "domains",
+    "entities",
+    "findings",
+    "metadata",
+    "mode",
+    "observed_at",
+    "portfolio_digest",
+    "portfolio_maturity",
+    "portfolio_score",
+    "profile",
+    "provider_catalog_digest",
+    "provider_catalog_provenance",
+    "provider_contexts",
+    "records",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "scoring_profile",
+    "snapshot_digest"
+  ],
+  "title": "dmarcgo native dns health output v1",
+  "type": "object"
+}

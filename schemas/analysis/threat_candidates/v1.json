@@ -1,0 +1,952 @@
+{
+  "$defs": {
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceDispositionCount": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "disposition",
+        "messages"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceTimestamp": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "type": "integer"
+        },
+        "confidence_adjustments": {
+          "items": {
+            "$ref": "#/$defs/ThreatCandidateConfidenceAdjustment"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "confidence_level": {
+          "type": "string"
+        },
+        "correlation_finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dispositions": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceDispositionCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dual_failure_messages": {
+          "type": "integer"
+        },
+        "enrichment": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "entity_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "excluded": {
+          "type": "boolean"
+        },
+        "exclusions_considered": {
+          "items": {
+            "$ref": "#/$defs/ThreatCandidateExclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "expected_sender_failure_messages": {
+          "type": "integer"
+        },
+        "expected_sender_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "id": {
+          "type": "string"
+        },
+        "incomplete_evidence": {
+          "type": "boolean"
+        },
+        "ip_type": {
+          "type": "string"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "passing_messages": {
+          "type": "integer"
+        },
+        "policy_override_types": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "profile": {
+          "type": "string"
+        },
+        "promotion_eligible": {
+          "type": "boolean"
+        },
+        "provider_context_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "recommended_usage": {
+          "type": "string"
+        },
+        "report_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reporter_diversity": {
+          "type": "integer"
+        },
+        "reports": {
+          "type": "integer"
+        },
+        "review_eligible": {
+          "type": "boolean"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "score_adjustments": {
+          "items": {
+            "$ref": "#/$defs/ThreatCandidateScoreAdjustment"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scoring_version": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "shared_provider_context": {
+          "type": "boolean"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "stale_evidence": {
+          "type": "boolean"
+        },
+        "unknown_messages": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "confidence",
+        "confidence_adjustments",
+        "confidence_level",
+        "correlation_finding_ids",
+        "dispositions",
+        "domains",
+        "dual_failure_messages",
+        "enrichment",
+        "entity_ids",
+        "evaluation",
+        "excluded",
+        "exclusions_considered",
+        "expected_sender_failure_messages",
+        "expected_sender_ids",
+        "first_seen",
+        "id",
+        "incomplete_evidence",
+        "ip_type",
+        "last_seen",
+        "messages",
+        "observation_ids",
+        "passing_messages",
+        "policy_override_types",
+        "profile",
+        "promotion_eligible",
+        "provider_context_ids",
+        "recommended_usage",
+        "report_evidence_ids",
+        "reporter_diversity",
+        "reports",
+        "review_eligible",
+        "score",
+        "score_adjustments",
+        "scoring_version",
+        "sensitivity",
+        "severity",
+        "shared_provider_context",
+        "source_ip",
+        "stale_evidence",
+        "unknown_messages"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateConfidenceAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "integer"
+        },
+        "code": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "maximum": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "after",
+        "before",
+        "code",
+        "evidence_ids",
+        "maximum",
+        "message"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateExclusion": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "expired": {
+          "type": "boolean"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "matched": {
+          "type": "boolean"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "portfolio_domain": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "active",
+        "created_at",
+        "entity_id",
+        "expired",
+        "id",
+        "matched",
+        "owner",
+        "portfolio_domain",
+        "reason",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateScoreAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "integer"
+        },
+        "before": {
+          "type": "integer"
+        },
+        "code": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "points": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "after",
+        "before",
+        "code",
+        "evidence_ids",
+        "kind",
+        "message",
+        "points"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateScoringProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "disposition_weight": {
+          "type": "integer"
+        },
+        "domain_diversity_weight": {
+          "type": "integer"
+        },
+        "dual_failure_weight": {
+          "type": "integer"
+        },
+        "expected_sender_confidence_cap": {
+          "type": "integer"
+        },
+        "expected_sender_deduction": {
+          "type": "integer"
+        },
+        "high_severity_threshold": {
+          "type": "integer"
+        },
+        "incomplete_evidence_confidence_cap": {
+          "type": "integer"
+        },
+        "incomplete_evidence_deduction": {
+          "type": "integer"
+        },
+        "indirect_mail_confidence_cap": {
+          "type": "integer"
+        },
+        "indirect_mail_deduction": {
+          "type": "integer"
+        },
+        "low_severity_threshold": {
+          "type": "integer"
+        },
+        "low_volume_confidence_cap": {
+          "type": "integer"
+        },
+        "low_volume_deduction": {
+          "type": "integer"
+        },
+        "low_volume_threshold": {
+          "type": "integer"
+        },
+        "medium_severity_threshold": {
+          "type": "integer"
+        },
+        "mixed_passing_confidence_cap": {
+          "type": "integer"
+        },
+        "mixed_passing_deduction": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "persistence_threshold": {
+          "type": "integer"
+        },
+        "persistence_weight": {
+          "type": "integer"
+        },
+        "repeated_reports_weight": {
+          "type": "integer"
+        },
+        "reporter_diversity_weight": {
+          "type": "integer"
+        },
+        "review_threshold": {
+          "type": "integer"
+        },
+        "shared_provider_confidence_cap": {
+          "type": "integer"
+        },
+        "shared_provider_deduction": {
+          "type": "integer"
+        },
+        "single_report_confidence_cap": {
+          "type": "integer"
+        },
+        "single_reporter_confidence_cap": {
+          "type": "integer"
+        },
+        "stale_after": {
+          "type": "integer"
+        },
+        "stale_evidence_confidence_cap": {
+          "type": "integer"
+        },
+        "stale_evidence_deduction": {
+          "type": "integer"
+        },
+        "unenriched_confidence_cap": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "volume_threshold": {
+          "type": "integer"
+        },
+        "volume_weight": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "disposition_weight",
+        "domain_diversity_weight",
+        "dual_failure_weight",
+        "expected_sender_confidence_cap",
+        "expected_sender_deduction",
+        "high_severity_threshold",
+        "incomplete_evidence_confidence_cap",
+        "incomplete_evidence_deduction",
+        "indirect_mail_confidence_cap",
+        "indirect_mail_deduction",
+        "low_severity_threshold",
+        "low_volume_confidence_cap",
+        "low_volume_deduction",
+        "low_volume_threshold",
+        "medium_severity_threshold",
+        "mixed_passing_confidence_cap",
+        "mixed_passing_deduction",
+        "name",
+        "persistence_threshold",
+        "persistence_weight",
+        "repeated_reports_weight",
+        "reporter_diversity_weight",
+        "review_threshold",
+        "shared_provider_confidence_cap",
+        "shared_provider_deduction",
+        "single_report_confidence_cap",
+        "single_reporter_confidence_cap",
+        "stale_after",
+        "stale_evidence_confidence_cap",
+        "stale_evidence_deduction",
+        "unenriched_confidence_cap",
+        "version",
+        "volume_threshold",
+        "volume_weight"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateSeverityCount": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "type": "integer"
+        },
+        "severity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "ThreatCandidateSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "type": "integer"
+        },
+        "excluded": {
+          "type": "integer"
+        },
+        "expected_sender_messages_omitted": {
+          "type": "integer"
+        },
+        "expected_sender_sources_omitted": {
+          "type": "integer"
+        },
+        "review_eligible": {
+          "type": "integer"
+        },
+        "severities": {
+          "items": {
+            "$ref": "#/$defs/ThreatCandidateSeverityCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sources_observed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "candidates",
+        "excluded",
+        "expected_sender_messages_omitted",
+        "expected_sender_sources_omitted",
+        "review_eligible",
+        "severities",
+        "sources_observed"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "ip_type": {
+          "type": "string"
+        },
+        "messages": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "threat_candidates"
+        },
+        "recommended_usage": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "review_eligible": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "score": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "source_ip",
+        "ip_type",
+        "score",
+        "confidence",
+        "severity",
+        "messages",
+        "review_eligible",
+        "recommended_usage",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/threatCandidateOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/ThreatCandidate"
+            },
+            "record_type": {
+              "const": "candidate"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "threat_candidates"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    },
+    "threatCandidateOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "correlation_digest": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "scoring_profile": {
+          "$ref": "#/$defs/ThreatCandidateScoringProfile"
+        },
+        "summary": {
+          "$ref": "#/$defs/ThreatCandidateSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "correlation_digest",
+        "metadata",
+        "organization_id",
+        "portfolio_digest",
+        "report_evidence_digest",
+        "scoring_profile",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/ThreatCandidate"
+      },
+      "type": "array"
+    },
+    "correlation_digest": {
+      "type": "string"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "threat_candidates"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "threat_candidates"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "report_evidence_digest": {
+      "type": "string"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "scoring_profile": {
+      "$ref": "#/$defs/ThreatCandidateScoringProfile"
+    },
+    "summary": {
+      "$ref": "#/$defs/ThreatCandidateSummary"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidates",
+    "correlation_digest",
+    "metadata",
+    "mode",
+    "organization_id",
+    "portfolio_digest",
+    "profile",
+    "redaction",
+    "report_evidence_digest",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "scoring_profile",
+    "summary",
+    "version"
+  ],
+  "title": "dmarcgo native threat candidates output v1",
+  "type": "object"
+}

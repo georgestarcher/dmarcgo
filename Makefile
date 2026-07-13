@@ -35,7 +35,7 @@ release-notes-check:
 	python3 scripts/extract_changelog.py >/dev/null
 
 api-check:
-	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange|TestBuildReportSummaryOutput|TestOutput|TestSourceReviewOutput|TestReportRowsOutput' ./...
+	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange|TestBuildReportSummaryOutput|TestOutput|TestSourceReviewOutput|TestReportRowsOutput|TestAnalysisOutput' ./...
 
 output-contract-check:
 	go test -run 'Test.*Output|Test.*Schema|Test.*Redaction|Test.*Truncation' ./...
@@ -112,6 +112,7 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzThreatCandidateAdjustmentBounds -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzSourceEnrichmentMetadata -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzJurisdictionRiskPolicyNormalization -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzAnalysisOutputSerialization -fuzztime=5s -timeout=2m .
 
 bench-smoke:
 	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkEvaluateJurisdictionContextLargeCandidateSet' -benchtime=1x ./...

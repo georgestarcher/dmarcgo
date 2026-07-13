@@ -461,16 +461,24 @@ func TestEnrichThreatCandidatesRejectsInvalidOptionsAndMetadata(t *testing.T) {
 	for index := range tooMany {
 		tooMany[index] = sourceTestMetadata(64500, "", "192.0.2.0/24", "", "", "fixture", now, nil).Assertions[0]
 	}
+	outOfRangeTime := time.Date(10_000, time.January, 1, 0, 0, 0, 0, time.UTC)
 	for name, metadata := range map[string]IPMetadata{
 		"too many assertions": {Assertions: tooMany},
 		"control text":        sourceTestMetadata(64500, "", "192.0.2.0/24", "bad\norganization", "", "fixture", now, nil),
 		"invalid UTF-8":       sourceTestMetadata(64500, "", "192.0.2.0/24", string([]byte{0xff}), "", "fixture", now, nil),
+		"lookup time outside JSON range": sourceTestMetadata(
+			64500, "", "192.0.2.0/24", "", "", "fixture", outOfRangeTime, nil,
+		),
+		"expiration time outside JSON range": sourceTestMetadata(
+			64500, "", "192.0.2.0/24", "", "", "fixture", now, &outOfRangeTime,
+		),
 	} {
 		t.Run(name, func(t *testing.T) {
 			result, enrichErr := EnrichThreatCandidates(context.Background(), candidates, &sourceFixtureEnricher{metadata: map[string]IPMetadata{
 				"192.0.2.1": metadata,
 			}}, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return now })})
-			if enrichErr != nil || result.Candidates()[0].Status != SourceEnrichmentFailed || result.Diagnostics()[0].Code != "source_enrichment.invalid_metadata" {
+			if enrichErr != nil || result.Digest() == "" || result.Candidates()[0].Status != SourceEnrichmentFailed ||
+				len(result.Candidates()[0].Metadata.Assertions) != 0 || result.Diagnostics()[0].Code != "source_enrichment.invalid_metadata" {
 				t.Fatalf("error=%v candidate=%+v diagnostics=%+v", enrichErr, result.Candidates()[0], result.Diagnostics())
 			}
 		})

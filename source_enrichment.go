@@ -668,13 +668,15 @@ func normalizeIPMetadata(ip netip.Addr, metadata IPMetadata, generatedAt time.Ti
 			assertion.Provenance.ExpiresAt = &value
 		}
 		if assertion.Provenance.Provider == "" || assertion.Provenance.LookupAt.IsZero() ||
+			!sourceEnrichmentTimeMarshalable(assertion.Provenance.LookupAt) ||
 			!validSourceEnrichmentText(assertion.ASNName) || !validSourceEnrichmentText(assertion.NetworkPrefix) ||
 			!validSourceEnrichmentText(assertion.Organization) || !validSourceEnrichmentText(assertion.CountryCode) ||
 			!validSourceEnrichmentText(assertion.Provenance.Provider) || !validSourceEnrichmentText(assertion.Provenance.Source) ||
 			!validSourceEnrichmentText(assertion.Provenance.ReferenceID) ||
 			assertion.Provenance.Confidence.Value < 0 || assertion.Provenance.Confidence.Value > 100 ||
 			(!assertion.Provenance.Confidence.Available && assertion.Provenance.Confidence.Value != 0) ||
-			(assertion.Provenance.ExpiresAt != nil && assertion.Provenance.ExpiresAt.Before(assertion.Provenance.LookupAt)) ||
+			(assertion.Provenance.ExpiresAt != nil && (!sourceEnrichmentTimeMarshalable(*assertion.Provenance.ExpiresAt) ||
+				assertion.Provenance.ExpiresAt.Before(assertion.Provenance.LookupAt))) ||
 			(assertion.ASN == 0 && assertion.ASNName == "" && strings.TrimSpace(assertion.NetworkPrefix) == "" && assertion.Organization == "" && assertion.CountryCode == "") ||
 			(assertion.CountryCode != "" && !validCountryCode(assertion.CountryCode)) {
 			return IPMetadata{}, ErrInvalidIPMetadata
@@ -710,6 +712,11 @@ func normalizeIPMetadata(ip netip.Addr, metadata IPMetadata, generatedAt time.Ti
 	}
 	sort.Slice(assertions, func(i, j int) bool { return assertions[i].ID < assertions[j].ID })
 	return IPMetadata{Assertions: assertions, ConflictFields: sourceEnrichmentConflictFields(assertions)}, nil
+}
+
+func sourceEnrichmentTimeMarshalable(value time.Time) bool {
+	_, err := value.MarshalJSON()
+	return err == nil
 }
 
 func validSourceEnrichmentText(value string) bool {

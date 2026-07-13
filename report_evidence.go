@@ -537,10 +537,18 @@ func normalizedEvidencePeriod(value DateRange) ReportEvidencePeriod {
 	end, endErr := epochStringToTime(value.End)
 	period := ReportEvidencePeriod{Evaluation: Evaluation{State: EvaluationStateUnknown, Reason: reportEvidenceReasonInvalidPeriod}}
 	if beginErr == nil {
-		period.Begin = ReportEvidenceTimestamp{Available: true, Value: begin.UTC()}
+		begin = begin.UTC()
+		_, beginErr = begin.MarshalJSON()
+		if beginErr == nil {
+			period.Begin = ReportEvidenceTimestamp{Available: true, Value: begin}
+		}
 	}
 	if endErr == nil {
-		period.End = ReportEvidenceTimestamp{Available: true, Value: end.UTC()}
+		end = end.UTC()
+		_, endErr = end.MarshalJSON()
+		if endErr == nil {
+			period.End = ReportEvidenceTimestamp{Available: true, Value: end}
+		}
 	}
 	if beginErr == nil && endErr == nil && !end.Before(begin) {
 		period.Evaluation = Evaluation{State: EvaluationStateEvaluated}
@@ -1456,6 +1464,7 @@ func validateReportEvidenceGeneratedValues(reports []ReportEvidenceReport, obser
 	}
 
 	zeroIDsByDigest := map[AnalysisID][]EvidenceID{}
+	identityDigests := map[string]AnalysisID{}
 	for _, report := range reports {
 		if report.Sensitivity != SensitivityRestricted || !validNormalizedEvidenceValue(report.Reporter, reportEvidenceReasonMissingValue, normalizeEvidenceToken) ||
 			!validNormalizedEvidenceValue(report.TargetDomain, reportEvidenceReasonMissingDomain, normalizeEvidenceDomainValue) || !validReportEvidencePeriod(report.Period) ||
@@ -1512,8 +1521,15 @@ func validateReportEvidenceGeneratedValues(reports []ReportEvidenceReport, obser
 		prepared := preparedReportEvidence{identity: report.Identity, contentDigest: contentDigest}
 		if report.Identity.IsZero() {
 			zeroIDsByDigest[contentDigest] = append(zeroIDsByDigest[contentDigest], report.ID)
-		} else if report.ID != reportEvidenceReportID(prepared, 0) {
-			return errors.Join(ErrInvalidReportEvidence, errors.New("report evidence ID does not match identity"))
+		} else {
+			identityKey := canonicalReportEvidenceIdentity(report.Identity)
+			if previous, exists := identityDigests[identityKey]; exists && previous != contentDigest {
+				return errors.Join(ErrInvalidReportEvidence, ErrConflictingReportIdentity)
+			}
+			identityDigests[identityKey] = contentDigest
+			if report.ID != reportEvidenceReportID(prepared, 0) {
+				return errors.Join(ErrInvalidReportEvidence, errors.New("report evidence ID does not match identity"))
+			}
 		}
 	}
 	for digest, actual := range zeroIDsByDigest {

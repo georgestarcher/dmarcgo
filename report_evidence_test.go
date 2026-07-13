@@ -153,6 +153,36 @@ func TestReportEvidenceAcceptsSingleSecondPeriodAndInclusiveEndOverlap(t *testin
 	}
 }
 
+func TestAnalyzeReportEvidenceTreatsUnmarshalableEpochAsInvalidPeriod(t *testing.T) {
+	report := &AggregateReport{
+		ReportMetadata:  ReportMetadata{OrgName: "Receiver", ReportID: "year-10000", DateRange: DateRange{Begin: "1", End: "253402300800"}},
+		PolicyPublished: PolicyPublished{Domain: "example.test"},
+		Record: []Record{{
+			Row:         Row{SourceIP: "192.0.2.1", Count: "1", PolicyEvaluated: PolicyEvaluated{DKIM: "fail", SPF: "fail"}},
+			Identifiers: Identifiers{HeaderFrom: "example.test"},
+		}},
+	}
+	result, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	period := result.Reports()[0].Period
+	if period.Evaluation.State != EvaluationStateUnknown || !period.Begin.Available || period.End.Available {
+		t.Fatalf("out-of-range period=%+v", period)
+	}
+	diagnostics := result.Diagnostics()
+	if len(diagnostics) != 1 || diagnostics[0].Code != "report.evidence.invalid_period" {
+		t.Fatalf("out-of-range period diagnostics=%+v", diagnostics)
+	}
+	payload, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadReportEvidenceJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAnalyzeReportEvidenceIsInputOrderDeterministic(t *testing.T) {
 	reports := reportEvidenceTestReports()
 	forward, err := AnalyzeReportEvidence(reports, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
@@ -401,6 +431,50 @@ func TestReportEvidenceJSONRoundTripAndValidation(t *testing.T) {
 	withBadDigest := strings.Replace(string(payload), string(result.Digest()), "report_evidence:bad", 1)
 	if _, err := LoadReportEvidenceJSON([]byte(withBadDigest)); !errors.Is(err, ErrInvalidReportEvidence) {
 		t.Fatalf("bad digest error=%v", err)
+	}
+}
+
+func TestLoadReportEvidenceJSONRejectsConflictingReportIdentities(t *testing.T) {
+	first := cloneAggregateReportForEvidence(reportEvidenceTestReports()[0])
+	first.Record = first.Record[:1]
+	conflict := cloneAggregateReportForEvidence(first)
+	conflict.Record[0].Row.Count = "11"
+
+	firstResult, err := AnalyzeReportEvidence([]*AggregateReport{first}, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflictResult, err := AnalyzeReportEvidence([]*AggregateReport{conflict}, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reports := append(firstResult.Reports(), conflictResult.Reports()...)
+	observations := append(firstResult.Observations(), conflictResult.Observations()...)
+	diagnostics := append(firstResult.Diagnostics(), conflictResult.Diagnostics()...)
+	summary, err := aggregateReportEvidenceObservations(observations, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary = finalizeReportEvidenceCorpusSummary(summary, reports)
+	forged, err := newReportEvidenceResult(time.Unix(300, 0), reports, observations, summary, diagnostics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(reportEvidenceDocument{
+		SchemaVersion: ReportEvidenceSchemaVersion,
+		Metadata:      forged.ResultMetadata(),
+		Digest:        forged.Digest(),
+		Reports:       forged.Reports(),
+		Observations:  forged.Observations(),
+		Summary:       forged.Summary(),
+		Diagnostics:   forged.Diagnostics(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = LoadReportEvidenceJSON(payload)
+	if !errors.Is(err, ErrInvalidReportEvidence) || !errors.Is(err, ErrConflictingReportIdentity) {
+		t.Fatalf("conflicting persisted identity error=%v", err)
 	}
 }
 

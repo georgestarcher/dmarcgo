@@ -90,6 +90,62 @@ func TestScoreThreatCandidatesExpectedSenderDefaultAndOptIn(t *testing.T) {
 	}
 }
 
+func TestScoreThreatCandidatesMixedExpectedAndUnknownDKIM(t *testing.T) {
+	config := correlationTestConfig(AuthenticationPolicyConfig{})
+	config.Entities[0].Domains[0].Exclusions = []ScopedExclusionConfig{{
+		ID: "expected-sender", Owner: "mail-team", Reason: "declared sender maintenance", Scope: ExclusionScopeSender,
+		Target: "marketing", CreatedAt: time.Unix(10, 0),
+	}}
+	expectedRecord := correlationTestRecord("192.0.2.10", "20", "example.test", "fail", "fail", "example.test", "mk1", "example.test")
+	expected := threatTestScore(t, config, correlationHealthyDNSValues(), []*AggregateReport{
+		correlationTestReport("expected", "receiver.example", 100, 200, expectedRecord),
+	}, ThreatCandidateOptions{IncludeExpectedSenders: true})
+	if len(expected.Candidates()) != 1 || !expected.Candidates()[0].Excluded ||
+		!findThreatCandidateExclusion(t, expected.Candidates()[0].ExclusionsConsidered, "expected-sender").Matched {
+		t.Fatalf("fully attributed sender exclusion was not applied: %+v", expected.Candidates())
+	}
+
+	mixedRecord := expectedRecord
+	mixedRecord.AuthResults.DKIM = []DKIMAuthResult{
+		{Domain: "example.test", Selector: "mk1", Result: "fail"},
+		{Domain: "unknown.example", Selector: "rogue", Result: "fail"},
+	}
+	portfolio, health := correlationTestDNSHealth(t, config, correlationHealthyDNSValues())
+	evidence := correlationTestEvidence(t, []*AggregateReport{
+		correlationTestReport("mixed-identities", "receiver.example", 100, 200, mixedRecord),
+	}, time.Unix(200, 0))
+	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedStreams, unknownFailureStreams := 0, 0
+	for _, stream := range correlation.Streams() {
+		if len(stream.ExpectedSenderIDs) > 0 {
+			expectedStreams++
+		}
+		if len(stream.ExpectedSenderIDs) == 0 && stream.Combined.Fail > 0 {
+			unknownFailureStreams++
+		}
+	}
+	if expectedStreams != 1 || unknownFailureStreams != 1 {
+		t.Fatalf("mixed correlation streams expected=%d unknown_failures=%d streams=%+v", expectedStreams, unknownFailureStreams, correlation.Streams())
+	}
+	result, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Candidates()) != 1 {
+		t.Fatalf("mixed expected/unknown observation was omitted: summary=%+v", result.Summary())
+	}
+	candidate := result.Candidates()[0]
+	exclusion := findThreatCandidateExclusion(t, candidate.ExclusionsConsidered, "expected-sender")
+	if candidate.DualFailureMessages != 20 || candidate.ExpectedSenderFailureMessages != 0 ||
+		!slices.Equal(candidate.ExpectedSenderIDs, []string{"marketing"}) || result.Summary().ExpectedSenderMessagesOmitted != 0 ||
+		candidate.Excluded || exclusion.Matched {
+		t.Fatalf("mixed expected/unknown candidate=%+v summary=%+v exclusion=%+v", candidate, result.Summary(), exclusion)
+	}
+}
+
 func TestScoreThreatCandidatesFalsePositivePressure(t *testing.T) {
 	t.Run("mixed passing and low volume", func(t *testing.T) {
 		report := correlationTestReport("r1", "receiver.example", 100, 200,

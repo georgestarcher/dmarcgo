@@ -309,6 +309,7 @@ type threatCandidateObservationContext struct {
 	expectedSenderIDs     map[string]struct{}
 	providerContextIDs    map[AnalysisID]struct{}
 	correlationFindingIDs map[FindingID]struct{}
+	unattributedFailure   bool
 	sharedProvider        bool
 	incomplete            bool
 }
@@ -554,6 +555,9 @@ func threatCandidateContexts(correlation DNSReportCorrelationResult) map[Evidenc
 			for _, id := range stream.ProviderContextIDs {
 				context.providerContextIDs[id] = struct{}{}
 			}
+			if stream.Combined.Fail > 0 && len(stream.ExpectedSenderIDs) == 0 {
+				context.unattributedFailure = true
+			}
 			context.sharedProvider = context.sharedProvider || stream.SharedProviderContext
 			context.incomplete = context.incomplete || stream.ThresholdEvaluation.State != EvaluationStateEvaluated
 		}
@@ -564,6 +568,10 @@ func threatCandidateContexts(correlation DNSReportCorrelationResult) map[Evidenc
 		}
 	}
 	return contexts
+}
+
+func threatCandidateExpectedSenderOnly(context *threatCandidateObservationContext) bool {
+	return context != nil && len(context.expectedSenderIDs) > 0 && !context.unattributedFailure
 }
 
 func buildThreatCandidate(portfolio Portfolio, accumulator *threatCandidateAccumulator, profile ThreatCandidateScoringProfile, generatedAt time.Time, includeExpected bool) (ThreatCandidate, bool, int64, error) {
@@ -582,14 +590,14 @@ func buildThreatCandidate(portfolio Portfolio, accumulator *threatCandidateAccum
 		}
 		allFailureObservations = append(allFailureObservations, observation)
 		context := accumulator.contexts[observation.ID]
-		expected := context != nil && len(context.expectedSenderIDs) > 0
-		if expected {
+		expectedOnly := threatCandidateExpectedSenderOnly(context)
+		if expectedOnly {
 			expectedFailureMessages, err = checkedThreatCandidateAdd(expectedFailureMessages, observation.Count.Value)
 			if err != nil {
 				return ThreatCandidate{}, false, 0, err
 			}
 		}
-		if includeExpected || !expected {
+		if includeExpected || !expectedOnly {
 			failureObservations = append(failureObservations, observation)
 		}
 	}
@@ -846,7 +854,8 @@ func threatCandidateExclusions(portfolio Portfolio, candidate ThreatCandidate, c
 		}
 	}
 	relevantScopes := map[scopeKey]map[string]struct{}{}
-	scopeSenders := map[scopeKey]map[string]map[string]struct{}{}
+	scopeObservations := map[scopeKey]map[string]map[EvidenceID]struct{}{}
+	scopeSenders := map[scopeKey]map[string]map[string]map[EvidenceID]struct{}{}
 	for _, observation := range observations {
 		context := contexts[observation.ID]
 		if context == nil || observation.AuthorDomain.Value == "" {
@@ -860,14 +869,27 @@ func threatCandidateExclusions(portfolio Portfolio, candidate ThreatCandidate, c
 						relevantScopes[key] = map[string]struct{}{}
 					}
 					relevantScopes[key][observation.AuthorDomain.Value] = struct{}{}
+					if scopeObservations[key] == nil {
+						scopeObservations[key] = map[string]map[EvidenceID]struct{}{}
+					}
+					if scopeObservations[key][observation.AuthorDomain.Value] == nil {
+						scopeObservations[key][observation.AuthorDomain.Value] = map[EvidenceID]struct{}{}
+					}
+					scopeObservations[key][observation.AuthorDomain.Value][observation.ID] = struct{}{}
+					if !threatCandidateExpectedSenderOnly(context) {
+						continue
+					}
 					if scopeSenders[key] == nil {
-						scopeSenders[key] = map[string]map[string]struct{}{}
+						scopeSenders[key] = map[string]map[string]map[EvidenceID]struct{}{}
 					}
 					for senderID := range context.expectedSenderIDs {
 						if scopeSenders[key][senderID] == nil {
-							scopeSenders[key][senderID] = map[string]struct{}{}
+							scopeSenders[key][senderID] = map[string]map[EvidenceID]struct{}{}
 						}
-						scopeSenders[key][senderID][observation.AuthorDomain.Value] = struct{}{}
+						if scopeSenders[key][senderID][observation.AuthorDomain.Value] == nil {
+							scopeSenders[key][senderID][observation.AuthorDomain.Value] = map[EvidenceID]struct{}{}
+						}
+						scopeSenders[key][senderID][observation.AuthorDomain.Value][observation.ID] = struct{}{}
 					}
 				}
 			}
@@ -915,7 +937,12 @@ func threatCandidateExclusions(portfolio Portfolio, candidate ThreatCandidate, c
 					}
 				}
 			case ExclusionScopeSender:
-				matchedDomains := scopeSenders[key][exclusion.Target]
+				matchedDomains := map[string]struct{}{}
+				for candidateDomain, senderObservations := range scopeSenders[key][exclusion.Target] {
+					if len(senderObservations) > 0 && len(senderObservations) == len(scopeObservations[key][candidateDomain]) {
+						matchedDomains[candidateDomain] = struct{}{}
+					}
+				}
 				value.Matched = len(matchedDomains) > 0
 				if value.Active {
 					for candidateDomain := range matchedDomains {

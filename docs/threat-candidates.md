@@ -101,7 +101,10 @@ Expected-sender-only failures are omitted by default and counted in
 `ThreatCandidateSummary` instead. Correlation retains them as configuration
 findings. Set `IncludeExpectedSenders` only when an application intentionally
 wants those failures in candidate review; expected-sender deductions and caps
-then remain visible.
+then remain visible. An observation is expected-sender-only only when every
+correlated failing identity stream is attributed to a declared sender. Mixed
+expected and unattributed DKIM streams remain candidates, and a sender-scoped
+exclusion cannot suppress their unattributed evidence.
 
 Portfolio exclusions require owner, reason, creation time, scope, and optional
 expiration. The `source` scope accepts a canonical IP address or network

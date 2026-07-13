@@ -106,7 +106,7 @@ Version 2 is the supported API line. Import
 
 - `ScoreThreatCandidates` consumes only a normalized `Portfolio`, completed `ReportEvidenceResult`, completed `DNSReportCorrelationResult`, and explicit options.
 - Count messages from distinct report observations. Correlation stream expansion for repeated DKIM identities must never multiply candidate evidence.
-- Expected-sender-only failures are omitted by default and remain configuration findings. Provider recognition never authorizes or suppresses a source.
+- Expected-sender-only failures are omitted by default and remain configuration findings. Mixed expected and unattributed identity streams remain candidates. Provider recognition never authorizes or suppresses a source.
 - Treat `mailing_list` and `trusted_forwarder` policy-override types as reporter-supplied counter-evidence, never proof of benignness. Do not retain override comments in normalized evidence.
 - Built-in conservative, balanced, and sensitive profiles and custom profiles must keep every weight, deduction, threshold, severity band, and confidence cap inspectable.
 - Single-report, single-reporter, unenriched, shared-provider, indirect-mail, incomplete, low-volume, mixed-pass, and stale evidence must retain explicit confidence caps.

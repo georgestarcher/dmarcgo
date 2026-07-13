@@ -75,6 +75,10 @@ and this project uses semantic versioning for public API changes.
 
 ### Fixed
 
+- Threat-candidate scoring no longer omits a dual-failure observation when one
+  expanded DKIM stream matches an expected sender but another remains
+  unattributed, and sender-scoped exclusions no longer suppress that mixed
+  evidence.
 - DNS-message TXT collection now preserves per-record TTLs and applies the
   RFC 2181 minimum TTL when an explicitly configured resolver returns an RRset
   with inconsistent TTLs, instead of discarding otherwise usable evidence.

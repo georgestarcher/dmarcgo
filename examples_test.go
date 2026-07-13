@@ -198,6 +198,37 @@ func ExampleEnrichThreatCandidates() {
 	// Output: status=success asns=1 confidence=45 promotion=false
 }
 
+// ExampleEvaluateJurisdictionContext demonstrates explicit, offline review
+// context after source enrichment. A match is not malicious attribution or an
+// automatic-action authorization.
+func ExampleEvaluateJurisdictionContext() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	lookupAt := time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)
+	expiresAt := lookupAt.Add(24 * time.Hour)
+	enriched, err := EnrichThreatCandidates(context.Background(), candidates, exampleIPEnricher{
+		netip.MustParseAddr("198.51.100.25"): {Assertions: []IPMetadataAssertion{{
+			ASN: 64500, NetworkPrefix: "198.51.100.0/24", CountryCode: "IR",
+			Provenance: IPMetadataProvenance{Provider: "offline-example", Source: "embedded-fixture", LookupAt: lookupAt, ExpiresAt: &expiresAt},
+		}}},
+	}, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return lookupAt })})
+	if err != nil {
+		log.Fatal(err)
+	}
+	contextResult, err := EvaluateJurisdictionContext(enriched, BuiltinJurisdictionRiskPolicy(), JurisdictionContextOptions{
+		EnableReviewPriorityAdjustment: true,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	value := contextResult.Candidates()[0]
+	fmt.Printf("status=%s adjustment=%d score=%d promotion=%t\n",
+		value.Status, value.ReviewPriorityAdjustment, enriched.Candidates()[0].Candidate.Score, enriched.Candidates()[0].Candidate.PromotionEligible)
+	// Output: status=match adjustment=10 score=35 promotion=false
+}
+
 func exampleThreatCandidates() (ThreatCandidateResult, error) {
 	portfolio, err := NormalizePortfolio(PortfolioConfig{
 		SchemaVersion: PortfolioSchemaVersion,

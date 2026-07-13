@@ -14,6 +14,7 @@ reports -> normalized report evidence
 portfolio + DNS health + provider context + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
+enriched candidates + explicit jurisdiction policy -> jurisdiction context
 completed result values -> output encoders
 ```
 
@@ -42,6 +43,7 @@ structure containing every possible input or output.
 | DNS/report correlation | `dns_report_correlation`, `DNSReportCorrelationResult` | Correlation feature |
 | Suspicious-source candidates | `threat_candidates` | Candidate-scoring feature |
 | Optional enrichment | `source_enrichment` | Enrichment feature |
+| Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
 | Campaign classification | `campaign_classification` | Campaign-correlation feature |
 | Serialization | Existing output modes, later extended per completed mode | Output feature |
@@ -85,6 +87,15 @@ third-party service. Successful enrichment replaces the earlier unenriched cap
 with a provider-confidence cap; missing confidence retains the original
 conservative maximum. It never changes the score, exclusions, review
 eligibility, recommended usage, or disabled promotion state.
+
+`JurisdictionContextResult` implements the following pure context stage. It
+consumes only a completed `SourceEnrichmentResult` and an explicit immutable
+`JurisdictionRiskPolicy`, preserves all country assertions and policy
+provenance, and represents match, no-match, unknown, stale, conflicting,
+not-eligible, and not-evaluated states directly. The optional bounded priority
+adjustment is a separate default-off queue hint; it never changes upstream
+candidate scoring or enables promotion or automatic action. Evaluation has no
+side-effect interface and cannot refresh policies or contact a source address.
 
 ## Shared contracts
 
@@ -196,6 +207,13 @@ failure, and fail-fast partial results remain explicit. Provider errors are
 converted to fixed diagnostics without copying their text. Stale and
 conflicting assertions remain visible, and ASN grouping retains every
 underlying source IP and assertion rather than selecting a preferred owner.
+
+`EvaluateJurisdictionContext` is the jurisdiction-context entry point. It has
+no resolver, provider, filesystem, environment, credential, or clock
+dependency. A zero generated time preserves the source-enrichment timestamp;
+an explicit time supports reproducible later assessment. Policy expiration and
+assertion freshness are evaluated at that timestamp. Policy strings remain
+untrusted structured data and are never copied into fixed finding prose.
 
 ## Persistence and composition
 

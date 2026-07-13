@@ -31,6 +31,12 @@
 // accept explicit dependencies and Clock values; pure analysis and output
 // stages consume already completed values without hidden I/O.
 //
+// AnalyzeReportEvidence converts parsed aggregate reports into immutable,
+// deterministic report-only evidence with stable provenance, explicit unknown
+// values, checked counts, filtering, aggregation, and strict JSON persistence.
+// It never loads files, resolves DNS, enriches source addresses, interprets
+// expected-sender inventory, or consults the current time.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

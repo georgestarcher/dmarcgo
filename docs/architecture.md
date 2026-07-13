@@ -52,6 +52,13 @@ model. `OutputEnvelope` implements `Result` as the existing serialized-result
 boundary; output schema versions remain independent of
 `AnalysisContractVersion`.
 
+`ReportEvidenceResult` now implements the normalized report-evidence stage. It
+owns stable report and observation evidence IDs, explicit unknown values,
+checked message counts, deterministic filtering/grouping, and a strict
+intermediate JSON persistence document. It deliberately does not attach
+portfolio entity or expected-sender identities; the correlation stage resolves
+those against the same evidence IDs.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -160,6 +167,10 @@ Intermediate profiles, snapshots, evidence, and results may be persisted by the
 calling application. Persisted forms carry their own schema version, observation
 times, provenance, and stable identifiers. Loading a persisted result never
 causes network access.
+
+`LoadReportEvidenceJSON` validates the report-evidence schema version, common
+result metadata, references, counters, summary, and digest. The intermediate
+document is separate from later automation and agent output profiles.
 
 Applications may compose stages in a service or command, but authorization,
 scheduling, storage, retries, and automatic defensive action remain outside this

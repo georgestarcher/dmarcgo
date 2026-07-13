@@ -62,6 +62,28 @@ func ExampleEvaluateDNSHealth() {
 	// Output: score=100 grade=A+ maturity=basic findings=0
 }
 
+// ExampleAnalyzeReportEvidence demonstrates reusable report-only evidence and
+// deterministic source grouping.
+func ExampleAnalyzeReportEvidence() {
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+	evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{
+		GeneratedAt: time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	sources, err := evidence.Aggregate(ReportEvidenceFilter{}, ReportEvidenceBySourceIP)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("reports=%d messages=%d sources=%d failed=%d\n",
+		evidence.Summary().Reports, evidence.Summary().Messages, len(sources), evidence.Summary().Combined.Fail)
+	// Output: reports=1 messages=5 sources=2 failed=3
+}
+
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.
 func ExampleBuildReportSummaryOutput() {
 	report, err := ParseBytes([]byte(exampleReportXML))

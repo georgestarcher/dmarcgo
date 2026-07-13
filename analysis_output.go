@@ -473,7 +473,7 @@ func analysisPublicStringSafe(key, value string, object map[string]any) bool {
 		return !exclusion
 	}
 	switch key {
-	case "schema", "schema_version", "mode", "profile", "record_type", "contract_version",
+	case "schema", "schema_version", "mode", "profile", "redaction", "record_type", "contract_version",
 		"generated_at", "observed_at", "dns_observed_at", "provider_reviewed_at", "lookup_at", "created_at", "effective_at", "as_of", "expires_at",
 		"version", "evidence_schema_version", "scoring_version", "catalog_version", "overlay_version",
 		"state", "code", "severity", "confidence", "confidence_level", "sensitivity", "status", "type", "kind", "grade",

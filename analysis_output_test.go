@@ -84,6 +84,14 @@ func TestAnalysisOutputJSONSchemasValidateEveryModeAndRedaction(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		lineValidator, err := compiler.Compile(schemaID + "#/$defs/jsonl_record")
+		if err != nil {
+			t.Fatal(err)
+		}
+		csvValidator, err := compiler.Compile(schemaID + "#/$defs/csv_record")
+		if err != nil {
+			t.Fatal(err)
+		}
 		for _, redaction := range []OutputRedaction{OutputRedactionPublic, OutputRedactionOperational, OutputRedactionRestricted} {
 			var output bytes.Buffer
 			if err := fixture.write(&output, AnalysisOutputJSON, AnalysisOutputOptions{Redaction: redaction}); err != nil {
@@ -96,43 +104,37 @@ func TestAnalysisOutputJSONSchemasValidateEveryModeAndRedaction(t *testing.T) {
 			if err := validator.Validate(value); err != nil {
 				t.Fatalf("mode %s redaction %s: %v", fixture.mode, redaction, err)
 			}
-		}
-		lineValidator, err := compiler.Compile(schemaID + "#/$defs/jsonl_record")
-		if err != nil {
-			t.Fatal(err)
-		}
-		var jsonl bytes.Buffer
-		if err := fixture.write(&jsonl, AnalysisOutputJSONL, AnalysisOutputOptions{}); err != nil {
-			t.Fatal(err)
-		}
-		for _, line := range bytes.Split(bytes.TrimSpace(jsonl.Bytes()), []byte{'\n'}) {
-			value, err := jsonschema.UnmarshalJSON(bytes.NewReader(line))
+
+			var jsonl bytes.Buffer
+			if err := fixture.write(&jsonl, AnalysisOutputJSONL, AnalysisOutputOptions{Redaction: redaction}); err != nil {
+				t.Fatal(err)
+			}
+			for _, line := range bytes.Split(bytes.TrimSpace(jsonl.Bytes()), []byte{'\n'}) {
+				value, err := jsonschema.UnmarshalJSON(bytes.NewReader(line))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := lineValidator.Validate(value); err != nil {
+					t.Fatalf("mode %s JSONL redaction %s: %v", fixture.mode, redaction, err)
+				}
+			}
+
+			var csvOutput bytes.Buffer
+			if err := fixture.write(&csvOutput, AnalysisOutputCSV, AnalysisOutputOptions{Redaction: redaction}); err != nil {
+				t.Fatal(err)
+			}
+			rows, err := csv.NewReader(bytes.NewReader(csvOutput.Bytes())).ReadAll()
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := lineValidator.Validate(value); err != nil {
-				t.Fatalf("mode %s JSONL: %v", fixture.mode, err)
-			}
-		}
-		csvValidator, err := compiler.Compile(schemaID + "#/$defs/csv_record")
-		if err != nil {
-			t.Fatal(err)
-		}
-		var csvOutput bytes.Buffer
-		if err := fixture.write(&csvOutput, AnalysisOutputCSV, AnalysisOutputOptions{}); err != nil {
-			t.Fatal(err)
-		}
-		rows, err := csv.NewReader(bytes.NewReader(csvOutput.Bytes())).ReadAll()
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, row := range rows[1:] {
-			object := make(map[string]any, len(rows[0]))
-			for index, header := range rows[0] {
-				object[header] = row[index]
-			}
-			if err := csvValidator.Validate(object); err != nil {
-				t.Fatalf("mode %s CSV: %v", fixture.mode, err)
+			for _, row := range rows[1:] {
+				object := make(map[string]any, len(rows[0]))
+				for index, header := range rows[0] {
+					object[header] = row[index]
+				}
+				if err := csvValidator.Validate(object); err != nil {
+					t.Fatalf("mode %s CSV redaction %s: %v", fixture.mode, redaction, err)
+				}
 			}
 		}
 		copyOfSchema, err := AnalysisOutputSchema(fixture.mode, "")

@@ -16,6 +16,7 @@ Each accepted report produces `ReportEvidenceReport` provenance and one
 - every DKIM signing domain, selector when supplied, and result;
 - the optional SPF domain, scope, and result;
 - disposition, positive message count, reporter, and report period;
+- recognized normalized policy-override type codes, without reporter comments;
 - stable report and observation evidence identifiers.
 
 `ReportEvidenceValue`, `ReportEvidenceCount`, and `ReportEvidencePeriod` make
@@ -31,8 +32,11 @@ unavailable. Raw values are untrusted evidence and are never copied into
 diagnostic prose.
 
 Report-controlled domains, selectors, reporter names, dispositions, and result
-tokens remain data. Diagnostic prose is library-controlled and never includes
-those values.
+tokens remain data. Standard policy-override types are retained as structured,
+reporter-supplied counter-evidence for later forwarding and mailing-list review;
+they are not proof of benignness. Unknown types and policy-override comments
+are intentionally discarded; the parsed report still retains its raw reason
+values. Diagnostic prose is library-controlled and never includes supplied values.
 
 ## Duplicate and overlap semantics
 

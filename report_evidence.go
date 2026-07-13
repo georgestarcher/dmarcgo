@@ -131,21 +131,22 @@ type ReportEvidenceReport struct {
 // ReportEvidenceObservation is one normalized aggregate-report row. DKIM may
 // contain multiple signing results because RFC 9990 permits repeated entries.
 type ReportEvidenceObservation struct {
-	ID               EvidenceID                  `json:"id"`
-	ReportEvidenceID EvidenceID                  `json:"report_evidence_id"`
-	RecordIndex      int                         `json:"record_index"`
-	Reporter         ReportEvidenceValue         `json:"reporter"`
-	TargetDomain     ReportEvidenceValue         `json:"target_domain"`
-	Period           ReportEvidencePeriod        `json:"period"`
-	SourceIP         ReportEvidenceValue         `json:"source_ip"`
-	AuthorDomain     ReportEvidenceValue         `json:"author_domain"`
-	SPF              ReportEvidenceSPF           `json:"spf"`
-	DKIMEvaluation   Evaluation                  `json:"dkim_evaluation"`
-	DKIM             []ReportEvidenceDKIM        `json:"dkim"`
-	PolicyOutcome    ReportEvidencePolicyOutcome `json:"policy_outcome"`
-	Disposition      string                      `json:"disposition,omitempty"`
-	Count            ReportEvidenceCount         `json:"count"`
-	Sensitivity      Sensitivity                 `json:"sensitivity"`
+	ID                  EvidenceID                  `json:"id"`
+	ReportEvidenceID    EvidenceID                  `json:"report_evidence_id"`
+	RecordIndex         int                         `json:"record_index"`
+	Reporter            ReportEvidenceValue         `json:"reporter"`
+	TargetDomain        ReportEvidenceValue         `json:"target_domain"`
+	Period              ReportEvidencePeriod        `json:"period"`
+	SourceIP            ReportEvidenceValue         `json:"source_ip"`
+	AuthorDomain        ReportEvidenceValue         `json:"author_domain"`
+	SPF                 ReportEvidenceSPF           `json:"spf"`
+	DKIMEvaluation      Evaluation                  `json:"dkim_evaluation"`
+	DKIM                []ReportEvidenceDKIM        `json:"dkim"`
+	PolicyOutcome       ReportEvidencePolicyOutcome `json:"policy_outcome"`
+	PolicyOverrideTypes []string                    `json:"policy_override_types"`
+	Disposition         string                      `json:"disposition,omitempty"`
+	Count               ReportEvidenceCount         `json:"count"`
+	Sensitivity         Sensitivity                 `json:"sensitivity"`
 }
 
 // ReportEvidenceDiagnostic is library-generated validation information. It
@@ -437,18 +438,19 @@ func prepareReportEvidence(report AggregateReport) (preparedReportEvidence, erro
 }
 
 type reportEvidenceObservationContent struct {
-	Reporter       ReportEvidenceValue         `json:"reporter"`
-	TargetDomain   ReportEvidenceValue         `json:"target_domain"`
-	Period         ReportEvidencePeriod        `json:"period"`
-	SourceIP       ReportEvidenceValue         `json:"source_ip"`
-	AuthorDomain   ReportEvidenceValue         `json:"author_domain"`
-	SPF            ReportEvidenceSPF           `json:"spf"`
-	DKIMEvaluation Evaluation                  `json:"dkim_evaluation"`
-	DKIM           []ReportEvidenceDKIM        `json:"dkim"`
-	PolicyOutcome  ReportEvidencePolicyOutcome `json:"policy_outcome"`
-	Disposition    string                      `json:"disposition,omitempty"`
-	Count          ReportEvidenceCount         `json:"count"`
-	Sensitivity    Sensitivity                 `json:"sensitivity"`
+	Reporter            ReportEvidenceValue         `json:"reporter"`
+	TargetDomain        ReportEvidenceValue         `json:"target_domain"`
+	Period              ReportEvidencePeriod        `json:"period"`
+	SourceIP            ReportEvidenceValue         `json:"source_ip"`
+	AuthorDomain        ReportEvidenceValue         `json:"author_domain"`
+	SPF                 ReportEvidenceSPF           `json:"spf"`
+	DKIMEvaluation      Evaluation                  `json:"dkim_evaluation"`
+	DKIM                []ReportEvidenceDKIM        `json:"dkim"`
+	PolicyOutcome       ReportEvidencePolicyOutcome `json:"policy_outcome"`
+	PolicyOverrideTypes []string                    `json:"policy_override_types"`
+	Disposition         string                      `json:"disposition,omitempty"`
+	Count               ReportEvidenceCount         `json:"count"`
+	Sensitivity         Sensitivity                 `json:"sensitivity"`
 }
 
 func reportEvidenceObservationCanonical(value ReportEvidenceObservation) reportEvidenceObservationContent {
@@ -456,7 +458,8 @@ func reportEvidenceObservationCanonical(value ReportEvidenceObservation) reportE
 		Reporter: value.Reporter, TargetDomain: value.TargetDomain, Period: value.Period,
 		SourceIP: value.SourceIP, AuthorDomain: value.AuthorDomain, SPF: value.SPF,
 		DKIMEvaluation: value.DKIMEvaluation, DKIM: cloneReportEvidenceDKIM(value.DKIM),
-		PolicyOutcome: value.PolicyOutcome, Disposition: value.Disposition, Count: value.Count,
+		PolicyOutcome: value.PolicyOutcome, PolicyOverrideTypes: append([]string{}, value.PolicyOverrideTypes...),
+		Disposition: value.Disposition, Count: value.Count,
 		Sensitivity: value.Sensitivity,
 	}
 }
@@ -506,10 +509,21 @@ func normalizedReportEvidenceObservation(record Record, reporter, targetDomain R
 		Reporter: reporter, TargetDomain: targetDomain, Period: period,
 		SourceIP: normalizedEvidenceIP(record.Row.SourceIP), AuthorDomain: normalizedEvidenceDomain(record.Identifiers.HeaderFrom),
 		SPF: spf, DKIMEvaluation: dkimEvaluation, DKIM: dkim,
-		PolicyOutcome: ReportEvidencePolicyOutcome{DKIM: dkimOutcome, SPF: spfOutcome, Combined: combined},
-		Disposition:   normalizeEvidenceToken(record.Row.PolicyEvaluated.Disposition), Count: normalizedEvidenceCount(record.Row.Count),
+		PolicyOutcome:       ReportEvidencePolicyOutcome{DKIM: dkimOutcome, SPF: spfOutcome, Combined: combined},
+		PolicyOverrideTypes: normalizedPolicyOverrideTypes(record.Row.PolicyEvaluated.Reasons),
+		Disposition:         normalizeEvidenceToken(record.Row.PolicyEvaluated.Disposition), Count: normalizedEvidenceCount(record.Row.Count),
 		Sensitivity: SensitivityRestricted,
 	}
+}
+
+func normalizedPolicyOverrideTypes(reasons []PolicyOverrideReason) []string {
+	values := make([]string, 0, len(reasons))
+	for _, reason := range reasons {
+		if value := normalizeEvidenceToken(reason.Type); validPolicyOverrideType(value) {
+			values = append(values, value)
+		}
+	}
+	return compactSortedStrings(values)
 }
 
 func compareReportEvidenceValue(left, right ReportEvidenceValue) int {
@@ -1434,7 +1448,8 @@ func validateReportEvidenceGeneratedValues(reports []ReportEvidenceReport, obser
 			!validNormalizedEvidenceValue(observation.Reporter, reportEvidenceReasonMissingValue, normalizeEvidenceToken) ||
 			!validNormalizedEvidenceValue(observation.TargetDomain, reportEvidenceReasonMissingDomain, normalizeEvidenceDomainValue) ||
 			!validReportEvidencePeriod(observation.Period) || !validReportEvidenceCount(observation.Count) ||
-			normalizeEvidenceToken(observation.Disposition) != observation.Disposition || !validReportEvidencePolicyOutcome(observation.PolicyOutcome) {
+			normalizeEvidenceToken(observation.Disposition) != observation.Disposition || !validReportEvidencePolicyOutcome(observation.PolicyOutcome) ||
+			!validPolicyOverrideTypes(observation.PolicyOverrideTypes) {
 			return errors.Join(ErrInvalidReportEvidence, errors.New("persisted observation contains invalid normalized values"))
 		}
 		if len(observation.DKIM) == 0 {
@@ -1549,6 +1564,27 @@ func validateReportEvidenceGeneratedValues(reports []ReportEvidenceReport, obser
 	return nil
 }
 
+func validPolicyOverrideTypes(values []string) bool {
+	if values == nil {
+		return false
+	}
+	for index, value := range values {
+		if !validPolicyOverrideType(value) || normalizeEvidenceToken(value) != value || index > 0 && values[index-1] >= value {
+			return false
+		}
+	}
+	return true
+}
+
+func validPolicyOverrideType(value string) bool {
+	switch value {
+	case "local_policy", "mailing_list", "other", "policy_test_mode", "trusted_forwarder":
+		return true
+	default:
+		return false
+	}
+}
+
 func validEvaluation(value Evaluation, state EvaluationState, reason string) bool {
 	return value.State == state && value.Reason == reason
 }
@@ -1640,6 +1676,7 @@ func cloneReportEvidenceObservations(values []ReportEvidenceObservation) []Repor
 
 func cloneReportEvidenceObservation(value ReportEvidenceObservation) ReportEvidenceObservation {
 	value.DKIM = cloneReportEvidenceDKIM(value.DKIM)
+	value.PolicyOverrideTypes = append([]string{}, value.PolicyOverrideTypes...)
 	return value
 }
 

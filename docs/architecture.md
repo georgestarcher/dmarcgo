@@ -66,6 +66,14 @@ prior-result provenance. Provider contexts remain evidence references and never
 authorize a stream. The result retains upstream digests without recollecting,
 reparsing, enriching, or loading history.
 
+`ThreatCandidateResult` implements the following pure candidate-scoring stage.
+It counts distinct report observations directly, uses correlation only for
+prepared attribution and counter-evidence, and retains the upstream digests.
+Versioned profiles make every score operation and confidence cap inspectable.
+Expected-sender-only failures are omitted by default, exclusions remain scoped,
+and promotion is always disabled. The stage performs no source enrichment or
+network access and never asserts malicious ownership or safe-to-block status.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so

@@ -47,7 +47,8 @@ original API and is retained only for Go module history; it is not maintained.
 
 `dmarcgo` is a parser library. It is meant to be imported by other Go code that wants to parse DMARC aggregate report artifacts and then decide how to ingest, store, summarize, or display the results.
 
-It does not provide a mailbox ingester, directory watcher, database, CLI, dashboard, or spoofing-risk scoring engine.
+It does not provide a mailbox ingester, directory watcher, database, CLI,
+dashboard, generic IP-reputation engine, or automatic enforcement system.
 
 The planned organizational-analysis features follow independently callable
 stages with explicit side-effect boundaries. See
@@ -84,6 +85,11 @@ sender intent, current DNS health, and historical report evidence while keeping
 their observation times separate. See
 [DNS and report correlation](docs/dns-report-correlation.md).
 
+Suspicious-source candidate scoring is the next pure stage. It produces
+explainable, review-only source candidates from normalized observations and
+prepared correlation without malicious attribution, enrichment, or automatic
+action. See [Suspicious-source candidate scoring](docs/threat-candidates.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -116,6 +122,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
 | You want reusable normalized report evidence | `dmarcgo.AnalyzeReportEvidence(reports, options)` | Produces deterministic, persistable report-only evidence with filtering and aggregation; it performs no DNS, enrichment, or sender-inventory interpretation. |
 | You want expected-sender and DNS/report variance | `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)` | Correlates already completed values without DNS, parsing, enrichment, storage, or malicious attribution. |
+| You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
@@ -766,6 +773,28 @@ explicit, and below-threshold streams remain visible as not evaluated.
 See [`docs/dns-report-correlation.md`](docs/dns-report-correlation.md) for the
 finding taxonomy, prior-result comparisons, temporal semantics, and safe sender
 onboarding sequence.
+
+## Suspicious-source candidate scoring
+
+Use `ScoreThreatCandidates` only after report evidence and correlation are
+complete. It counts each normalized observation once, then applies an
+inspectable conservative, balanced, sensitive, or caller-supplied custom
+profile. Supporting evidence and false-positive-sensitive deductions retain
+stable codes, fixed generated explanations, evidence references, and exact
+before/after arithmetic.
+
+Expected-sender-only failures are omitted by default. Mixed passing traffic,
+shared-provider context, forwarding or mailing-list signals, incomplete or
+stale evidence, low volume, and single-report observations reduce score or cap
+confidence. Source, sender, domain, and subdomain exclusions remain scoped to
+their configured portfolio domain and retain owner, reason, and expiration.
+
+Candidates are observed authentication evidence, not indicators of compromise.
+They are review-only, monitor-only, or retained-evidence results; they never
+authorize blocking or assert malicious ownership. The scoring stage performs no
+enrichment or network access. See
+[`docs/threat-candidates.md`](docs/threat-candidates.md) for the complete score,
+confidence, exclusion, and safety contract.
 
 ## Attachment filename metadata
 

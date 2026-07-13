@@ -7,7 +7,8 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - This module parses DMARC aggregate reports.
 - It supports legacy/no-namespace aggregate XML, the historical dmarc.org aggregate XML namespace, and RFC 9990 aggregate reports.
 - It accepts gzip, zip, tar, zlib, and raw XML payloads through the public loading helpers.
-- It is not a CLI, mailbox ingester, scheduler, database layer, dashboard, or spoofing-risk scoring engine.
+- It is not a CLI, mailbox ingester, scheduler, database layer, dashboard,
+  generic IP-reputation engine, or automatic enforcement system.
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
 - It can explicitly collect reusable TXT evidence for record names already declared in a normalized organization portfolio. DNS collection is never implicit in report parsing or output generation.
 
@@ -37,6 +38,7 @@ Version 2 is the supported API line. Import
 - Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
 - Reusable normalized report evidence: `dmarcgo.AnalyzeReportEvidence(reports, options)`
 - Pure DNS/report and expected-sender correlation: `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)`
+- Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -73,6 +75,7 @@ Version 2 is the supported API line. Import
 16. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
 17. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
 18. Correlate declared senders, completed DNS health, and normalized report evidence with `CorrelateReportEvidence`; optionally supply a prior result for drift comparison.
+19. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
 
 ## Normalized report evidence
 
@@ -98,6 +101,19 @@ Version 2 is the supported API line. Import
 - Use `DNSReportCorrelationThresholds` for explicit message, report, reporter, duration, and recency requirements. Below-threshold streams remain visible as not evaluated.
 - Pass `Previous` only when the caller intentionally selected a prior immutable result. The library performs no history discovery or persistence.
 - Use `docs/dns-report-correlation.md` for classifications, temporal semantics, drift comparison, and the safe onboarding review sequence.
+
+## Suspicious-source candidate scoring
+
+- `ScoreThreatCandidates` consumes only a normalized `Portfolio`, completed `ReportEvidenceResult`, completed `DNSReportCorrelationResult`, and explicit options.
+- Count messages from distinct report observations. Correlation stream expansion for repeated DKIM identities must never multiply candidate evidence.
+- Expected-sender-only failures are omitted by default and remain configuration findings. Provider recognition never authorizes or suppresses a source.
+- Treat `mailing_list` and `trusted_forwarder` policy-override types as reporter-supplied counter-evidence, never proof of benignness. Do not retain override comments in normalized evidence.
+- Built-in conservative, balanced, and sensitive profiles and custom profiles must keep every weight, deduction, threshold, severity band, and confidence cap inspectable.
+- Single-report, single-reporter, unenriched, shared-provider, indirect-mail, incomplete, low-volume, mixed-pass, and stale evidence must retain explicit confidence caps.
+- Exclusions require owner and reason, remain visible after expiration, and apply only within their declared portfolio scope. Never erase underlying evidence.
+- `PromotionEligible` remains false. Candidate output may recommend human review, monitoring, or evidence retention only; it never means malicious, compromised, botnet, or safe to block.
+- Candidate scoring performs no DNS, PTR, HTTP, SMTP, ICMP, scanning, enrichment, filesystem, clock, storage, or retry activity.
+- Use `docs/threat-candidates.md` for exact scoring, confidence, exclusion, and safe-use semantics.
 
 ## Authentication-record parsing
 

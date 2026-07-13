@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"regexp"
 	"sort"
 	"strings"
@@ -51,6 +52,7 @@ const (
 	ExclusionScopeSubdomains ExclusionScope = "subdomains"
 	ExclusionScopeRecord     ExclusionScope = "record"
 	ExclusionScopeSender     ExclusionScope = "sender"
+	ExclusionScopeSource     ExclusionScope = "source"
 )
 
 // PortfolioConfig is the mutable programmatic and YAML input model.
@@ -768,6 +770,13 @@ func (normalizer *portfolioNormalizer) normalizeExclusions(configs []ScopedExclu
 					normalizer.add("configuration.exclusion.unknown_sender", itemPath+".target", "The exclusion references an unknown sender ID.")
 				}
 			}
+		case ExclusionScopeSource:
+			value, err := normalizeSourceExclusionTarget(target)
+			if err != nil {
+				normalizer.add("configuration.exclusion.invalid_target", itemPath+".target", "A source-scoped exclusion requires a valid IP address or network target.")
+			} else {
+				target = value
+			}
 		default:
 			normalizer.add("configuration.exclusion.invalid_scope", itemPath+".scope", "The exclusion scope is invalid.")
 		}
@@ -775,6 +784,24 @@ func (normalizer *portfolioNormalizer) normalizeExclusions(configs []ScopedExclu
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
+}
+
+func normalizeSourceExclusionTarget(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if prefix, err := netip.ParsePrefix(value); err == nil && prefix.Addr().Zone() == "" {
+		address, bits := prefix.Addr(), prefix.Bits()
+		if address.Is4In6() {
+			address, bits = address.Unmap(), bits-96
+		}
+		if bits >= 0 {
+			return netip.PrefixFrom(address, bits).Masked().String(), nil
+		}
+	}
+	address, err := netip.ParseAddr(value)
+	if err != nil || address.Zone() != "" {
+		return "", ErrInvalidPortfolio
+	}
+	return address.Unmap().String(), nil
 }
 
 func (normalizer *portfolioNormalizer) validateOwnerReference(owner, path string) {

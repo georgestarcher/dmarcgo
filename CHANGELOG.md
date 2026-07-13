@@ -55,6 +55,12 @@ and this project uses semantic versioning for public API changes.
   threshold semantics, stable onboarding and variance findings, caller-owned
   prior-result drift comparison, preserved DNS snapshot observation time, and
   no hidden collection or attribution.
+- Pure, versioned suspicious-source candidate scoring with conservative,
+  balanced, sensitive, and custom profiles; exact score recomputation;
+  false-positive-sensitive confidence caps; scoped expiring source exclusions;
+  expected-sender omission by default; and explicit review-only semantics.
+- Normalized policy-override type evidence for forwarding and mailing-list
+  counter-signals without retaining reporter-supplied comments.
 
 ### Changed
 

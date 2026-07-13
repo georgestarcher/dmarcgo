@@ -145,6 +145,63 @@ func ExampleCorrelateReportEvidence() {
 	// Output: streams=2 unknown_failures=1
 }
 
+// ExampleScoreThreatCandidates demonstrates pure, review-only scoring from
+// completed report evidence and correlation.
+func ExampleScoreThreatCandidates() {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "example.com", Records: MonitoredRecordsConfig{
+				SPF: []string{"example.com"}, DMARC: []string{"_dmarc.example.com"},
+			},
+		}}}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	observedAt := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver{
+		"example.com":        "v=spf1 -all",
+		"_dmarc.example.com": "v=DMARC1; p=reject; rua=mailto:reports@example.com",
+	}, DNSCollectionOptions{Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1})
+	if err != nil {
+		log.Fatal(err)
+	}
+	authentication, err := ParseAuthenticationRecords(snapshot)
+	if err != nil {
+		log.Fatal(err)
+	}
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		log.Fatal(err)
+	}
+	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+	evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: observedAt})
+	if err != nil {
+		log.Fatal(err)
+	}
+	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := result.Candidates()[0]
+	fmt.Printf("candidates=%d score=%d confidence=%d usage=%s promotion=%t\n",
+		result.Summary().Candidates, candidate.Score, candidate.Confidence, candidate.RecommendedUsage, candidate.PromotionEligible)
+	// Output: candidates=1 score=35 confidence=45 usage=review_only promotion=false
+}
+
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.
 func ExampleBuildReportSummaryOutput() {
 	report, err := ParseBytes([]byte(exampleReportXML))

@@ -59,6 +59,32 @@ func TestAnalyzeReportEvidenceNormalizesAndAggregates(t *testing.T) {
 	}
 }
 
+func TestAnalyzeReportEvidenceGeneratedAtIgnoresInvalidPeriods(t *testing.T) {
+	reports := reportEvidenceTestReports()
+	reversed := cloneAggregateReportForEvidence(reports[0])
+	reversed.ReportMetadata.ReportID = "reversed-period"
+	reversed.ReportMetadata.DateRange = DateRange{Begin: "1000", End: "999"}
+	malformed := cloneAggregateReportForEvidence(reports[0])
+	malformed.ReportMetadata.ReportID = "malformed-period"
+	malformed.ReportMetadata.DateRange = DateRange{Begin: "not-an-epoch", End: "1000"}
+
+	result, err := AnalyzeReportEvidence(append(reports, reversed, malformed), ReportEvidenceOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := result.ResultMetadata().GeneratedAt, time.Unix(250, 0).UTC(); !got.Equal(want) {
+		t.Fatalf("generated_at=%s want latest valid period end %s", got, want)
+	}
+
+	invalidOnly, err := AnalyzeReportEvidence([]*AggregateReport{reversed, malformed}, ReportEvidenceOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !invalidOnly.ResultMetadata().GeneratedAt.IsZero() {
+		t.Fatalf("invalid-only corpus generated_at=%s want zero", invalidOnly.ResultMetadata().GeneratedAt)
+	}
+}
+
 func TestReportEvidenceResultImplementsResult(t *testing.T) {
 	result, err := AnalyzeReportEvidence(reportEvidenceTestReports(), ReportEvidenceOptions{})
 	if err != nil {
@@ -338,6 +364,9 @@ func TestAnalyzeReportEvidenceInvalidEvidenceRemainsUnknown(t *testing.T) {
 	}
 	if result.Summary().Messages != 0 || result.Summary().InvalidRecords != 2 || result.Summary().Combined.Unknown != 0 {
 		t.Fatalf("invalid counts affected totals: %+v", result.Summary())
+	}
+	if !result.ResultMetadata().GeneratedAt.IsZero() {
+		t.Fatalf("invalid period supplied generated_at=%s", result.ResultMetadata().GeneratedAt)
 	}
 	observations := result.Observations()
 	if observations[0].Count.Available || observations[1].Count.Available {

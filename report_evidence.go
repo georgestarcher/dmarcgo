@@ -339,6 +339,7 @@ func AnalyzeReportEvidence(reports []*AggregateReport, options ReportEvidenceOpt
 	diagnostics := make([]ReportEvidenceDiagnostic, 0)
 	zeroOccurrences := map[AnalysisID]int{}
 	generatedAt := options.GeneratedAt.UTC()
+	generatedAtFromPeriod := false
 	for _, candidate := range selected {
 		ordinal := 0
 		if candidate.identity.IsZero() {
@@ -352,8 +353,10 @@ func AnalyzeReportEvidence(reports []*AggregateReport, options ReportEvidenceOpt
 			ObservationIDs: []EvidenceID{}, Records: int64(len(candidate.observations)), Sensitivity: SensitivityRestricted,
 		}
 		observationOccurrences := map[string]int{}
-		if options.GeneratedAt.IsZero() && candidate.period.End.Available && candidate.period.End.Value.After(generatedAt) {
+		if options.GeneratedAt.IsZero() && candidate.period.Evaluation.State == EvaluationStateEvaluated && candidate.period.End.Available &&
+			(!generatedAtFromPeriod || candidate.period.End.Value.After(generatedAt)) {
 			generatedAt = candidate.period.End.Value
+			generatedAtFromPeriod = true
 		}
 		for index, value := range candidate.observations {
 			value.ReportEvidenceID = reportID

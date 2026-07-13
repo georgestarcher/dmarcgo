@@ -244,6 +244,64 @@ func TestEvaluateJurisdictionContextUnknownStaleFutureAndNotEvaluated(t *testing
 	}
 }
 
+func TestEvaluateJurisdictionContextUsesCountryAssertionFreshness(t *testing.T) {
+	now := time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)
+	staleExpires := now.Add(-time.Minute)
+	freshExpires := now.Add(time.Hour)
+	sources := []string{"198.51.100.30", "198.51.100.31", "198.51.100.32"}
+	metadata := make(map[string]IPMetadata, len(sources))
+
+	staleCountryFreshASN := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "IR", "stale-country", now.Add(-time.Hour), &staleExpires)
+	freshASN := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "", "fresh-asn", now.Add(-time.Hour), &freshExpires)
+	staleCountryFreshASN.Assertions = append(staleCountryFreshASN.Assertions, freshASN.Assertions...)
+	metadata[sources[0]] = staleCountryFreshASN
+
+	staleAndUnknownCountry := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "IR", "stale-country", now.Add(-time.Hour), &staleExpires)
+	unknownCountry := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "IR", "unknown-country", now.Add(-time.Hour), nil)
+	staleAndUnknownCountry.Assertions = append(staleAndUnknownCountry.Assertions, unknownCountry.Assertions...)
+	metadata[sources[1]] = staleAndUnknownCountry
+
+	staleAndFreshCountry := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "IR", "stale-country", now.Add(-time.Hour), &staleExpires)
+	freshCountry := sourceTestMetadata(64500, "", "198.51.100.0/24", "", "IR", "fresh-country", now.Add(-time.Hour), &freshExpires)
+	staleAndFreshCountry.Assertions = append(staleAndFreshCountry.Assertions, freshCountry.Assertions...)
+	metadata[sources[2]] = staleAndFreshCountry
+
+	enrichment, err := EnrichThreatCandidates(context.Background(), sourceEnrichmentTestCandidates(t, sources...), &sourceFixtureEnricher{metadata: metadata}, SourceEnrichmentOptions{
+		Clock: ClockFunc(func() time.Time { return now }),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for source, status := range sourceEnrichmentStatusesByIP(enrichment.Candidates()) {
+		if status != SourceEnrichmentSuccess {
+			t.Fatalf("source enrichment status for %s=%q want=%q", source, status, SourceEnrichmentSuccess)
+		}
+	}
+
+	result, err := EvaluateJurisdictionContext(enrichment, BuiltinJurisdictionRiskPolicy(), JurisdictionContextOptions{EnableReviewPriorityAdjustment: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	statuses := jurisdictionStatusesByIP(result.Candidates())
+	want := map[string]JurisdictionContextStatus{
+		sources[0]: JurisdictionContextStale,
+		sources[1]: JurisdictionContextUnknown,
+		sources[2]: JurisdictionContextMatch,
+	}
+	if !reflect.DeepEqual(statuses, want) {
+		t.Fatalf("statuses=%+v want=%+v", statuses, want)
+	}
+	if candidate := jurisdictionCandidateByIP(result.Candidates(), sources[0]); candidate.ReviewPriorityAdjustment != 0 {
+		t.Fatalf("stale country evidence received adjustment: %+v", candidate)
+	}
+	if candidate := jurisdictionCandidateByIP(result.Candidates(), sources[1]); candidate.ReviewPriorityAdjustment != 0 {
+		t.Fatalf("unknown country evidence received adjustment: %+v", candidate)
+	}
+	if candidate := jurisdictionCandidateByIP(result.Candidates(), sources[2]); candidate.ReviewPriorityAdjustment != 10 {
+		t.Fatalf("fresh country evidence adjustment=%d want=10", candidate.ReviewPriorityAdjustment)
+	}
+}
+
 func TestJurisdictionRiskPolicyValidationDigestAndHostileData(t *testing.T) {
 	valid := jurisdictionTestPolicyConfig()
 	policy, err := NormalizeJurisdictionRiskPolicy(valid)

@@ -440,6 +440,7 @@ func evaluateJurisdictionCandidate(value EnrichedThreatCandidate, entryByCountry
 	}
 	countries := map[string]struct{}{}
 	freshCountry := false
+	allCountryStale := true
 	for _, assertion := range value.Metadata.Assertions {
 		result.AssertionReferences = append(result.AssertionReferences, JurisdictionContextAssertionReference{
 			AssertionID: assertion.ID, CountryCode: assertion.CountryCode, Freshness: assertion.Freshness,
@@ -447,6 +448,7 @@ func evaluateJurisdictionCandidate(value EnrichedThreatCandidate, entryByCountry
 		if assertion.CountryCode != "" {
 			countries[assertion.CountryCode] = struct{}{}
 			freshCountry = freshCountry || assertion.Freshness == SourceEnrichmentFreshnessFresh
+			allCountryStale = allCountryStale && assertion.Freshness == SourceEnrichmentFreshnessStale
 		}
 	}
 	sort.Slice(result.AssertionReferences, func(i, j int) bool {
@@ -474,7 +476,7 @@ func evaluateJurisdictionCandidate(value EnrichedThreatCandidate, entryByCountry
 		result.Status = JurisdictionContextUnknown
 		return result, newJurisdictionContextFinding(result)
 	}
-	if policyFreshness == SourceEnrichmentFreshnessStale || value.Status == SourceEnrichmentStale {
+	if policyFreshness == SourceEnrichmentFreshnessStale || allCountryStale {
 		result.Status = JurisdictionContextStale
 		return result, newJurisdictionContextFinding(result)
 	}

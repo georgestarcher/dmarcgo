@@ -435,6 +435,9 @@ func TestAnalyzeReportEvidenceKeepsHostileTextOutOfGeneratedDiagnostics(t *testi
 }
 
 func TestReportEvidenceJSONRoundTripAndValidation(t *testing.T) {
+	if ReportEvidenceSchemaVersion != "2" {
+		t.Fatalf("report evidence schema version=%q", ReportEvidenceSchemaVersion)
+	}
 	if _, err := json.Marshal(ReportEvidenceResult{}); !errors.Is(err, ErrInvalidAnalysisResult) {
 		t.Fatalf("zero result marshal error=%v", err)
 	}
@@ -453,9 +456,13 @@ func TestReportEvidenceJSONRoundTripAndValidation(t *testing.T) {
 	if loaded.Digest() != result.Digest() || loaded.Summary().Messages != result.Summary().Messages {
 		t.Fatalf("round trip changed result: loaded=%+v original=%+v", loaded.Summary(), result.Summary())
 	}
-	withUnknown := strings.Replace(string(payload), `"schema_version":"1"`, `"schema_version":"1","unexpected":true`, 1)
+	withUnknown := strings.Replace(string(payload), `"schema_version":"2"`, `"schema_version":"2","unexpected":true`, 1)
 	if _, err := LoadReportEvidenceJSON([]byte(withUnknown)); !errors.Is(err, ErrInvalidReportEvidence) {
 		t.Fatalf("unknown field error=%v", err)
+	}
+	legacy := strings.Replace(string(payload), `"schema_version":"2"`, `"schema_version":"1"`, 1)
+	if _, err := LoadReportEvidenceJSON([]byte(legacy)); !errors.Is(err, ErrInvalidReportEvidence) {
+		t.Fatalf("legacy schema version error=%v", err)
 	}
 	withBadDigest := strings.Replace(string(payload), string(result.Digest()), "report_evidence:bad", 1)
 	if _, err := LoadReportEvidenceJSON([]byte(withBadDigest)); !errors.Is(err, ErrInvalidReportEvidence) {

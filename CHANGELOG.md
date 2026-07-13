@@ -64,6 +64,10 @@ and this project uses semantic versioning for public API changes.
 
 ### Changed
 
+- Report-evidence persistence now uses schema version `2` because normalized
+  observations include policy-override type codes in content digests and
+  evidence identifiers. The strict loader rejects incompatible version `1`
+  documents instead of silently reinterpreting them.
 - `BuildValidationOutput` now accepts a completed `ReportValidationResult`
   instead of a report plus findings. Use `report.ValidationResult(mode,
   generatedAt)` to perform validation before serialization; output conversion

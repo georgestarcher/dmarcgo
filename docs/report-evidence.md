@@ -106,6 +106,12 @@ rejects unknown fields, trailing values, broken references, inconsistent
 counters or summaries, and digest mismatches. This persistence contract is not
 the automation-output profile introduced for completed user-facing modes.
 
+The current report-evidence persistence schema is version `2`. Version `2`
+adds normalized `policy_override_types` to observation content, so its content
+digests and evidence identifiers are intentionally distinct from version `1`.
+The strict loader rejects version `1` documents; regenerate them from their
+source reports rather than reinterpreting old digests under the new contract.
+
 ## Example
 
 ```go

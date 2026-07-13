@@ -186,6 +186,9 @@ causes network access.
 `LoadReportEvidenceJSON` validates the report-evidence schema version, common
 result metadata, references, counters, summary, and digest. The intermediate
 document is separate from later automation and agent output profiles.
+Report-evidence schema version `2` includes normalized policy-override types in
+observation content and intentionally rejects version `1` documents rather
+than migrating their incompatible digests and evidence identifiers.
 
 Applications may compose stages in a service or command, but authorization,
 scheduling, storage, retries, and automatic defensive action remain outside this

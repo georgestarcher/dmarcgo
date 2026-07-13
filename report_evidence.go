@@ -18,7 +18,7 @@ import (
 
 // ReportEvidenceSchemaVersion identifies the persistable normalized evidence
 // document. It is independent of the Go module and common output schema versions.
-const ReportEvidenceSchemaVersion = "1"
+const ReportEvidenceSchemaVersion = "2"
 
 const reportEvidenceStandardReference = "https://www.rfc-editor.org/rfc/rfc9990.html"
 

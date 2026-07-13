@@ -272,6 +272,7 @@ type correlationScope struct {
 type correlationDKIMIdentity struct {
 	domain   string
 	selector string
+	outcome  ReportAuthenticationOutcome
 }
 
 type correlationStreamAccumulator struct {
@@ -505,7 +506,7 @@ func buildCorrelationStreams(organizationID string, scopes []correlationScope, o
 				return nil, nil, err
 			}
 		}
-		identities := correlationDKIMIdentities(observation.DKIM)
+		identities := correlationDKIMIdentities(observation)
 		for _, identity := range identities {
 			value := DNSReportCorrelationStream{
 				EntityID: entityID, Domain: domain, Owner: owner, InheritedScope: inherited,
@@ -521,7 +522,7 @@ func buildCorrelationStreams(organizationID string, scopes []correlationScope, o
 				accumulator = &correlationStreamAccumulator{value: value, observations: map[EvidenceID]struct{}{}, reports: map[EvidenceID]struct{}{}, reporters: map[string]struct{}{}}
 				accumulators[key] = accumulator
 			}
-			if err := accumulator.add(observation); err != nil {
+			if err := accumulator.add(observation, identity.outcome); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -564,20 +565,48 @@ func resolveCorrelationScope(scopes []correlationScope, authorDomain string) (co
 	return *best, authorDomain != best.domain.Name, true
 }
 
-func correlationDKIMIdentities(values []ReportEvidenceDKIM) []correlationDKIMIdentity {
-	identities := make([]correlationDKIMIdentity, 0, len(values))
-	seen := map[string]struct{}{}
-	for _, value := range values {
-		identity := correlationDKIMIdentity{domain: value.Domain.Value, selector: value.Selector.Value}
-		key := identity.domain + "\x00" + identity.selector
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		identities = append(identities, identity)
+func correlationDKIMIdentities(observation ReportEvidenceObservation) []correlationDKIMIdentity {
+	type identityState struct {
+		domain, selector string
+		pass, fail       bool
 	}
-	if len(identities) == 0 {
-		identities = append(identities, correlationDKIMIdentity{})
+	states := map[string]*identityState{}
+	for _, value := range observation.DKIM {
+		key := value.Domain.Value + "\x00" + value.Selector.Value
+		state, ok := states[key]
+		if !ok {
+			state = &identityState{domain: value.Domain.Value, selector: value.Selector.Value}
+			states[key] = state
+		}
+		switch normalizedPolicyOutcome(value.Result) {
+		case ReportAuthenticationPass:
+			state.pass = true
+		case ReportAuthenticationFail:
+			state.fail = true
+		}
+	}
+	if len(states) == 0 {
+		return []correlationDKIMIdentity{{outcome: observation.PolicyOutcome.DKIM}}
+	}
+	passingIdentities := 0
+	for _, state := range states {
+		if state.pass {
+			passingIdentities++
+		}
+	}
+	identities := make([]correlationDKIMIdentity, 0, len(states))
+	for _, state := range states {
+		authenticationOutcome := ReportAuthenticationUnknown
+		if state.pass {
+			authenticationOutcome = ReportAuthenticationPass
+		} else if state.fail {
+			authenticationOutcome = ReportAuthenticationFail
+		}
+		identities = append(identities, correlationDKIMIdentity{
+			domain: state.domain, selector: state.selector,
+			outcome: correlationIdentityDKIMOutcome(observation.PolicyOutcome.DKIM, authenticationOutcome,
+				state.domain != "" && state.domain == observation.AuthorDomain.Value, passingIdentities),
+		})
 	}
 	sort.Slice(identities, func(i, j int) bool {
 		if identities[i].domain != identities[j].domain {
@@ -588,11 +617,36 @@ func correlationDKIMIdentities(values []ReportEvidenceDKIM) []correlationDKIMIde
 	return identities
 }
 
+func correlationIdentityDKIMOutcome(policyOutcome, authenticationOutcome ReportAuthenticationOutcome, exactAlignment bool, passingIdentities int) ReportAuthenticationOutcome {
+	switch policyOutcome {
+	case ReportAuthenticationFail:
+		return ReportAuthenticationFail
+	case ReportAuthenticationPass:
+		if authenticationOutcome != ReportAuthenticationPass {
+			return authenticationOutcome
+		}
+		if passingIdentities == 1 || exactAlignment {
+			return ReportAuthenticationPass
+		}
+	}
+	return ReportAuthenticationUnknown
+}
+
+func correlationCombinedOutcome(dkim, spf ReportAuthenticationOutcome) ReportAuthenticationOutcome {
+	if dkim == ReportAuthenticationPass || spf == ReportAuthenticationPass {
+		return ReportAuthenticationPass
+	}
+	if dkim == ReportAuthenticationFail && spf == ReportAuthenticationFail {
+		return ReportAuthenticationFail
+	}
+	return ReportAuthenticationUnknown
+}
+
 func correlationStreamKey(value DNSReportCorrelationStream) string {
 	return strings.Join([]string{value.EntityID, value.Domain, value.TargetDomain, value.AuthorDomain, value.SourceIP, value.SPFDomain, value.DKIMDomain, value.DKIMSelector}, "\x00")
 }
 
-func (accumulator *correlationStreamAccumulator) add(observation ReportEvidenceObservation) error {
+func (accumulator *correlationStreamAccumulator) add(observation ReportEvidenceObservation, dkimOutcome ReportAuthenticationOutcome) error {
 	accumulator.observations[observation.ID] = struct{}{}
 	accumulator.reports[observation.ReportEvidenceID] = struct{}{}
 	if observation.Reporter.Value != "" {
@@ -607,10 +661,10 @@ func (accumulator *correlationStreamAccumulator) add(observation ReportEvidenceO
 	if err != nil {
 		return err
 	}
-	if err = addReportEvidenceOutcome(&accumulator.value.Combined, observation.PolicyOutcome.Combined, observation.Count.Value); err != nil {
+	if err = addReportEvidenceOutcome(&accumulator.value.Combined, correlationCombinedOutcome(dkimOutcome, observation.PolicyOutcome.SPF), observation.Count.Value); err != nil {
 		return err
 	}
-	if err = addReportEvidenceOutcome(&accumulator.value.DKIM, observation.PolicyOutcome.DKIM, observation.Count.Value); err != nil {
+	if err = addReportEvidenceOutcome(&accumulator.value.DKIM, dkimOutcome, observation.Count.Value); err != nil {
 		return err
 	}
 	return addReportEvidenceOutcome(&accumulator.value.SPF, observation.PolicyOutcome.SPF, observation.Count.Value)

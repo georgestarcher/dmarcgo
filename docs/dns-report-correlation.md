@@ -35,6 +35,13 @@ DKIM selector. Repeated DKIM results can therefore create more than one stream
 view for one report row; the top-level summary copies the distinct report
 evidence totals and never double-counts those expanded views.
 
+Each expanded stream derives DKIM outcome from the authentication result tied
+to that signing domain and selector, constrained by the row's policy-evaluated
+aligned DKIM result. When multiple passing signatures make alignment
+attribution ambiguous, the affected stream remains `unknown` rather than
+borrowing another selector's pass. Its combined outcome is recomputed from
+that identity-specific DKIM outcome and the row's policy-evaluated SPF result.
+
 An expected sender becomes a direct candidate only when supplied evidence
 matches declared inventory:
 

@@ -162,7 +162,10 @@ func TestCorrelateReportEvidenceMultiDKIMStreamsDoNotDoubleCountSummary(t *testi
 	config := correlationTestConfig(AuthenticationPolicyConfig{})
 	portfolio, health := correlationTestDNSHealth(t, config, correlationHealthyDNSValues())
 	record := correlationTestRecord("192.0.2.10", "5", "example.test", "pass", "fail", "example.test", "mk1", "example.test")
-	record.AuthResults.DKIM = append(record.AuthResults.DKIM, DKIMAuthResult{Domain: "other.example", Selector: "other", Result: "fail"})
+	record.AuthResults.DKIM = []DKIMAuthResult{
+		{Domain: "example.test", Selector: "mk1", Result: "fail"},
+		{Domain: "example.test", Selector: "other", Result: "pass"},
+	}
 	report := correlationTestReport("r1", "receiver.example", 100, 200, record)
 	result, err := CorrelateReportEvidence(portfolio, health, correlationTestEvidence(t, []*AggregateReport{report}, time.Unix(200, 0)), DNSReportCorrelationOptions{})
 	if err != nil {
@@ -170,6 +173,63 @@ func TestCorrelateReportEvidenceMultiDKIMStreamsDoNotDoubleCountSummary(t *testi
 	}
 	if result.Summary().Messages != 5 || result.Summary().Streams != 2 || result.Streams()[0].Messages+result.Streams()[1].Messages != 10 {
 		t.Fatalf("multi-DKIM summary=%+v streams=%+v", result.Summary(), result.Streams())
+	}
+	for _, stream := range result.Streams() {
+		switch stream.DKIMSelector {
+		case "mk1":
+			if stream.DKIM.Fail != 5 || stream.DKIM.Pass != 0 || stream.Combined.Fail != 5 {
+				t.Fatalf("failed selector inherited another selector's pass: %+v", stream)
+			}
+		case "other":
+			if stream.DKIM.Pass != 5 || stream.DKIM.Fail != 0 || stream.Combined.Pass != 5 {
+				t.Fatalf("passing selector outcome=%+v", stream)
+			}
+		default:
+			t.Fatalf("unexpected selector stream: %+v", stream)
+		}
+	}
+	assertCorrelationClassification(t, result.Findings(), CorrelationExpectedSenderFailure, "192.0.2.10")
+	if hasCorrelationClassification(result.Findings(), CorrelationExpectedSenderHealthy, "192.0.2.10") {
+		t.Fatalf("failed expected selector was classified healthy: %+v", result.Findings())
+	}
+	eitherConfig := correlationTestConfig(AuthenticationPolicyConfig{RequireEither: true, AllowedSelectors: []string{"mk1"}})
+	eitherPortfolio, eitherHealth := correlationTestDNSHealth(t, eitherConfig, correlationHealthyDNSValues())
+	eitherResult, err := CorrelateReportEvidence(eitherPortfolio, eitherHealth, correlationTestEvidence(t, []*AggregateReport{report}, time.Unix(200, 0)), DNSReportCorrelationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertCorrelationClassification(t, eitherResult.Findings(), CorrelationExpectedSenderFailure, "192.0.2.10")
+	if hasCorrelationClassification(eitherResult.Findings(), CorrelationExpectedSenderHealthy, "192.0.2.10") {
+		t.Fatalf("require_either inherited another selector's pass: %+v", eitherResult.Findings())
+	}
+}
+
+func TestCorrelationDKIMIdentitiesAvoidAmbiguousPassAttribution(t *testing.T) {
+	observation := ReportEvidenceObservation{
+		AuthorDomain:  ReportEvidenceValue{Value: "example.test"},
+		PolicyOutcome: ReportEvidencePolicyOutcome{DKIM: ReportAuthenticationPass},
+		DKIM: []ReportEvidenceDKIM{
+			{Domain: ReportEvidenceValue{Value: "example.test"}, Selector: ReportEvidenceValue{Value: "exact"}, Result: "pass"},
+			{Domain: ReportEvidenceValue{Value: "signer.example.test"}, Selector: ReportEvidenceValue{Value: "ambiguous"}, Result: "pass"},
+		},
+	}
+	identities := correlationDKIMIdentities(observation)
+	if len(identities) != 2 {
+		t.Fatalf("identities=%+v", identities)
+	}
+	for _, identity := range identities {
+		switch identity.selector {
+		case "exact":
+			if identity.outcome != ReportAuthenticationPass {
+				t.Fatalf("exactly aligned outcome=%q", identity.outcome)
+			}
+		case "ambiguous":
+			if identity.outcome != ReportAuthenticationUnknown {
+				t.Fatalf("ambiguous aligned outcome=%q", identity.outcome)
+			}
+		default:
+			t.Fatalf("unexpected identity=%+v", identity)
+		}
 	}
 }
 

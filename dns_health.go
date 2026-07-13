@@ -527,6 +527,9 @@ func (evaluator *dnsHealthEvaluator) evaluateDomain(entity Entity, domain Monito
 				break
 			}
 		}
+	} else {
+		recordScores[DNSRecordDMARC] = nil
+		recordFindingIDs[DNSRecordDMARC] = nil
 	}
 	domainHealth.Mechanisms = buildDNSHealthMechanismScores(recordScores, recordFindingIDs, evaluator.profile.MaximumScore)
 	domainHealth.Score = rollupDNSHealthMechanismScores(domainHealth.Mechanisms, evaluator.profile, compactSortedFindingIDs(childFindingIDs))
@@ -978,18 +981,25 @@ func (evaluator *dnsHealthEvaluator) domainDMARCRecordName(domain MonitoredDomai
 		// fallback to a more distant inherited policy.
 		return name, true
 	}
+	if len(names) > 0 {
+		// Preserve known absence as the closest applicable component rather
+		// than allowing unrelated configured owners into the fallback walk.
+		return names[0], true
+	}
 	return "", false
 }
 
 func orderedDMARCRecordNames(domain string, names []string) []string {
-	ordered := append([]string(nil), names...)
-	sort.Slice(ordered, func(i, j int) bool {
-		leftDistance, leftAncestor := dmarcRecordDistance(domain, ordered[i])
-		rightDistance, rightAncestor := dmarcRecordDistance(domain, ordered[j])
-		if leftAncestor != rightAncestor {
-			return leftAncestor
+	ordered := make([]string, 0, len(names))
+	for _, name := range names {
+		if _, ancestor := dmarcRecordDistance(domain, name); ancestor {
+			ordered = append(ordered, name)
 		}
-		if leftAncestor && leftDistance != rightDistance {
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		leftDistance, _ := dmarcRecordDistance(domain, ordered[i])
+		rightDistance, _ := dmarcRecordDistance(domain, ordered[j])
+		if leftDistance != rightDistance {
 			return leftDistance < rightDistance
 		}
 		return ordered[i] < ordered[j]

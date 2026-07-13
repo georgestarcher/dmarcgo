@@ -398,6 +398,33 @@ func TestEvaluateDNSHealthOrdersInheritedDMARCByTreeProximity(t *testing.T) {
 	}
 }
 
+func TestEvaluateDNSHealthIgnoresNonAncestorDMARCRecord(t *testing.T) {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "unrelated-dmarc"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "a.example.test", Records: MonitoredRecordsConfig{DMARC: []string{"_dmarc.a.example.test", "_dmarc.other.test"}},
+		}}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	authentication := dnsHealthTestAuthenticationFromValues(t, portfolio, dnsHealthTestTime, nil, nil, map[string]string{
+		"_dmarc.other.test": "v=DMARC1; p=reject; rua=mailto:reports@other.test",
+	})
+	result, err := EvaluateDNSHealth(portfolio, authentication, dnsHealthTestCatalog(t), DNSHealthOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	domain := findDNSDomainHealth(t, result.Domains(), "a.example.test", "primary")
+	if !domain.Mechanisms.DMARC.Available || domain.Mechanisms.DMARC.Value != 30 {
+		t.Fatalf("unrelated DMARC policy affected mechanism=%+v", domain.Mechanisms.DMARC)
+	}
+	if signal := findDNSHealthMaturitySignal(t, domain.Maturity, "dns.maturity.dmarc_enforced"); signal.Satisfied {
+		t.Fatalf("unrelated DMARC policy affected maturity=%+v", signal)
+	}
+}
+
 func TestEvaluateDNSHealthDMARCDiscoveryStopsAtUnusableExactRecord(t *testing.T) {
 	tests := []struct {
 		name           string

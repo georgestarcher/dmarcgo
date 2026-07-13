@@ -82,7 +82,8 @@ owner has conclusively missing record evidence. Invalid, conflicting, or
 unavailable exact records block fallback so a parent policy cannot conceal the
 closer owner's failure or uncertainty. When multiple configured ancestors are
 available, discovery evaluates them from the closest DNS parent outward rather
-than using their lexical configuration order.
+than using their lexical configuration order. Configured DMARC owners outside
+the evaluated domain's ancestor tree are excluded from policy fallback.
 
 Scores are posture indicators, not proof of compromise, sender authorization,
 or malicious activity. Applications should use finding codes and evidence,

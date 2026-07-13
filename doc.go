@@ -37,6 +37,14 @@
 // It never loads files, resolves DNS, enriches source addresses, interprets
 // expected-sender inventory, or consults the current time.
 //
+// CorrelateReportEvidence performs the later pure comparison of a normalized
+// Portfolio, completed DNSHealthResult, and completed ReportEvidenceResult. It
+// resolves declared selectors and unambiguous SPF identities, preserves DNS and
+// report times separately, and emits deterministic onboarding, configuration,
+// variance, unknown-source, and insufficient-evidence findings. Provider
+// context never becomes authorization, and correlation performs no collection,
+// parsing, enrichment, storage, or clock access.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

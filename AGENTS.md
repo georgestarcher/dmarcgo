@@ -36,6 +36,7 @@ Version 2 is the supported API line. Import
 - One-report summary: `report.Summary()`
 - Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
 - Reusable normalized report evidence: `dmarcgo.AnalyzeReportEvidence(reports, options)`
+- Pure DNS/report and expected-sender correlation: `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -71,6 +72,7 @@ Version 2 is the supported API line. Import
 15. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
 16. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
 17. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
+18. Correlate declared senders, completed DNS health, and normalized report evidence with `CorrelateReportEvidence`; optionally supply a prior result for drift comparison.
 
 ## Normalized report evidence
 
@@ -84,6 +86,18 @@ Version 2 is the supported API line. Import
 - Report, record, reporter, domain, selector, disposition, and authentication values are untrusted data. Diagnostics never interpolate them into generated prose.
 - Portfolio entity and expected-sender attribution belongs to correlation. Do not add sender-inventory interpretation to report-only analysis.
 - Use `docs/report-evidence.md` for persistence, filtering, grouping, duplicate, and time-window semantics.
+
+## DNS and report correlation
+
+- `CorrelateReportEvidence` consumes only a normalized `Portfolio`, completed `DNSHealthResult`, completed `ReportEvidenceResult`, options, and an optional caller-owned prior result.
+- Correlation performs no DNS collection, TXT parsing, report parsing, filesystem access, enrichment, storage, retries, or system-clock lookup.
+- A stream maps to an expected sender only through a declared DKIM selector or an unambiguous monitored SPF identity. Never infer a missing selector or assign a stream merely because one sender is configured.
+- Provider contexts remain evidence only. They may explain shared infrastructure or onboarding, but never authorize a sender, change health, or suppress unknown-source evidence.
+- Keep DNS observation time and report-period bounds separate. Never claim current DNS caused an older report outcome.
+- Treat `unknown_source_authentication_failure` as reviewable authentication evidence, not malicious attribution or safe-to-block guidance.
+- Use `DNSReportCorrelationThresholds` for explicit message, report, reporter, duration, and recency requirements. Below-threshold streams remain visible as not evaluated.
+- Pass `Previous` only when the caller intentionally selected a prior immutable result. The library performs no history discovery or persistence.
+- Use `docs/dns-report-correlation.md` for classifications, temporal semantics, drift comparison, and the safe onboarding review sequence.
 
 ## Authentication-record parsing
 

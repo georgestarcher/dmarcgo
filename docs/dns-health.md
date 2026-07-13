@@ -18,7 +18,8 @@ The result retains the portfolio, snapshot, authentication-result, and provider
 catalog digests needed to reproduce and validate its inputs. `EvaluateDNSHealth`
 defaults its generation time to the DNS observation time. Set
 `DNSHealthOptions.GeneratedAt` explicitly when evaluating staleness or creating
-a later reproducible assessment.
+a later reproducible assessment. `DNSHealthResult.ObservedAt()` always retains
+the underlying snapshot time separately from that later evaluation time.
 
 ## Scopes and evidence
 

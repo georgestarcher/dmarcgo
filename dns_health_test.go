@@ -39,6 +39,9 @@ func TestEvaluateDNSHealthDeterministicRollupsAndFindings(t *testing.T) {
 	if metadata.Mode != AnalysisModeDNSHealth || !metadata.GeneratedAt.Equal(options.GeneratedAt) || metadata.Evaluation.State != EvaluationStateEvaluated {
 		t.Fatalf("metadata=%+v", metadata)
 	}
+	if !first.ObservedAt().Equal(observedAt) {
+		t.Fatalf("observed_at=%s want %s", first.ObservedAt(), observedAt)
+	}
 	if first.PortfolioDigest() != portfolio.Digest() || first.AuthenticationDigest() != authentication.Digest() || first.SnapshotDigest() != authentication.SnapshotDigest() {
 		t.Fatal("result provenance digests do not match inputs")
 	}

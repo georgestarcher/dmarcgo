@@ -84,6 +84,67 @@ func ExampleAnalyzeReportEvidence() {
 	// Output: reports=1 messages=5 sources=2 failed=3
 }
 
+// ExampleCorrelateReportEvidence demonstrates the pure comparison of declared
+// sender intent, current DNS health, and normalized historical report evidence.
+func ExampleCorrelateReportEvidence() {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+		ExpectedSenders: []ExpectedSenderConfig{{
+			ID: "workspace", RequireDKIM: true, AllowedSelectors: []string{"s1"},
+		}},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "example.com", Records: MonitoredRecordsConfig{
+				SPF: []string{"example.com"}, DKIM: []string{"s1._domainkey.example.com"}, DMARC: []string{"_dmarc.example.com"},
+			}, ExpectedSenders: []string{"workspace"},
+		}}}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	observedAt := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver{
+		"example.com":               "v=spf1 -all",
+		"s1._domainkey.example.com": "v=DKIM1; k=ed25519; p=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+		"_dmarc.example.com":        "v=DMARC1; p=reject; rua=mailto:reports@example.com",
+	}, DNSCollectionOptions{Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1})
+	if err != nil {
+		log.Fatal(err)
+	}
+	authentication, err := ParseAuthenticationRecords(snapshot)
+	if err != nil {
+		log.Fatal(err)
+	}
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		log.Fatal(err)
+	}
+	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	report, err := ParseBytes([]byte(helperReportXML))
+	if err != nil {
+		log.Fatal(err)
+	}
+	evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: observedAt})
+	if err != nil {
+		log.Fatal(err)
+	}
+	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	unknownFailures := 0
+	for _, finding := range correlation.Findings() {
+		if finding.Classification == CorrelationUnknownSourceFailure {
+			unknownFailures++
+		}
+	}
+	fmt.Printf("streams=%d unknown_failures=%d\n", correlation.Summary().Streams, unknownFailures)
+	// Output: streams=2 unknown_failures=1
+}
+
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.
 func ExampleBuildReportSummaryOutput() {
 	report, err := ParseBytes([]byte(exampleReportXML))

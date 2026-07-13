@@ -753,6 +753,22 @@ func ExampleWriteFeaturesCSV() {
 	// Example Org,alerts@example.com,example-report-id,1609459200,1609545600,example.com,none,,,203.0.113.7,27,none,pass,pass,example.com,,,example.com,s1,pass,example.com,,pass
 }
 
+// ExampleWriteThreatCandidatesOutput demonstrates a native, mode-specific JSONL export.
+func ExampleWriteThreatCandidatesOutput() {
+	result, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := WriteThreatCandidatesOutput(&output, result, AnalysisOutputJSONL, AnalysisOutputOptions{
+		Redaction: OutputRedactionPublic,
+	}); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(bytes.Contains(output.Bytes(), []byte(`"mode":"threat_candidates"`)))
+	// Output: true
+}
+
 // ExampleAggregateReport_ValidateStrict demonstrates strict RFC 9990 validation.
 func ExampleAggregateReport_ValidateStrict() {
 	var report AggregateReport

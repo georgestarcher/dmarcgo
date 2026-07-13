@@ -1,0 +1,52 @@
+{
+  "modes": [
+    {
+      "mode": "dns_health",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "record", "domain", "entity", "finding", "provider_context"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "entity_id", "domain", "name", "dns_record_type", "status", "severity", "score", "grade", "data_json"]
+    },
+    {
+      "mode": "report_evidence",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "report", "observation", "diagnostic"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "reporter", "target_domain", "source_ip", "author_domain", "disposition", "messages", "combined_outcome", "data_json"]
+    },
+    {
+      "mode": "dns_report_correlation",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "inventory", "stream", "finding"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "entity_id", "domain", "target_domain", "author_domain", "source_ip", "messages", "classification", "severity", "data_json"]
+    },
+    {
+      "mode": "threat_candidates",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "candidate"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "source_ip", "ip_type", "score", "confidence", "severity", "messages", "review_eligible", "recommended_usage", "data_json"]
+    },
+    {
+      "mode": "source_enrichment",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_enrichment/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "candidate", "asn", "diagnostic"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "source_ip", "status", "score", "asn", "country_code", "organization", "data_json"]
+    },
+    {
+      "mode": "jurisdiction_context",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json",
+      "schema_version": "1",
+      "formats": ["json", "jsonl", "csv"],
+      "jsonl_record_types": ["metadata", "candidate", "finding"],
+      "csv_columns": ["schema", "schema_version", "mode", "generated_at", "result_digest", "redaction", "record_type", "record_id", "source_ip", "status", "tier", "country_codes", "categories", "review_priority_adjustment", "severity", "data_json"]
+    }
+  ]
+}

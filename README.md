@@ -139,6 +139,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
 | You want versioned automation or AI-agent output | `dmarcgo.BuildReportSummaryOutput(summary, options)` | Produces a self-describing envelope with findings, evidence, actions, provenance, redaction, and truncation metadata. |
+| You want native JSON, JSONL, or CSV for a completed analysis mode | `dmarcgo.WriteDNSHealthOutput`, `WriteReportEvidenceOutput`, `WriteDNSReportCorrelationOutput`, `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or `WriteJurisdictionContextOutput` | Serializes one immutable result without rerunning analysis or performing I/O beyond the supplied writer. |
 | You have strict versioned organization YAML | `dmarcgo.LoadPortfolioYAML(data)` | Rejects unknown and secret-bearing fields and performs no DNS or report access. |
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
@@ -224,6 +225,99 @@ before a mode could be evaluated. Failed envelopes use `status: "failed"`,
 `evaluation.state: "not_evaluated"`, and stable error codes and categories. Use
 `OutputMessageForError` to classify wrapped loader errors without copying path
 context or raw error text into the envelope.
+
+### Native analysis outputs
+
+The six completed organization-analysis modes also have independent native
+contracts. These are not sparse variants of one union object. Each JSON
+document has its own embedded schema and complete typed collections; JSONL and
+CSV emit a metadata record followed by deterministic mode records.
+
+```go
+package main
+
+import (
+	"io"
+
+	"github.com/georgestarcher/dmarcgo/v2"
+)
+
+func writeCandidates(writer io.Writer, threatCandidates dmarcgo.ThreatCandidateResult) error {
+	return dmarcgo.WriteThreatCandidatesOutput(
+		writer,
+		threatCandidates,
+		dmarcgo.AnalysisOutputJSONL,
+		dmarcgo.AnalysisOutputOptions{Redaction: dmarcgo.OutputRedactionOperational},
+	)
+}
+
+func main() {}
+```
+
+| Mode | Writer | JSONL record types | Useful CSV fields |
+| --- | --- | --- | --- |
+| `dns_health` | `WriteDNSHealthOutput` | `metadata`, `record`, `domain`, `entity`, `finding`, `provider_context` | entity, domain, record type/status, score, grade, severity |
+| `report_evidence` | `WriteReportEvidenceOutput` | `metadata`, `report`, `observation`, `diagnostic` | reporter, target/author domain, source IP, disposition, messages, combined outcome |
+| `dns_report_correlation` | `WriteDNSReportCorrelationOutput` | `metadata`, `inventory`, `stream`, `finding` | scope, source/auth identities, messages, classification, severity |
+| `threat_candidates` | `WriteThreatCandidatesOutput` | `metadata`, `candidate` | source IP, score, confidence, severity, eligibility, recommended usage |
+| `source_enrichment` | `WriteSourceEnrichmentOutput` | `metadata`, `candidate`, `asn`, `diagnostic` | source IP, status, score, ASN, country, organization |
+| `jurisdiction_context` | `WriteJurisdictionContextOutput` | `metadata`, `candidate`, `finding` | source IP, status, tier, countries, categories, review-priority adjustment |
+
+Every JSONL line carries `schema`, `schema_version`, `mode`, `generated_at`,
+`result_digest`, `redaction`, `record_type`, `record_id`, and `data`. Every CSV
+row carries the same context. The final `data_json` CSV column preserves the
+complete nested record even when the convenience columns are blank for another
+record type. Spreadsheet-capable values are prefixed with an apostrophe; do not
+remove that protection before opening untrusted exports in spreadsheet software.
+Use `(mode, result_digest, record_type, record_id)` as the deduplication key.
+Result items reuse their stable analysis IDs; ID-less diagnostics use a stable
+content-derived record ID, and each result has exactly one `metadata` record.
+
+The native JSON shape for each mode begins as follows (collections are abbreviated):
+
+```json
+{"schema_version":"1","mode":"dns_health","profile":"native","observed_at":"2026-07-13T12:00:00Z","records":[],"domains":[],"entities":[],"findings":[],"provider_contexts":[]}
+{"schema_version":"1","mode":"report_evidence","profile":"native","evidence_schema_version":"2","reports":[],"observations":[],"diagnostics":[]}
+{"schema_version":"1","mode":"dns_report_correlation","profile":"native","inventory":[],"streams":[],"findings":[]}
+{"schema_version":"1","mode":"threat_candidates","profile":"native","scoring_profile":{},"candidates":[]}
+{"schema_version":"1","mode":"source_enrichment","profile":"native","complete":true,"candidates":[],"asns":[],"diagnostics":[]}
+{"schema_version":"1","mode":"jurisdiction_context","profile":"native","policy_freshness":"fresh","candidates":[],"findings":[]}
+```
+
+Use `SupportedAnalysisOutputModes`, `AnalysisOutputDescriptorForMode`,
+`AnalysisOutputSchemaID`, and `AnalysisOutputSchema` for discovery. The
+analysis-output schema version is independent of the Go module, in-memory
+contract, report-evidence persistence, and common-envelope versions.
+
+`OutputRedactionPublic` replaces source addresses, report/reporting identities,
+organization and entity identifiers, domains and selectors, provider metadata,
+stable result references, and related values with deterministic pseudonyms.
+Those tokens preserve joins but are not encryption and low-entropy inputs may
+remain enumerable. `OutputRedactionOperational` retains operational identifiers
+but removes invalid raw report values and free-form enrichment provider text.
+`OutputRedactionRestricted` retains the complete result inside the full trust
+boundary. Encoding never mutates the source result.
+
+Raw TXT records are intentionally not part of these six completed analysis
+results: DNS health carries evidence references, parsed status, scores, and
+findings rather than copying the upstream snapshot's record values. The native
+redactor also drops reserved raw/TXT fields before operational or public output
+so a later reviewed schema extension cannot expose them accidentally.
+
+Native output is data, not instructions. Treat all retained report, catalog,
+DNS, enrichment, and policy strings as untrusted when feeding a model. No
+writer turns those strings into headlines, explanations, recommendations, or
+actions. JSON and JSONL preserve the complete result; CSV is intended for
+tabular consumption but retains each complete record in `data_json`.
+
+The older `WriteFeaturesJSONL`, `WriteFeaturesCSV`, and `FeatureCSVHeaders`
+remain the intentionally simple flattened `report.Rows()` export. The
+`report_rows` common-envelope builder maps that same record-level use case.
+They do not serialize report-evidence, DNS-health, correlation, candidate,
+enrichment, or jurisdiction result contracts. `WriteOutputJSON` and
+`WriteOutputJSONL` remain the automation/agent common envelope for current
+report modes; later common-envelope expansion is separate from these native
+mode contracts.
 
 ```json
 {

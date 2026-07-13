@@ -1,0 +1,596 @@
+{
+  "$defs": {
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "JurisdictionContextAssertionReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "type": "string"
+        },
+        "country_code": {
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "freshness"
+      ],
+      "type": "object"
+    },
+    "JurisdictionContextCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_references": {
+          "items": {
+            "$ref": "#/$defs/JurisdictionContextAssertionReference"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "categories": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "country_codes": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "policy_entry_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "review_priority_adjustment": {
+          "type": "integer"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_references",
+        "candidate_id",
+        "categories",
+        "country_codes",
+        "finding_ids",
+        "policy_entry_ids",
+        "reasons",
+        "review_priority_adjustment",
+        "sensitivity",
+        "source_ip",
+        "status"
+      ],
+      "type": "object"
+    },
+    "JurisdictionContextFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "candidate_id": {
+          "type": "string"
+        },
+        "categories": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "code": {
+          "type": "string"
+        },
+        "country_codes": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "policy_entry_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "review_priority_adjustment": {
+          "type": "integer"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_ids",
+        "candidate_id",
+        "categories",
+        "code",
+        "country_codes",
+        "id",
+        "message",
+        "policy_entry_ids",
+        "reasons",
+        "review_priority_adjustment",
+        "sensitivity",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "JurisdictionContextStatusCount": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "status"
+      ],
+      "type": "object"
+    },
+    "JurisdictionContextSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "adjusted_candidates": {
+          "type": "integer"
+        },
+        "candidates": {
+          "type": "integer"
+        },
+        "matches": {
+          "type": "integer"
+        },
+        "maximum_applied_adjustment": {
+          "type": "integer"
+        },
+        "statuses": {
+          "items": {
+            "$ref": "#/$defs/JurisdictionContextStatusCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjusted_candidates",
+        "candidates",
+        "matches",
+        "maximum_applied_adjustment",
+        "statuses"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "type": "string"
+        },
+        "country_codes": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "jurisdiction_context"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "review_priority_adjustment": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "source_ip",
+        "status",
+        "tier",
+        "country_codes",
+        "categories",
+        "review_priority_adjustment",
+        "severity",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/jurisdictionContextOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/JurisdictionContextCandidate"
+            },
+            "record_type": {
+              "const": "candidate"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/JurisdictionContextFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "jurisdiction_context"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    },
+    "jurisdictionContextOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "policy_digest": {
+          "type": "string"
+        },
+        "policy_freshness": {
+          "type": "string"
+        },
+        "source_enrichment_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/JurisdictionContextSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "metadata",
+        "organization_id",
+        "policy_digest",
+        "policy_freshness",
+        "source_enrichment_digest",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/JurisdictionContextCandidate"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/JurisdictionContextFinding"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "jurisdiction_context"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "jurisdiction_context"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "policy_digest": {
+      "type": "string"
+    },
+    "policy_freshness": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "source_enrichment_digest": {
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/JurisdictionContextSummary"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidates",
+    "findings",
+    "metadata",
+    "mode",
+    "organization_id",
+    "policy_digest",
+    "policy_freshness",
+    "profile",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "source_enrichment_digest",
+    "summary",
+    "version"
+  ],
+  "title": "dmarcgo native jurisdiction context output v1",
+  "type": "object"
+}

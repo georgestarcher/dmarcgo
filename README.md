@@ -109,6 +109,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want complete structured data | `report.Record` | Preserves RFC 9990 fields such as multiple DKIM results. |
 | You want quick counts for one report | `report.Summary()` | Gives totals, pass/fail counts, top sources, and date metadata. |
 | You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
+| You want reusable normalized report evidence | `dmarcgo.AnalyzeReportEvidence(reports, options)` | Produces deterministic, persistable report-only evidence with filtering and aggregation; it performs no DNS, enrichment, or sender-inventory interpretation. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
 | You want metadata from attachment names | `dmarcgo.ParseReportFilename(name)` | Parses common bang-separated RUA filenames into reporter, domain, dates, unique ID, and compression. |
@@ -675,6 +676,69 @@ func main() {
 }
 ```
 
+## Reusable normalized report evidence
+
+Use `AnalyzeReportEvidence` when multiple later views need the same parsed
+corpus. It normalizes source IPs, author and authentication domains, repeated
+DKIM results, optional selectors, SPF identity, policy outcomes, dispositions,
+reporters, counts, and report periods once. The immutable result can then be
+filtered, aggregated, or persisted without retaining or reparsing report files.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/georgestarcher/dmarcgo/v2"
+)
+
+func main() {
+	loaded, err := dmarcgo.LoadReportsFromDir("reports")
+	if err != nil {
+		log.Fatal(err)
+	}
+	reports := make([]*dmarcgo.AggregateReport, 0, len(loaded))
+	for _, item := range loaded {
+		if item.Err == nil {
+			reports = append(reports, item.Report)
+		}
+	}
+
+	evidence, err := dmarcgo.AnalyzeReportEvidence(reports, dmarcgo.ReportEvidenceOptions{
+		GeneratedAt: time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	sources, err := evidence.Aggregate(
+		dmarcgo.ReportEvidenceFilter{AuthorDomains: []string{"example.com"}},
+		dmarcgo.ReportEvidenceBySourceIP,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("reports=%d messages=%d sources=%d\n",
+		evidence.Summary().Reports,
+		evidence.Summary().Messages,
+		len(sources),
+	)
+}
+```
+
+Missing optional evidence remains unknown. Invalid or zero counts are retained
+as diagnostic observations but excluded from message totals, and checked
+arithmetic prevents wraparound. Identical non-zero report identities and content
+are counted once; conflicting content for one identity fails closed. Overlapping
+periods from different report identities remain separate receiver observations.
+
+Report evidence is independent of organization configuration. Portfolio entity
+and expected-sender attribution belongs to the later correlation stage. See
+[`docs/report-evidence.md`](docs/report-evidence.md) for grouping, time-window,
+duplicate, persistence, and privacy semantics.
+
 ## Attachment filename metadata
 
 Many DMARC aggregate report attachments use a bang-separated filename containing the reporting organization, policy domain, begin epoch, end epoch, optional unique ID, and compression extension. Use `ParseReportFilename` when you want that delivery metadata without opening the archive.
@@ -974,7 +1038,7 @@ func main() {
 - Malformed XML returns a parse-specific error.
 - Invalid or negative `<count>` values are surfaced as `dmarcgo.InvalidMailCount` in rows. Summaries count them in `InvalidRecords` but exclude them from message totals and source groupings.
 - `utilities.ReadZip()` skips directory entries, prefers `.xml` members, and returns an error if an archive has no regular files.
-- `Summary()`, `SummarizeReports()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide lightweight analysis helpers without turning the package into an ingest system.
+- `Summary()`, `SummarizeReports()`, `AnalyzeReportEvidence()`, `UnauthenticatedSources()`, `RejectedUnauthenticatedSources()`, and `PassingSources()` provide report-only analysis without turning the package into an ingest system.
 - `ReportKey()`, `FilenameReportKey()`, `SameReport()`, and `DeduplicateReports()` support duplicate-safe importing without adding storage.
 - `AnonymizeReport()` creates deterministic fixture-safe report copies using documentation IP/domain ranges, replaces report IDs, and removes raw extension XML by default.
 - `TopSources()`, `TopUnauthenticatedSources()`, and `TopCounts()` return sorted top-N lists for dashboards and summaries.
@@ -993,7 +1057,7 @@ For a mailbox, object-storage, or upload-backed processing pipeline:
 4. Build an identity with `ReportKey(report)` and, when useful, `FilenameReportKey(filename)`.
 5. Deduplicate in your application storage using report identity plus your attachment hash.
 6. Store `report.Rows()` for record-oriented reporting, or store the full `AggregateReport` when you need every structured DKIM/SPF result.
-7. Use `Summary()`, `SummarizeReports()`, top-N helpers, and source-review helpers for reporting views.
+7. Use `Summary()` and `SummarizeReports()` for lightweight reporting views, or normalize a reusable corpus once with `AnalyzeReportEvidence()` for filtering, correlation, and later analysis.
 8. Export analyst-friendly output with `WriteFeaturesJSONL` or `WriteFeaturesCSV`.
 
 Recommended fields to persist outside this library include the original filename, attachment hash, message/source identifier, parsed report identity, compatibility validation findings, flattened rows, and import timestamp. Avoid logging raw report XML or raw attachments by default because reports can contain domains, source IPs, provider metadata, and authentication behavior.

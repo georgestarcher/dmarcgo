@@ -46,6 +46,10 @@ and this project uses semantic versioning for public API changes.
   citations, exact-by-default SPF dependency matching, immutable accessors,
   explicit private overlays, deterministic provenance, review-date checks, and
   context-only semantics that never imply authorization or DNS health.
+- Pure normalized report-evidence analysis with stable report and observation
+  provenance, explicit unknown values, checked 64-bit counts, deterministic
+  duplicate handling, filtering and multi-dimensional aggregation, strict JSON
+  persistence, fuzz coverage, and report-only side-effect isolation.
 
 ### Changed
 

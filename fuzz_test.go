@@ -1,6 +1,11 @@
 package dmarcgo
 
-import "testing"
+import (
+	"encoding/json"
+	"errors"
+	"testing"
+	"time"
+)
 
 func FuzzParseBytes(f *testing.F) {
 	f.Add([]byte(helperReportXML))
@@ -25,5 +30,35 @@ func FuzzParseProviderCatalogYAML(f *testing.F) {
 	f.Add([]byte("providers: &providers [*providers]\n"))
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		_, _ = ParseProviderCatalogYAML(payload)
+	})
+}
+
+func FuzzAnalyzeReportEvidence(f *testing.F) {
+	f.Add("192.0.2.1", "example.test", "selector", "1", "pass", "fail")
+	f.Add("not-an-ip", "", "", "0", "unknown", "")
+	f.Fuzz(func(t *testing.T, sourceIP, domain, selector, count, dkim, spf string) {
+		report := &AggregateReport{
+			ReportMetadata:  ReportMetadata{OrgName: "receiver", ReportID: "fuzz", DateRange: DateRange{Begin: "1", End: "2"}},
+			PolicyPublished: PolicyPublished{Domain: domain},
+			Record: []Record{{
+				Row:         Row{SourceIP: sourceIP, Count: count, PolicyEvaluated: PolicyEvaluated{DKIM: dkim, SPF: spf}},
+				Identifiers: Identifiers{HeaderFrom: domain},
+				AuthResults: AuthResults{DKIM: []DKIMAuthResult{{Domain: domain, Selector: selector, Result: dkim}}},
+			}},
+		}
+		result, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: time.Unix(3, 0)})
+		if err != nil {
+			if !errors.Is(err, ErrReportEvidenceOverflow) {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			return
+		}
+		payload, err := json.Marshal(result)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadReportEvidenceJSON(payload); err != nil {
+			t.Fatal(err)
+		}
 	})
 }

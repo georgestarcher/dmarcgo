@@ -35,6 +35,7 @@ Version 2 is the supported API line. Import
 - Full structured model: `report.Record`, `report.ReportMetadata`, `report.PolicyPublished`
 - One-report summary: `report.Summary()`
 - Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
+- Reusable normalized report evidence: `dmarcgo.AnalyzeReportEvidence(reports, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -58,17 +59,31 @@ Version 2 is the supported API line. Import
 3. Run `report.Validate()` for compatibility-mode data-quality findings.
 4. Use `ValidateStrict()` only for RFC 9990 producer conformance checks or strict fixtures.
 5. Deduplicate imports with `ReportKey`, `FilenameReportKey`, `SameReport`, or `DeduplicateReports`.
-6. Use `Summary` and `SummarizeReports` for counts and rates.
-7. Use `UnauthenticatedSources`, `RejectedUnauthenticatedSources`, and `PassingSources` for source review.
-8. Apply caller-owned source suppressions with `ExcludeUnauthenticatedSources`.
-9. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
-10. Use `AnonymizeReport` before turning any real report into a committed fixture.
-11. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
-12. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
-13. Load provider context explicitly. Recognition explains documented setup but never authorizes a sender, repairs DNS, or changes health by itself.
-14. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
-15. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
-16. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
+6. Use `Summary` and `SummarizeReports` for lightweight counts and rates.
+7. Use `AnalyzeReportEvidence` when later reporting, correlation, or candidate analysis must reuse a corpus without reparsing it.
+8. Use `UnauthenticatedSources`, `RejectedUnauthenticatedSources`, and `PassingSources` for simple source review.
+9. Apply caller-owned source suppressions with `ExcludeUnauthenticatedSources`.
+10. Export record-shaped data with `Rows`, `WriteFeaturesJSONL`, or `WriteFeaturesCSV`.
+11. Use `AnonymizeReport` before turning any real report into a committed fixture.
+12. Use the versioned output builders for AI or automation consumers; select profile, detail, and redaction explicitly.
+13. Normalize organization configuration before DNS collection or correlation; configuration loading itself performs no network access.
+14. Load provider context explicitly. Recognition explains documented setup but never authorizes a sender, repairs DNS, or changes health by itself.
+15. Collect DNS only through an explicit `TXTResolver`; use `DNSMessageResolver` when TTL and negative-cache evidence are required.
+16. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
+17. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
+
+## Normalized report evidence
+
+- `AnalyzeReportEvidence` is pure report-only normalization. It accepts parsed reports and performs no file loading, DNS, enrichment, portfolio access, or system-clock lookup.
+- The immutable result owns normalized report and observation values; later stages can use `Filter`, `Aggregate`, or `LoadReportEvidenceJSON` without the original reports.
+- Missing selectors and authentication results remain explicit unknown values. Invalid or zero counts remain diagnostic observations and never become zero-message success or failure evidence.
+- Valid domains use canonical IDNA A-labels and source IPs use canonical unzoned IPv4/IPv6 text. Invalid trimmed input is retained only as untrusted `raw_value` evidence.
+- Counts use checked signed 64-bit arithmetic. Treat `ErrReportEvidenceOverflow` and `ErrConflictingReportIdentity` as hard failures rather than accepting wrapped or order-dependent totals.
+- Identical content with one non-zero `ReportIdentity` is counted once. Different content claiming that identity fails closed. Different identities remain distinct even when report periods overlap.
+- First/last seen values are report-period bounds, not exact per-message timestamps.
+- Report, record, reporter, domain, selector, disposition, and authentication values are untrusted data. Diagnostics never interpolate them into generated prose.
+- Portfolio entity and expected-sender attribution belongs to correlation. Do not add sender-inventory interpretation to report-only analysis.
+- Use `docs/report-evidence.md` for persistence, filtering, grouping, duplicate, and time-window semantics.
 
 ## Authentication-record parsing
 

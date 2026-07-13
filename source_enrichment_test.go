@@ -323,6 +323,55 @@ func TestEnrichThreatCandidatesUsesBatchAndHandlesMissingItems(t *testing.T) {
 	}
 }
 
+func TestEnrichThreatCandidatesDoesNotBatchAfterContextDone(t *testing.T) {
+	now := time.Unix(200_000, 0)
+	candidates := sourceEnrichmentTestCandidates(t, "192.0.2.1", "192.0.2.2")
+	tests := []struct {
+		name       string
+		context    func() (context.Context, context.CancelFunc)
+		wantError  error
+		wantStatus SourceEnrichmentStatus
+	}{
+		{
+			name: "canceled",
+			context: func() (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx, cancel
+			},
+			wantError:  context.Canceled,
+			wantStatus: SourceEnrichmentCanceled,
+		},
+		{
+			name: "deadline exceeded",
+			context: func() (context.Context, context.CancelFunc) {
+				return context.WithDeadline(context.Background(), time.Unix(1, 0))
+			},
+			wantError:  context.DeadlineExceeded,
+			wantStatus: SourceEnrichmentTimeout,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := test.context()
+			defer cancel()
+			batch := &sourceBatchFixtureEnricher{}
+			result, err := EnrichThreatCandidates(ctx, candidates, batch, SourceEnrichmentOptions{Clock: ClockFunc(func() time.Time { return now })})
+			if !errors.Is(err, test.wantError) || result.Digest() == "" || result.Complete() {
+				t.Fatalf("error=%v digest=%q complete=%v", err, result.Digest(), result.Complete())
+			}
+			if batch.batchCalls != 0 || batch.singleCalls != 0 || len(batch.received) != 0 {
+				t.Fatalf("batch calls=%d single=%d received=%+v", batch.batchCalls, batch.singleCalls, batch.received)
+			}
+			for ip, status := range sourceEnrichmentStatusesByIP(result.Candidates()) {
+				if status != test.wantStatus {
+					t.Fatalf("status[%s]=%s want=%s", ip, status, test.wantStatus)
+				}
+			}
+		})
+	}
+}
+
 func TestEnrichThreatCandidatesDeterministicAcrossAssertionOrder(t *testing.T) {
 	now := time.Unix(200_000, 0)
 	candidates := sourceEnrichmentTestCandidates(t, "192.0.2.1")

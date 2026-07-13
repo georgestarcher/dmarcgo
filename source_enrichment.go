@@ -494,6 +494,17 @@ func collectIPEnrichment(ctx context.Context, enricher IPEnricher, ips []netip.A
 }
 
 func collectBatchIPEnrichment(ctx context.Context, enricher BatchIPEnricher, ips []netip.Addr, generatedAt time.Time, options SourceEnrichmentOptions) (map[string]sourceEnrichmentOutcome, bool, error) {
+	if err := ctx.Err(); err != nil {
+		outcomes := make(map[string]sourceEnrichmentOutcome, len(ips))
+		for _, ip := range ips {
+			if errors.Is(err, context.DeadlineExceeded) {
+				outcomes[ip.String()] = sourceEnrichmentTimeoutOutcome(ip)
+			} else {
+				outcomes[ip.String()] = sourceEnrichmentCanceledOutcome(ip)
+			}
+		}
+		return outcomes, false, err
+	}
 	lookupCtx, cancel := context.WithTimeout(ctx, options.LookupTimeout)
 	defer cancel()
 	items, batchErr := enricher.EnrichIPs(lookupCtx, append([]netip.Addr{}, ips...))

@@ -312,7 +312,8 @@ func normalizeAnalysisOutputOptions(options AnalysisOutputOptions) (AnalysisOutp
 }
 
 func validateAnalysisOutputSpec(spec analysisOutputSpec) error {
-	if spec.metadata.ContractVersion != AnalysisContractVersion || spec.metadata.Mode != spec.mode || spec.metadata.GeneratedAt.IsZero() || spec.digest == "" || spec.walk == nil {
+	generatedAtUnavailable := spec.metadata.GeneratedAt.IsZero() && spec.mode != AnalysisModeReportEvidence
+	if spec.metadata.ContractVersion != AnalysisContractVersion || spec.metadata.Mode != spec.mode || generatedAtUnavailable || spec.digest == "" || spec.walk == nil {
 		return fmt.Errorf("%w: %w for mode %q", ErrUnsupportedAnalysisOutput, ErrInvalidAnalysisResult, spec.mode)
 	}
 	switch spec.metadata.Evaluation.State {

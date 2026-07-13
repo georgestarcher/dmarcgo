@@ -331,17 +331,24 @@ func TestAnalysisOutputPublicRedactionFailsClosedForUnknownStrings(t *testing.T)
 }
 
 func TestAnalysisOutputEmptyReportEvidenceStillHasMetadataRecord(t *testing.T) {
-	result, err := AnalyzeReportEvidence(nil, ReportEvidenceOptions{GeneratedAt: time.Unix(300, 0)})
+	result, err := AnalyzeReportEvidence(nil, ReportEvidenceOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	var output bytes.Buffer
-	if err := WriteReportEvidenceOutput(&output, result, AnalysisOutputJSONL, AnalysisOutputOptions{}); err != nil {
-		t.Fatal(err)
+	if !result.ResultMetadata().GeneratedAt.IsZero() {
+		t.Fatal("empty report evidence unexpectedly acquired a generated timestamp")
 	}
-	lines := bytes.Split(bytes.TrimSpace(output.Bytes()), []byte{'\n'})
-	if len(lines) != 1 || !bytes.Contains(lines[0], []byte(`"record_type":"metadata"`)) {
-		t.Fatalf("empty JSONL output = %s", output.Bytes())
+	for _, format := range []AnalysisOutputFormat{AnalysisOutputJSON, AnalysisOutputJSONL, AnalysisOutputCSV} {
+		var output bytes.Buffer
+		if err := WriteReportEvidenceOutput(&output, result, format, AnalysisOutputOptions{}); err != nil {
+			t.Fatalf("write empty report evidence as %s: %v", format, err)
+		}
+		if format == AnalysisOutputJSONL {
+			lines := bytes.Split(bytes.TrimSpace(output.Bytes()), []byte{'\n'})
+			if len(lines) != 1 || !bytes.Contains(lines[0], []byte(`"record_type":"metadata"`)) {
+				t.Fatalf("empty JSONL output = %s", output.Bytes())
+			}
+		}
 	}
 }
 

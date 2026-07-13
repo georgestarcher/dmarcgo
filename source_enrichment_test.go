@@ -229,6 +229,31 @@ func TestEnrichThreatCandidatesCancellationAndTimeout(t *testing.T) {
 			t.Fatalf("candidate=%+v complete=%v diagnostics=%+v", candidate, result.Complete(), result.Diagnostics())
 		}
 	})
+
+	t.Run("parent deadline preserves timeout for queued lookups", func(t *testing.T) {
+		now := time.Unix(200_000, 0)
+		candidates := sourceEnrichmentTestCandidates(t, "192.0.2.1", "192.0.2.2")
+		enricher := &sourceFixtureEnricher{delays: map[string]time.Duration{
+			"192.0.2.1": time.Second,
+			"192.0.2.2": time.Second,
+		}}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		result, err := EnrichThreatCandidates(ctx, candidates, enricher, SourceEnrichmentOptions{
+			Clock: ClockFunc(func() time.Time { return now }), MaxConcurrency: 1, LookupTimeout: time.Second,
+		})
+		if !errors.Is(err, context.DeadlineExceeded) || result.Complete() || result.Digest() == "" {
+			t.Fatalf("error=%v complete=%v digest=%q", err, result.Complete(), result.Digest())
+		}
+		for ip, status := range sourceEnrichmentStatusesByIP(result.Candidates()) {
+			if status != SourceEnrichmentTimeout {
+				t.Fatalf("status[%s]=%s", ip, status)
+			}
+		}
+		if enricher.callCount("192.0.2.1") != 1 || enricher.callCount("192.0.2.2") != 0 {
+			t.Fatalf("calls=%+v", enricher.callsSnapshot())
+		}
+	})
 }
 
 func TestEnrichThreatCandidatesBoundsConcurrency(t *testing.T) {

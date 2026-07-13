@@ -329,7 +329,12 @@ func EnrichThreatCandidates(ctx context.Context, candidates ThreatCandidateResul
 		}
 		outcome, ok := outcomes[candidate.SourceIP]
 		if !ok {
-			outcome = sourceEnrichmentCanceledOutcome(netip.MustParseAddr(candidate.SourceIP))
+			ip := netip.MustParseAddr(candidate.SourceIP)
+			if errors.Is(stageErr, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				outcome = sourceEnrichmentTimeoutOutcome(ip)
+			} else {
+				outcome = sourceEnrichmentCanceledOutcome(ip)
+			}
 			complete = false
 		}
 		candidate, err = applySourceEnrichmentOutcome(candidate, candidates.Profile(), outcome)

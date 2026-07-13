@@ -66,6 +66,14 @@ prior-result provenance. Provider contexts remain evidence references and never
 authorize a stream. The result retains upstream digests without recollecting,
 reparsing, enriching, or loading history.
 
+`ThreatCandidateResult` implements the following pure candidate-scoring stage.
+It counts distinct report observations directly, uses correlation only for
+prepared attribution and counter-evidence, and retains the upstream digests.
+Versioned profiles make every score operation and confidence cap inspectable.
+Expected-sender-only failures are omitted by default, exclusions remain scoped,
+and promotion is always disabled. The stage performs no source enrichment or
+network access and never asserts malicious ownership or safe-to-block status.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -178,6 +186,9 @@ causes network access.
 `LoadReportEvidenceJSON` validates the report-evidence schema version, common
 result metadata, references, counters, summary, and digest. The intermediate
 document is separate from later automation and agent output profiles.
+Report-evidence schema version `2` includes normalized policy-override types in
+observation content and intentionally rejects version `1` documents rather
+than migrating their incompatible digests and evidence identifiers.
 
 Applications may compose stages in a service or command, but authorization,
 scheduling, storage, retries, and automatic defensive action remain outside this

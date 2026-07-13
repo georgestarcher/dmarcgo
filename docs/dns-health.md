@@ -63,7 +63,7 @@ The balanced profile preserves the established DMARC component interpretation:
 monitoring-only policy is 70/100, absent DMARC is 30/100, and healthy enforcement
 can reach 100/100. Quarantine deducts 12 points, absent aggregate reporting
 deducts 10, and testing or obsolete tags apply their separately inspectable
-deductions. A 1024-bit RSA DKIM key receives a 15-point maturity deduction;
+deductions. A 1024-bit RSA DKIM key receives a 15-point DKIM health-score deduction;
 SPF soft-fail and neutral terminal policies deduct 10 and 30 respectively.
 SPF and DKIM absence produce zero for those configured components in the
 balanced profile. SPF scoring uses the first `all` mechanism because it always

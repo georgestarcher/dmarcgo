@@ -45,6 +45,13 @@
 // context never becomes authorization, and correlation performs no collection,
 // parsing, enrichment, storage, or clock access.
 //
+// ScoreThreatCandidates performs the following pure source-review stage over a
+// normalized Portfolio, completed ReportEvidenceResult, and completed
+// DNSReportCorrelationResult. Versioned profiles preserve supporting evidence,
+// deductions, confidence caps, scoped exclusions, and exact recomputation.
+// Results are review-only, never assert malicious ownership or safe-to-block
+// status, and perform no collection, parsing, enrichment, storage, or clock access.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

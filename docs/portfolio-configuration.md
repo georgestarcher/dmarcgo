@@ -135,9 +135,13 @@ time. Expiration is optional but must be later than creation.
 - `domain` and `subdomains` scopes do not accept a target.
 - `record` requires a complete DNS record-name target.
 - `sender` requires an expected-sender ID target.
+- `source` requires a canonical IP address or network prefix target.
 
 Exclusions express caller-owned operational context. They do not suppress
-authentication evidence globally and do not authorize automatic action.
+authentication evidence globally and do not authorize automatic action. Every
+exclusion is declared on a portfolio domain and applies only within that domain
+scope; a source observed across sister domains therefore requires coverage in
+each affected scope before candidate review is excluded.
 
 ## Strict YAML and environment expansion
 

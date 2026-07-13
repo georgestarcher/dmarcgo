@@ -55,9 +55,19 @@ and this project uses semantic versioning for public API changes.
   threshold semantics, stable onboarding and variance findings, caller-owned
   prior-result drift comparison, preserved DNS snapshot observation time, and
   no hidden collection or attribution.
+- Pure, versioned suspicious-source candidate scoring with conservative,
+  balanced, sensitive, and custom profiles; exact score recomputation;
+  false-positive-sensitive confidence caps; scoped expiring source exclusions;
+  expected-sender omission by default; and explicit review-only semantics.
+- Normalized policy-override type evidence for forwarding and mailing-list
+  counter-signals without retaining reporter-supplied comments.
 
 ### Changed
 
+- Report-evidence persistence now uses schema version `2` because normalized
+  observations include policy-override type codes in content digests and
+  evidence identifiers. The strict loader rejects incompatible version `1`
+  documents instead of silently reinterpreting them.
 - `BuildValidationOutput` now accepts a completed `ReportValidationResult`
   instead of a report plus findings. Use `report.ValidationResult(mode,
   generatedAt)` to perform validation before serialization; output conversion
@@ -65,6 +75,10 @@ and this project uses semantic versioning for public API changes.
 
 ### Fixed
 
+- Threat-candidate scoring no longer omits a dual-failure observation when one
+  expanded DKIM stream matches an expected sender but another remains
+  unattributed, and sender-scoped exclusions no longer suppress that mixed
+  evidence.
 - DNS-message TXT collection now preserves per-record TTLs and applies the
   RFC 2181 minimum TTL when an explicitly configured resolver returns an RRset
   with inconsistent TTLs, instead of discarding otherwise usable evidence.

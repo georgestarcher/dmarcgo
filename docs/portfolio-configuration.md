@@ -52,6 +52,12 @@ may name another entity as its `parent`; it inherits the parent owner and tags,
 then applies its own owner override and merged tags. Domains are not inherited
 between entities.
 
+`entities[].membership` is optional and defaults to `owned`. Use `reference`
+for an external comparison or calibration entity that should remain fully
+evaluated without affecting organization-level health or maturity rollups.
+Child entities inherit membership and may override it explicitly. Descriptive
+tags such as `external` or `non-owned` never change rollup behavior.
+
 Reusable `owners` provide stable accountability IDs plus optional display name,
 contact, and tags. Organization, entity, domain, sender, and exclusion owner
 fields reference those IDs. Diagnostics contain paths and library-generated

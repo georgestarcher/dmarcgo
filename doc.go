@@ -50,6 +50,17 @@
 // them. Record-controlled notes, reporting URIs, and extension values remain
 // untrusted evidence and never become library-generated instructions.
 //
+// EvaluateDNSHealth performs the next pure stage over a normalized Portfolio,
+// completed DNSAuthenticationResult, and explicit ProviderCatalog. It produces
+// deterministic record, domain, entity, and portfolio findings and versioned
+// explainable scores. Recognized static SPF dependencies add inventory context
+// but never change findings, scores, or sender authorization.
+// Independent mechanism grades, evidence coverage, and categorical maturity
+// remain separate. DNS-only evidence can establish enforcement but cannot prove
+// managed report handling or adaptive operations.
+// Unavailable DNS evidence remains unknown by default; evaluation never
+// refreshes DNS, reparses TXT values, loads reports, or consults the current time.
+//
 // DefaultProviderCatalog loads reviewed, versioned provider metadata without
 // network access. LoadProviderCatalogYAML accepts strict caller-owned metadata,
 // and OverlayProviderCatalog adds or explicitly replaces entries without global

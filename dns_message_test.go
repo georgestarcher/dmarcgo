@@ -13,15 +13,16 @@ func TestParseTXTResponsePreservesPositiveEvidence(t *testing.T) {
 	for _, test := range []struct {
 		name          string
 		authoritative bool
+		authenticData bool
 		wantSource    DNSAnswerSource
 		ttl           uint32
 	}{
 		{name: "authoritative", authoritative: true, wantSource: DNSAnswerSourceAuthoritative, ttl: 3600},
-		{name: "recursive remaining cache lifetime", wantSource: DNSAnswerSourceRecursive, ttl: 215},
+		{name: "recursive remaining cache lifetime", authenticData: true, wantSource: DNSAnswerSourceRecursive, ttl: 215},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			message := buildDNSResponse(t, dnsResponseFixture{
-				id: 42, name: "selector._domainkey.example.test", authoritative: test.authoritative,
+				id: 42, name: "selector._domainkey.example.test", authoritative: test.authoritative, authenticData: test.authenticData,
 				cname: "selector._domainkey.provider.test", txt: [][]string{{"v=DKIM1; p=", "key"}}, ttl: test.ttl,
 			})
 			result, truncated, err := parseTXTResponse(message, 42, "selector._domainkey.example.test", "fixture")
@@ -30,6 +31,9 @@ func TestParseTXTResponsePreservesPositiveEvidence(t *testing.T) {
 			}
 			if result.Status != DNSObservationSuccess || result.AnswerSource != test.wantSource || !result.TTL.Available || result.TTL.Seconds != test.ttl || !result.RCode.Available || result.RCode.Value != 0 {
 				t.Fatalf("positive evidence = %+v", result)
+			}
+			if !result.DNSSEC.Available || result.DNSSEC.AuthenticatedData != test.authenticData {
+				t.Fatalf("DNSSEC evidence = %+v", result.DNSSEC)
 			}
 			if len(result.Records) != 1 || result.Records[0].Joined != "v=DKIM1; p=key" || !result.Records[0].FragmentsAvailable || len(result.Records[0].Fragments) != 2 {
 				t.Fatalf("TXT fragments = %+v", result.Records)
@@ -234,6 +238,7 @@ type dnsResponseFixture struct {
 	id             uint16
 	name           string
 	authoritative  bool
+	authenticData  bool
 	rcode          dnsmessage.RCode
 	cname          string
 	txt            [][]string
@@ -249,7 +254,7 @@ func buildDNSResponse(t testing.TB, fixture dnsResponseFixture) []byte {
 	t.Helper()
 	name := mustDNSName(t, fixture.name)
 	builder := dnsmessage.NewBuilder(nil, dnsmessage.Header{
-		ID: fixture.id, Response: true, Authoritative: fixture.authoritative, RecursionAvailable: !fixture.authoritative, RCode: fixture.rcode,
+		ID: fixture.id, Response: true, Authoritative: fixture.authoritative, RecursionAvailable: !fixture.authoritative, AuthenticData: fixture.authenticData, RCode: fixture.rcode,
 	})
 	builder.EnableCompression()
 	if err := builder.StartQuestions(); err != nil {

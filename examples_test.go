@@ -3,12 +3,64 @@ package dmarcgo
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"log"
 	"os"
 	"time"
 )
+
+type exampleTXTResolver map[string]string
+
+func (resolver exampleTXTResolver) LookupTXT(_ context.Context, name string) (TXTLookupResult, error) {
+	value := resolver[name]
+	ttl := DNSDurationEvidence{Available: true, Seconds: 300}
+	return TXTLookupResult{
+		Name: name, Status: DNSObservationSuccess,
+		Records: []TXTRecord{{Fragments: []string{value}, FragmentsAvailable: true, Joined: value, TTL: ttl}},
+		TTL:     ttl, AnswerSource: DNSAnswerSourceRecursive, RCode: DNSRCodeEvidence{Available: true}, CNAMEPath: []string{},
+	}, nil
+}
+
+// ExampleEvaluateDNSHealth demonstrates explicit collection followed by pure
+// authentication parsing and DNS-only posture evaluation.
+func ExampleEvaluateDNSHealth() {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "example.test", Records: MonitoredRecordsConfig{
+				SPF: []string{"example.test"}, DMARC: []string{"_dmarc.example.test"},
+			},
+		}}}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	observedAt := time.Date(2026, 7, 12, 12, 0, 0, 0, time.UTC)
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver{
+		"example.test":        "v=spf1 -all",
+		"_dmarc.example.test": "v=DMARC1; p=reject; adkim=s; aspf=s; rua=mailto:reports@example.test",
+	}, DNSCollectionOptions{Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1})
+	if err != nil {
+		log.Fatal(err)
+	}
+	authentication, err := ParseAuthenticationRecords(snapshot)
+	if err != nil {
+		log.Fatal(err)
+	}
+	catalog, err := DefaultProviderCatalog()
+	if err != nil {
+		log.Fatal(err)
+	}
+	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{Profile: DNSHealthProfileBalanced})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("score=%d grade=%s maturity=%s findings=%d\n", health.PortfolioScore().Value, health.PortfolioScore().Grade, health.PortfolioMaturity().Name, len(health.Findings()))
+	// Output: score=100 grade=A+ maturity=basic findings=0
+}
 
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.
 func ExampleBuildReportSummaryOutput() {

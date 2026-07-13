@@ -61,6 +61,13 @@ and this project uses semantic versioning for public API changes.
   expected-sender omission by default; and explicit review-only semantics.
 - Normalized policy-override type evidence for forwarding and mailing-list
   counter-signals without retaining reporter-supplied comments.
+- Explicit optional IP and ASN enrichment over review-eligible candidates with
+  provider-neutral single and batch interfaces, bounded concurrency,
+  cancellation, partial failure, deterministic ASN views, freshness and
+  conflict evidence, defensive-copy results, and caller-owned caching.
+- A default-off source-enrichment security boundary: no bundled provider,
+  credentials, retries, PTR lookup, direct source-IP traffic, or global cache;
+  committed examples and tests use only deterministic offline fixtures.
 
 ### Changed
 

@@ -39,6 +39,7 @@ Version 2 is the supported API line. Import
 - Reusable normalized report evidence: `dmarcgo.AnalyzeReportEvidence(reports, options)`
 - Pure DNS/report and expected-sender correlation: `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)`
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
+- Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -76,6 +77,7 @@ Version 2 is the supported API line. Import
 17. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
 18. Correlate declared senders, completed DNS health, and normalized report evidence with `CorrelateReportEvidence`; optionally supply a prior result for drift comparison.
 19. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
+20. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
 
 ## Normalized report evidence
 
@@ -114,6 +116,17 @@ Version 2 is the supported API line. Import
 - `PromotionEligible` remains false. Candidate output may recommend human review, monitoring, or evidence retention only; it never means malicious, compromised, botnet, or safe to block.
 - Candidate scoring performs no DNS, PTR, HTTP, SMTP, ICMP, scanning, enrichment, filesystem, clock, storage, or retry activity.
 - Use `docs/threat-candidates.md` for exact scoring, confidence, exclusion, and safe-use semantics.
+
+## Optional source enrichment
+
+- `EnrichThreatCandidates` consumes only a completed `ThreatCandidateResult` and an explicit caller-supplied `IPEnricher`; passing nil is a supported no-op with no clock or network access.
+- Only review-eligible, non-excluded candidates are supplied to the dependency. Canonical IPv4 and IPv6 addresses are deduplicated and each is attempted at most once; the library performs no automatic retries.
+- An enricher must never ping, scan, connect to, or otherwise contact the subject IP. Network-backed implementations may contact only an explicitly configured third-party service. PTR is a separate observable opt-in capability and must not be hidden in `IPEnricher`.
+- The library ships no provider, credentials, remote dataset, global cache, or automatic lookup path. Callers may wrap an enricher with their own cache.
+- Preserve provider/source, lookup time, expiry, confidence, and reference identifiers as untrusted structured provenance. Never copy provider error text or metadata values into generated guidance.
+- Successful non-conflicting enrichment replaces the prior unenriched confidence cap with a provider-confidence cap. Missing provider confidence keeps the original conservative maximum; enrichment never changes the score, review eligibility, exclusions, recommendation, or `PromotionEligible: false` policy.
+- Stale, unavailable, conflicting, failed, timed-out, canceled, and not-evaluated outcomes remain explicit. ASN rollups retain every source IP, candidate ID, assertion ID, and contradictory ASN assertion.
+- Use only offline deterministic fixtures in committed tests and examples. See `docs/source-enrichment.md` for the complete side-effect, failure, freshness, and aggregation contract.
 
 ## Authentication-record parsing
 

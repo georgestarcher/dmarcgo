@@ -3,6 +3,7 @@ package dmarcgo
 import (
 	"encoding/json"
 	"errors"
+	"net/netip"
 	"testing"
 	"time"
 )
@@ -88,6 +89,39 @@ func FuzzCorrelateReportEvidence(f *testing.F) {
 		}
 		if first.Digest() != second.Digest() {
 			t.Fatalf("non-deterministic digests: %q != %q", first.Digest(), second.Digest())
+		}
+	})
+}
+
+func FuzzSourceEnrichmentMetadata(f *testing.F) {
+	f.Add("192.0.2.1", "192.0.2.0/24", uint32(64500), "fixture", "US", 80, true)
+	f.Add("2001:db8::1", "2001:db8::/32", uint32(64501), "offline", "", 0, false)
+	f.Add("not-an-ip", "not-a-prefix", uint32(0), "", "ZZZ", -1, false)
+	f.Fuzz(func(t *testing.T, address, prefix string, asn uint32, provider, country string, confidence int, confidenceAvailable bool) {
+		ip, err := netip.ParseAddr(address)
+		if err != nil {
+			ip = netip.MustParseAddr("192.0.2.1")
+		}
+		metadata := IPMetadata{Assertions: []IPMetadataAssertion{{
+			ASN:           asn,
+			NetworkPrefix: prefix,
+			CountryCode:   country,
+			Provenance: IPMetadataProvenance{
+				Provider:   provider,
+				LookupAt:   time.Unix(100, 0),
+				Confidence: IPMetadataConfidence{Available: confidenceAvailable, Value: confidence},
+			},
+		}}}
+		normalized, err := normalizeIPMetadata(ip.Unmap(), metadata, time.Unix(200, 0))
+		if err != nil {
+			return
+		}
+		payload, err := json.Marshal(normalized)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(payload) == 0 || len(normalized.Assertions) != 1 || normalized.Assertions[0].ID == "" {
+			t.Fatalf("invalid normalized metadata: %+v", normalized)
 		}
 	})
 }

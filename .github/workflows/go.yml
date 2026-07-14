@@ -161,6 +161,9 @@ jobs:
       - name: Compile README examples
         run: python3 scripts/check_readme_examples.py
 
+      - name: Validate project wiki source
+        run: make wiki-check
+
       - name: Validate independent analysis workflows
         run: make workflow-check
 

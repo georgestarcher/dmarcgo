@@ -74,6 +74,12 @@ func TestResolveCampaignConfigurationConflictsFailSafely(t *testing.T) {
 	}
 }
 
+func TestResolveCampaignConfigurationRejectsEmptySourceSet(t *testing.T) {
+	if _, err := ResolveCampaignConfiguration(context.Background(), nil, CampaignConfigurationResolveOptions{}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
+		t.Fatalf("empty source set error = %v", err)
+	}
+}
+
 func TestResolveCampaignConfigurationFailurePolicyAndLastKnownGood(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	goodSpec := CampaignConfigurationSourceSpec{ID: "required", Source: NewCampaignBytesSource(marshalCampaignConfig(t, campaignTestConfig("good", "training.example.test")), CampaignConfigurationMetadata{}), Required: true, Priority: 10}
@@ -429,6 +435,20 @@ func TestCampaignDirectoryRejectsSymlinkRootWhenSupported(t *testing.T) {
 	}
 	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), linkedPath, CampaignDirectoryOptions{SourceIDPrefix: "testing-team"}); !errors.Is(err, ErrCampaignSourceFailed) {
 		t.Fatalf("symlink directory error = %v", err)
+	}
+}
+
+func TestCampaignDirectoryRejectsSymlinkEntryWhenSupported(t *testing.T) {
+	directory := t.TempDir()
+	target := filepath.Join(t.TempDir(), "campaign.yaml")
+	if err := os.WriteFile(target, []byte(campaignTestYAML("symlink-entry", "training.example.test")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(directory, "campaign.yaml")); err != nil {
+		t.Skipf("symlink fixture unavailable: %v", err)
+	}
+	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), directory, CampaignDirectoryOptions{SourceIDPrefix: "testing-team"}); !errors.Is(err, ErrCampaignSourceFailed) {
+		t.Fatalf("symlink directory entry error = %v", err)
 	}
 }
 

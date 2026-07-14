@@ -194,6 +194,8 @@ tests used by the Phase 13 integration gate.
   HTTPS-to-HTTP redirect before the downgraded request is sent.
 - Directory discovery rejects a symlink root and entries. Its returned file
   sources retain root identity and reject replacement before loading.
+- Campaign configuration resolution requires at least one explicit source;
+  never treat a missing source inventory as an authoritative empty inventory.
 - Recheck snapshot effective and expiry bounds at the explicit classification
   generation time. A reused expired snapshot must remain expired and can never
   recover authorization or automatic-disposition eligibility.

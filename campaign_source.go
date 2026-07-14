@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	// ErrInvalidCampaignSourceOptions identifies invalid source IDs, limits,
-	// roots, priorities, or adapters.
+	// ErrInvalidCampaignSourceOptions identifies empty source sets or invalid
+	// source IDs, limits, roots, priorities, or adapters.
 	ErrInvalidCampaignSourceOptions = errors.New("invalid campaign source options")
 	// ErrCampaignSourceFailed identifies a required source, import, integrity,
 	// or conflict failure. Error text never includes source-controlled values.
@@ -224,8 +224,9 @@ type campaignSourceResolver struct {
 }
 
 // ResolveCampaignConfiguration explicitly loads, verifies, parses, traverses,
-// and merges only caller-supplied sources. It performs no DNS, report parsing,
-// mailbox access, credential discovery, or implicit network refresh.
+// and merges only caller-supplied sources. At least one source is required. It
+// performs no DNS, report parsing, mailbox access, credential discovery, or
+// implicit network refresh.
 func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigurationSourceSpec, options CampaignConfigurationResolveOptions) (CampaignConfigurationSnapshot, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -287,7 +288,7 @@ func normalizeCampaignSourceOptions(specs []CampaignConfigurationSourceSpec, opt
 	if options.MaximumImportDepth == 0 {
 		options.MaximumImportDepth = defaultCampaignMaximumImportDepth
 	}
-	if options.MaximumSources < 1 || options.MaximumSources > maxCampaignDefinitions || options.MaximumImportDepth < 1 || options.MaximumImportDepth > 64 || len(specs) > options.MaximumSources {
+	if options.MaximumSources < 1 || options.MaximumSources > maxCampaignDefinitions || options.MaximumImportDepth < 1 || options.MaximumImportDepth > 64 || len(specs) == 0 || len(specs) > options.MaximumSources {
 		return options, nil, ErrInvalidCampaignSourceOptions
 	}
 	normalized := make(map[string]normalizedCampaignSourceSpec, len(specs))
@@ -817,11 +818,14 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 			return nil, err
 		}
 		if entry.Type()&os.ModeSymlink != 0 {
-			continue
+			return nil, ErrCampaignSourceFailed
 		}
 		info, infoErr := entry.Info()
 		if infoErr != nil {
 			return nil, infoErr
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil, ErrCampaignSourceFailed
 		}
 		extension := strings.ToLower(filepath.Ext(entry.Name()))
 		if !info.Mode().IsRegular() || extension != ".yaml" && extension != ".yml" && extension != ".json" {

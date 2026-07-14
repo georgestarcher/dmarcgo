@@ -123,8 +123,10 @@ loading. File and HTTP read/close errors that could mean incomplete input are
 returned.
 
 `ResolveCampaignConfiguration` loads only the supplied source specifications
-and import IDs. Imports never discover a location. Resolution is deterministic,
-bounded, context-aware, and records source digests, document digests, ETags,
+and import IDs. At least one explicit source specification is required; an empty
+set is invalid rather than an authoritative empty inventory. Imports never
+discover a location. Resolution is deterministic, bounded, context-aware, and
+records source digests, document digests, ETags,
 Last-Modified values, retrieval times, freshness states, and optional detached
 signature verification results. Restricted provenance also retains the exact
 replacement-ID allowlist so the snapshot digest covers the merge policy that

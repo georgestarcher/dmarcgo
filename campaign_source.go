@@ -86,6 +86,7 @@ type CampaignConfigurationSource interface {
 }
 
 // CampaignIntegrityVerifier verifies caller-selected detached integrity data.
+// It receives defensive byte and metadata copies; mutations are discarded.
 // Its errors are converted to value-safe diagnostics without copying text.
 type CampaignIntegrityVerifier interface {
 	Verify(context.Context, []byte, CampaignConfigurationMetadata) error
@@ -428,7 +429,9 @@ func (resolver *campaignSourceResolver) load(spec normalizedCampaignSourceSpec) 
 	provenance.ETag = boundedCampaignMetadata(metadata.ETag)
 	provenance.ContentType = boundedCampaignMetadata(metadata.ContentType)
 	if spec.verifier != nil {
-		if err := spec.verifier.Verify(resolver.ctx, data, metadata); err != nil {
+		verificationData := append([]byte(nil), data...)
+		verificationMetadata := cloneCampaignConfigurationMetadata(metadata)
+		if err := spec.verifier.Verify(resolver.ctx, verificationData, verificationMetadata); err != nil {
 			resolver.addDiagnostic("campaign.source.integrity_failed", FindingSeverityHigh, spec.id, "Campaign configuration integrity verification failed.")
 			loaded := &campaignLoadedSource{spec: spec, provenance: provenance}
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -760,6 +763,8 @@ func NewCampaignFileSource(path string) (CampaignConfigurationSource, error) {
 }
 
 // CampaignDirectoryOptions bounds deterministic local fragment discovery.
+// MaximumFiles limits both directory entries inspected and source specs
+// returned, so unrelated files cannot make discovery unbounded.
 type CampaignDirectoryOptions struct {
 	SourceIDPrefix string
 	Required       bool
@@ -814,7 +819,10 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 	if currentErr != nil || current.Mode()&os.ModeSymlink != 0 || !current.IsDir() || !os.SameFile(discovered, opened) || !os.SameFile(opened, current) {
 		return nil, errors.Join(ErrCampaignSourceFailed, currentErr, directory.Close())
 	}
-	entries, readErr := directory.ReadDir(-1)
+	entries, readErr := directory.ReadDir(options.MaximumFiles + 1)
+	if errors.Is(readErr, io.EOF) {
+		readErr = nil
+	}
 	current, currentErr = os.Lstat(directoryPath)
 	if currentErr != nil || current.Mode()&os.ModeSymlink != 0 || !current.IsDir() || !os.SameFile(opened, current) {
 		return nil, errors.Join(ErrCampaignSourceFailed, readErr, currentErr, directory.Close())
@@ -822,6 +830,9 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 	closeErr := directory.Close()
 	if readErr != nil || closeErr != nil {
 		return nil, errors.Join(readErr, closeErr)
+	}
+	if len(entries) > options.MaximumFiles {
+		return nil, ErrInvalidCampaignSourceOptions
 	}
 	result := make([]CampaignConfigurationSourceSpec, 0)
 	seenSourceIDs := make(map[string]struct{})
@@ -842,9 +853,6 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 		extension := strings.ToLower(filepath.Ext(entry.Name()))
 		if !info.Mode().IsRegular() || extension != ".yaml" && extension != ".yml" && extension != ".json" {
 			continue
-		}
-		if len(result) >= options.MaximumFiles {
-			return nil, ErrInvalidCampaignSourceOptions
 		}
 		base := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		fragment, valid := normalizeConfigID(base)

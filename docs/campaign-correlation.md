@@ -119,9 +119,16 @@ would leave HTTPS before that request is sent; same-scheme redirect, proxy,
 credential, caching, retry, TLS, and rate policy otherwise remain caller-owned.
 Directory discovery rejects a symlink root, symlink entries, colliding generated
 source IDs, and combined prefix/filename IDs outside the source-ID contract.
+`MaximumFiles` bounds both directory entries inspected and supported source
+specifications returned; discovery reads only one entry beyond that limit to
+fail safely instead of materializing an unbounded directory.
 Discovered file sources retain the root directory identity and reject a replaced
 root before loading. File and HTTP read/close errors that could mean incomplete
 input are returned.
+
+An integrity verifier receives defensive copies of the loaded bytes and
+detached-signature metadata. Mutating those arguments cannot change the bytes
+subsequently parsed or the content digest recorded by the resolver.
 
 `ResolveCampaignConfiguration` loads only the supplied source specifications
 and import IDs. At least one explicit source specification is required; an empty

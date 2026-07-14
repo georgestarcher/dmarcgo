@@ -470,6 +470,18 @@ func TestCampaignDirectoryRejectsGeneratedSourceIDCollisionsAndOverflow(t *testi
 	}
 }
 
+func TestCampaignDirectoryBoundsUnrelatedEntryDiscovery(t *testing.T) {
+	directory := t.TempDir()
+	for _, name := range []string{"unrelated-one.txt", "unrelated-two.txt"} {
+		if err := os.WriteFile(filepath.Join(directory, name), []byte("fixture"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), directory, CampaignDirectoryOptions{SourceIDPrefix: "testing-team", MaximumFiles: 1}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
+		t.Fatalf("unrelated directory entry limit error = %v", err)
+	}
+}
+
 func TestCampaignFileSourceRejectsSymlinkWhenSupported(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "campaign.yaml")
@@ -609,6 +621,22 @@ func TestCampaignIntegrityVerifierIsExplicit(t *testing.T) {
 	}
 }
 
+func TestCampaignIntegrityVerifierCannotMutateParsedBytes(t *testing.T) {
+	data := []byte(campaignTestYAML("immutable-verified", "training.example.test"))
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "verified", Source: NewCampaignBytesSource(data, CampaignConfigurationMetadata{DetachedSignature: []byte("fixture")}),
+		Required: true, Verifier: campaignMutatingVerifier{},
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC) })})
+	if err != nil {
+		t.Fatal(err)
+	}
+	campaigns, sources := snapshot.Campaigns(), snapshot.Sources()
+	if !snapshot.AuthorizationAvailable() || len(campaigns) != 1 || campaigns[0].ID != "immutable-verified" ||
+		len(sources) != 1 || !sources[0].IntegrityVerified || sources[0].ContentDigest != StableAnalysisID("campaign_source_content", string(data)) {
+		t.Fatalf("verifier mutation changed parsed or digested source: campaigns=%+v sources=%+v diagnostics=%+v", campaigns, sources, snapshot.Diagnostics())
+	}
+}
+
 type campaignFailingSource struct{}
 
 func (campaignFailingSource) Load(context.Context) ([]byte, CampaignConfigurationMetadata, error) {
@@ -640,6 +668,18 @@ func (*campaignTypedNilSource) Load(context.Context) ([]byte, CampaignConfigurat
 type campaignTestVerifier struct {
 	calls *atomic.Int32
 	err   error
+}
+
+type campaignMutatingVerifier struct{}
+
+func (campaignMutatingVerifier) Verify(_ context.Context, data []byte, metadata CampaignConfigurationMetadata) error {
+	for index := range data {
+		data[index] = ' '
+	}
+	for index := range metadata.DetachedSignature {
+		metadata.DetachedSignature[index] = 0
+	}
+	return nil
 }
 
 func (verifier campaignTestVerifier) Verify(context.Context, []byte, CampaignConfigurationMetadata) error {

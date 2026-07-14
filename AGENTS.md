@@ -194,7 +194,10 @@ tests used by the Phase 13 integration gate.
   HTTPS-to-HTTP redirect before the downgraded request is sent.
 - Directory discovery rejects a symlink root and entries, generated source-ID
   collisions, and invalid combined IDs. Its returned file sources retain root
-  identity and reject replacement before loading.
+  identity and reject replacement before loading. `MaximumFiles` bounds all
+  directory entries inspected as well as returned supported sources.
+- Integrity verifiers receive defensive byte and metadata copies. Verifier
+  mutation must never alter the content later parsed or its recorded digest.
 - Campaign configuration resolution requires at least one explicit source;
   never treat a missing source inventory as an authoritative empty inventory.
 - Authorization additionally requires at least one selected usable source. If

@@ -78,6 +78,16 @@
 // attribution, malicious intent, nationality, or legal advice. Policy text
 // remains untrusted structured data and never enters generated instructions.
 //
+// BuildSTIXBundle performs a pure standards-native STIX 2.1 transformation of
+// completed threat candidates and optional matching source enrichment. The
+// default emits IP and optional ASN SCOs plus Observed Data; an Indicator
+// requires explicit caller promotion and validity policy. Generated notes and
+// descriptions are fixed safety text, while operational identifiers remain
+// untrusted structured data. STIX output is unredacted and performs no lookup,
+// enrichment, clock access, submission, or other I/O. Use ValidateSTIXBundle,
+// WriteSTIXBundle, and STIXEvidenceExtensionSchema for validation and schema
+// discovery.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

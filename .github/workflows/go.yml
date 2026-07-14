@@ -36,6 +36,27 @@ jobs:
           version: v2.12
           verify: true
 
+  stix:
+    name: STIX 2.1 interoperability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install the OASIS STIX validator
+        run: python -m pip install stix2-validator==3.3.1
+
+      - name: Validate the interoperability fixture
+        run: make stix-validator-check
+
   test:
     name: Test (${{ matrix.os }}, Go ${{ matrix.go-version }})
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,418 @@
+{
+  "type": "bundle",
+  "id": "bundle--60ba6539-b100-5ab4-8363-45557b65dec4",
+  "objects": [
+    {
+      "type": "marking-definition",
+      "spec_version": "2.1",
+      "id": "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82",
+      "created": "2017-01-20T00:00:00.000Z",
+      "definition_type": "tlp",
+      "name": "TLP:AMBER",
+      "definition": {
+        "tlp": "amber"
+      }
+    },
+    {
+      "type": "identity",
+      "spec_version": "2.1",
+      "id": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "name": "Example SOC",
+      "identity_class": "organization",
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ]
+    },
+    {
+      "type": "identity",
+      "spec_version": "2.1",
+      "id": "identity--be7ca78c-c2b9-5070-b73e-1d8374571fd4",
+      "created": "2026-07-13T00:00:00.000Z",
+      "modified": "2026-07-13T00:00:00.000Z",
+      "name": "dmarcgo",
+      "identity_class": "system"
+    },
+    {
+      "type": "extension-definition",
+      "spec_version": "2.1",
+      "id": "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8",
+      "created_by_ref": "identity--be7ca78c-c2b9-5070-b73e-1d8374571fd4",
+      "created": "2026-07-13T00:00:00.000Z",
+      "modified": "2026-07-13T00:00:00.000Z",
+      "name": "dmarcgo DMARC evidence",
+      "description": "Structured provenance and review context for DMARC-derived STIX objects.",
+      "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/stix/dmarcgo-evidence/v1.json",
+      "version": "1.0.0",
+      "extension_types": [
+        "property-extension"
+      ]
+    },
+    {
+      "type": "autonomous-system",
+      "spec_version": "2.1",
+      "id": "autonomous-system--0a5f7072-df00-5729-9f0a-4eb18631a446",
+      "number": 64500,
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "asn_context",
+          "assertion_ids": [
+            "ip_metadata_assertion:20285a0280595f707132e3e97232abe6c22485345fead12b56220aedff5613c5",
+            "ip_metadata_assertion:4117605fe84c22796cb51e7f1359312b528faaf89942f47a1250d6283f5571c1"
+          ],
+          "names": [
+            "Example ASN"
+          ],
+          "organizations": [
+            "Example Org"
+          ],
+          "network_prefixes": [
+            "198.51.100.0/24",
+            "2001:db8::/32"
+          ],
+          "country_codes": [
+            "US"
+          ],
+          "providers": [
+            "offline-fixture"
+          ]
+        }
+      }
+    },
+    {
+      "type": "ipv4-addr",
+      "spec_version": "2.1",
+      "id": "ipv4-addr--ddcf16fe-7be7-5bc3-acb0-be69307e448b",
+      "value": "198.51.100.20",
+      "belongs_to_refs": [
+        "autonomous-system--0a5f7072-df00-5729-9f0a-4eb18631a446"
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ]
+    },
+    {
+      "type": "ipv6-addr",
+      "spec_version": "2.1",
+      "id": "ipv6-addr--122c501b-6ff6-51ff-b01f-a2ac0f652e72",
+      "value": "2001:db8::20",
+      "belongs_to_refs": [
+        "autonomous-system--0a5f7072-df00-5729-9f0a-4eb18631a446"
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ]
+    },
+    {
+      "type": "observed-data",
+      "spec_version": "2.1",
+      "id": "observed-data--5a10b151-6782-5768-b336-c32a7649b920",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "first_observed": "1970-01-01T00:01:40.000Z",
+      "last_observed": "1970-01-02T03:46:40.000Z",
+      "number_observed": 140,
+      "object_refs": [
+        "ipv4-addr--ddcf16fe-7be7-5bc3-acb0-be69307e448b"
+      ],
+      "labels": [
+        "dmarcgo",
+        "dmarc-aggregate-report",
+        "authentication-failure-candidate"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "dmarcgo",
+          "external_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+        },
+        {
+          "source_name": "offline-fixture",
+          "external_id": "fixture-reference"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_evidence",
+          "evidence": {
+            "version": "1",
+            "candidate_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8",
+            "threat_candidate_digest": "threat_candidates:835cf66f91ce471836ee53598319aaf5956e375b795c7f4b4c4d7f6199156b15",
+            "source_enrichment_digest": "source_enrichment:1c33bfba35711cb2abb08f6eee049111d40029d69f2c377c069d6bde5391ac87",
+            "observation_ids": [
+              "report_evidence_observation:4978ed92f0a784cb2d1e89a1378702a4a95f6d1ab7337d06038df23fef2610fd",
+              "report_evidence_observation:623a89bfc02b1daf66c4e8ef63648e4615ff9e744bdcfa3eff676b7a2494f45a"
+            ],
+            "report_evidence_ids": [
+              "report_evidence_report:53099520c8aa77973a521cfd52646393c603d734c09d08f58073f427e88c0ca8",
+              "report_evidence_report:c3ed1244d953460a994588fdb0931ada884cc2756467477d21fe6f07a1384ee4"
+            ],
+            "correlation_finding_ids": [
+              "dns_report_finding:23eedd42b74955df33641ac15e7cabd16e626893382becc977980bd5a75cd1df",
+              "dns_report_finding:2aac5e93c3aaf41bd55082be67e301caf5106605ff1bb8a928d98ce8cf2b5a5d",
+              "dns_report_finding:330eacf5c26dcac6f0afba2165106814217c74b09e8c81b7d5a1299b8b6baacf",
+              "dns_report_finding:77e79431a2995342a30737f654f1f740461b71597e77a11e474c505fec88f576",
+              "dns_report_finding:d1426c957692a51d7332a7e93cdc6bcf5ece9a8b357af7fbad8ec99a4e2e1b68"
+            ],
+            "source_enrichment_assertion_ids": [
+              "ip_metadata_assertion:20285a0280595f707132e3e97232abe6c22485345fead12b56220aedff5613c5"
+            ],
+            "affected_domains": [
+              "example.test"
+            ],
+            "entity_ids": [
+              "corporate"
+            ],
+            "score": 90,
+            "dual_failure_messages": 140,
+            "passing_messages": 0,
+            "expected_sender_failure_messages": 0,
+            "review_eligible": true,
+            "excluded": false,
+            "recommended_usage": "review_only",
+            "source_enrichment_status": "success"
+          }
+        }
+      }
+    },
+    {
+      "type": "observed-data",
+      "spec_version": "2.1",
+      "id": "observed-data--ad438265-5c0b-53d9-b2ed-fbf6a2d1e478",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "first_observed": "1970-01-01T00:01:40.000Z",
+      "last_observed": "1970-01-02T03:46:40.000Z",
+      "number_observed": 140,
+      "object_refs": [
+        "ipv6-addr--122c501b-6ff6-51ff-b01f-a2ac0f652e72"
+      ],
+      "labels": [
+        "dmarcgo",
+        "dmarc-aggregate-report",
+        "authentication-failure-candidate"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "dmarcgo",
+          "external_id": "threat_candidate:74086e9b93905f47febf11915f4759a0e28cd74b8be20eab0162757b90f36690"
+        },
+        {
+          "source_name": "offline-fixture",
+          "external_id": "fixture-reference"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_evidence",
+          "evidence": {
+            "version": "1",
+            "candidate_id": "threat_candidate:74086e9b93905f47febf11915f4759a0e28cd74b8be20eab0162757b90f36690",
+            "threat_candidate_digest": "threat_candidates:835cf66f91ce471836ee53598319aaf5956e375b795c7f4b4c4d7f6199156b15",
+            "source_enrichment_digest": "source_enrichment:1c33bfba35711cb2abb08f6eee049111d40029d69f2c377c069d6bde5391ac87",
+            "observation_ids": [
+              "report_evidence_observation:928f5db6ee8a3d912076500c107e4f9049732379a3d0186b8b8dfb071d276ba7",
+              "report_evidence_observation:985953d808ff68f4228449f47f0d087b612271b3e08ae5a79e587843c825bb6c"
+            ],
+            "report_evidence_ids": [
+              "report_evidence_report:53099520c8aa77973a521cfd52646393c603d734c09d08f58073f427e88c0ca8",
+              "report_evidence_report:c3ed1244d953460a994588fdb0931ada884cc2756467477d21fe6f07a1384ee4"
+            ],
+            "correlation_finding_ids": [
+              "dns_report_finding:330eacf5c26dcac6f0afba2165106814217c74b09e8c81b7d5a1299b8b6baacf",
+              "dns_report_finding:4a681ea13ed9ffd79f6b2de86a8a9478f200bc1db01c7be6ecb4ef639258a722",
+              "dns_report_finding:4a9a82a3c223f01068b7a6b43c953b87e24aaa008f565373e0d18cfbbf7fdd16",
+              "dns_report_finding:8a498bf788363e4974b5e537cef1e9e1a57a349ddc2aa718dd02f6d35b1ce449",
+              "dns_report_finding:d23e7481714dc662ede3eb628a1d650e2814209c5923417cd0fdcc157dc330f6"
+            ],
+            "source_enrichment_assertion_ids": [
+              "ip_metadata_assertion:4117605fe84c22796cb51e7f1359312b528faaf89942f47a1250d6283f5571c1"
+            ],
+            "affected_domains": [
+              "example.test"
+            ],
+            "entity_ids": [
+              "corporate"
+            ],
+            "score": 90,
+            "dual_failure_messages": 140,
+            "passing_messages": 0,
+            "expected_sender_failure_messages": 0,
+            "review_eligible": true,
+            "excluded": false,
+            "recommended_usage": "review_only",
+            "source_enrichment_status": "success"
+          }
+        }
+      }
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--7c5e7aa1-b113-55fa-8c84-cd4f6b67f11b",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "name": "DMARC authentication-failure source review indicator",
+      "description": "Explicitly promoted DMARC aggregate evidence for human review. This object does not assert malicious activity or authorize blocking.",
+      "pattern": "[ipv4-addr:value = '198.51.100.20']",
+      "pattern_type": "stix",
+      "pattern_version": "2.1",
+      "valid_from": "1970-01-03T07:33:20.000Z",
+      "valid_until": "1970-01-03T08:33:20.000Z",
+      "labels": [
+        "dmarcgo",
+        "explicitly-promoted",
+        "review-required"
+      ],
+      "confidence": 80,
+      "external_references": [
+        {
+          "source_name": "dmarcgo",
+          "external_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+        },
+        {
+          "source_name": "offline-fixture",
+          "external_id": "fixture-reference"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_evidence",
+          "evidence": {
+            "version": "1",
+            "candidate_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8",
+            "threat_candidate_digest": "threat_candidates:835cf66f91ce471836ee53598319aaf5956e375b795c7f4b4c4d7f6199156b15",
+            "source_enrichment_digest": "source_enrichment:1c33bfba35711cb2abb08f6eee049111d40029d69f2c377c069d6bde5391ac87",
+            "observation_ids": [
+              "report_evidence_observation:4978ed92f0a784cb2d1e89a1378702a4a95f6d1ab7337d06038df23fef2610fd",
+              "report_evidence_observation:623a89bfc02b1daf66c4e8ef63648e4615ff9e744bdcfa3eff676b7a2494f45a"
+            ],
+            "report_evidence_ids": [
+              "report_evidence_report:53099520c8aa77973a521cfd52646393c603d734c09d08f58073f427e88c0ca8",
+              "report_evidence_report:c3ed1244d953460a994588fdb0931ada884cc2756467477d21fe6f07a1384ee4"
+            ],
+            "correlation_finding_ids": [
+              "dns_report_finding:23eedd42b74955df33641ac15e7cabd16e626893382becc977980bd5a75cd1df",
+              "dns_report_finding:2aac5e93c3aaf41bd55082be67e301caf5106605ff1bb8a928d98ce8cf2b5a5d",
+              "dns_report_finding:330eacf5c26dcac6f0afba2165106814217c74b09e8c81b7d5a1299b8b6baacf",
+              "dns_report_finding:77e79431a2995342a30737f654f1f740461b71597e77a11e474c505fec88f576",
+              "dns_report_finding:d1426c957692a51d7332a7e93cdc6bcf5ece9a8b357af7fbad8ec99a4e2e1b68"
+            ],
+            "source_enrichment_assertion_ids": [
+              "ip_metadata_assertion:20285a0280595f707132e3e97232abe6c22485345fead12b56220aedff5613c5"
+            ],
+            "affected_domains": [
+              "example.test"
+            ],
+            "entity_ids": [
+              "corporate"
+            ],
+            "score": 90,
+            "dual_failure_messages": 140,
+            "passing_messages": 0,
+            "expected_sender_failure_messages": 0,
+            "review_eligible": true,
+            "excluded": false,
+            "recommended_usage": "review_only",
+            "source_enrichment_status": "success"
+          }
+        }
+      }
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--17b2097b-4c05-5ecd-895f-3be83359a9fe",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "relationship_type": "based-on",
+      "source_ref": "indicator--7c5e7aa1-b113-55fa-8c84-cd4f6b67f11b",
+      "target_ref": "observed-data--5a10b151-6782-5768-b336-c32a7649b920",
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_reference",
+          "candidate_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+        }
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--45924ca7-2605-5e47-9dbf-9cbbef5940b2",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "content": "This object records DMARC aggregate authentication evidence for human review. It does not assert malicious activity or authorize blocking.",
+      "object_refs": [
+        "observed-data--ad438265-5c0b-53d9-b2ed-fbf6a2d1e478"
+      ],
+      "labels": [
+        "dmarcgo",
+        "review-limitation"
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_reference",
+          "candidate_id": "threat_candidate:74086e9b93905f47febf11915f4759a0e28cd74b8be20eab0162757b90f36690"
+        }
+      }
+    },
+    {
+      "type": "note",
+      "spec_version": "2.1",
+      "id": "note--5f185d4f-d5d8-5e48-951b-991e2581c564",
+      "created_by_ref": "identity--5a54f78c-c517-5463-8618-61c05a96386d",
+      "created": "1970-01-03T07:33:20.000Z",
+      "modified": "1970-01-03T07:33:20.000Z",
+      "content": "This object records DMARC aggregate authentication evidence for human review. It does not assert malicious activity or authorize blocking.",
+      "object_refs": [
+        "observed-data--5a10b151-6782-5768-b336-c32a7649b920",
+        "indicator--7c5e7aa1-b113-55fa-8c84-cd4f6b67f11b"
+      ],
+      "labels": [
+        "dmarcgo",
+        "review-limitation"
+      ],
+      "object_marking_refs": [
+        "marking-definition--f88d31f6-486f-44da-b317-01333bde0b82"
+      ],
+      "extensions": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "extension_type": "property-extension",
+          "context_type": "candidate_reference",
+          "candidate_id": "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+        }
+      }
+    }
+  ]
+}

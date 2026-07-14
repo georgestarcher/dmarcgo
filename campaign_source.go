@@ -258,7 +258,11 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 		resolver.runtimeRequired[id] = spec.required
 		if visitErr := resolver.visit(id, 0); visitErr != nil {
 			if errors.Is(visitErr, context.Canceled) || errors.Is(visitErr, context.DeadlineExceeded) {
-				return resolver.snapshot(nil, false, false), visitErr
+				snapshot, snapshotErr := resolver.snapshot(nil, false, false)
+				if snapshotErr != nil {
+					return snapshot, errors.Join(visitErr, snapshotErr)
+				}
+				return snapshot, visitErr
 			}
 			resolver.graphFailure = true
 		}
@@ -268,9 +272,15 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 	usableSelectedSource := resolver.hasUsableSelectedSource()
 	complete := usableSelectedSource && !resolver.requiredFailure && !resolver.graphFailure && mergeComplete
 	authorizationAvailable := usableSelectedSource && !resolver.requiredFailure && !resolver.graphFailure
-	snapshot := resolver.snapshot(campaigns, complete, authorizationAvailable)
+	snapshot, err := resolver.snapshot(campaigns, complete, authorizationAvailable)
+	if err != nil {
+		return snapshot, err
+	}
 	if !authorizationAvailable && options.UseLastKnownGood && validCampaignLastKnownGood(options.LastKnownGood, resolver.now, options.MaximumAge) {
-		snapshot = resolver.lastKnownGoodSnapshot(*options.LastKnownGood)
+		snapshot, err = resolver.lastKnownGoodSnapshot(*options.LastKnownGood)
+		if err != nil {
+			return snapshot, err
+		}
 	}
 	if options.FailurePolicy == CampaignSourceFailClosed && !snapshot.complete {
 		return snapshot, ErrCampaignSourceFailed
@@ -428,8 +438,14 @@ func (resolver *campaignSourceResolver) load(spec normalizedCampaignSourceSpec) 
 	if metadata.RetrievedAt.IsZero() {
 		metadata.RetrievedAt = resolver.now
 	}
-	provenance.RetrievedAt = metadata.RetrievedAt.UTC()
-	provenance.LastModified = metadata.LastModified.UTC()
+	metadata.RetrievedAt = metadata.RetrievedAt.UTC()
+	metadata.LastModified = metadata.LastModified.UTC()
+	if !campaignTimeMarshalable(metadata.RetrievedAt) || !campaignTimeMarshalable(metadata.LastModified) {
+		resolver.addDiagnostic("campaign.source.invalid_metadata_time", FindingSeverityHigh, spec.id, "Campaign source retrieval metadata contained a timestamp outside the supported JSON range.")
+		return &campaignLoadedSource{spec: spec, provenance: provenance}, nil
+	}
+	provenance.RetrievedAt = metadata.RetrievedAt
+	provenance.LastModified = metadata.LastModified
 	provenance.ETag = boundedCampaignMetadata(metadata.ETag)
 	provenance.ContentType = boundedCampaignMetadata(metadata.ContentType)
 	if spec.verifier != nil {
@@ -544,7 +560,7 @@ func (resolver *campaignSourceResolver) validateProviderCatalog(campaigns []Secu
 	}
 }
 
-func (resolver *campaignSourceResolver) snapshot(campaigns []SecuritySimulationCampaign, complete, authorizationAvailable bool) CampaignConfigurationSnapshot {
+func (resolver *campaignSourceResolver) snapshot(campaigns []SecuritySimulationCampaign, complete, authorizationAvailable bool) (CampaignConfigurationSnapshot, error) {
 	sources := make([]CampaignSourceProvenance, 0, len(resolver.specs))
 	for id, spec := range resolver.specs {
 		if loaded, ok := resolver.loaded[id]; ok {
@@ -563,13 +579,20 @@ func (resolver *campaignSourceResolver) snapshot(campaigns []SecuritySimulationC
 		effectiveAt: effectiveAt, expiresAt: expiresAt, campaigns: cloneSecuritySimulationCampaigns(campaigns),
 		sources: cloneCampaignSourceProvenance(sources), diagnostics: append([]CampaignSourceDiagnostic(nil), resolver.diagnostics...),
 	}
-	snapshot.digest = campaignConfigurationSnapshotDigest(snapshot)
-	return snapshot
+	digest, err := campaignConfigurationSnapshotDigest(snapshot)
+	if err != nil {
+		return snapshot, ErrCampaignSourceFailed
+	}
+	snapshot.digest = digest
+	return snapshot, nil
 }
 
-func (resolver *campaignSourceResolver) lastKnownGoodSnapshot(previous CampaignConfigurationSnapshot) CampaignConfigurationSnapshot {
+func (resolver *campaignSourceResolver) lastKnownGoodSnapshot(previous CampaignConfigurationSnapshot) (CampaignConfigurationSnapshot, error) {
 	resolver.addDiagnostic("campaign.source.last_known_good", FindingSeverityMedium, "", "A caller-supplied last-known-good campaign snapshot was used.")
-	snapshot := resolver.snapshot(previous.campaigns, false, true)
+	snapshot, err := resolver.snapshot(previous.campaigns, false, true)
+	if err != nil {
+		return snapshot, err
+	}
 	snapshot.previousDigest = previous.digest
 	snapshot.effectiveAt = previous.effectiveAt
 	snapshot.expiresAt = campaignLastKnownGoodExpiresAt(&previous, resolver.options.MaximumAge)
@@ -579,12 +602,16 @@ func (resolver *campaignSourceResolver) lastKnownGoodSnapshot(previous CampaignC
 			snapshot.sources[index].State = CampaignSourceLastKnownGood
 		}
 	}
-	snapshot.digest = campaignConfigurationSnapshotDigest(snapshot)
-	return snapshot
+	digest, err := campaignConfigurationSnapshotDigest(snapshot)
+	if err != nil {
+		return snapshot, ErrCampaignSourceFailed
+	}
+	snapshot.digest = digest
+	return snapshot, nil
 }
 
-func campaignConfigurationSnapshotDigest(snapshot CampaignConfigurationSnapshot) AnalysisID {
-	canonical, _ := json.Marshal(struct {
+func campaignConfigurationSnapshotDigest(snapshot CampaignConfigurationSnapshot) (AnalysisID, error) {
+	canonical, err := json.Marshal(struct {
 		Version                string                       `json:"version"`
 		GeneratedAt            time.Time                    `json:"generated_at"`
 		PreviousDigest         AnalysisID                   `json:"previous_digest,omitempty"`
@@ -596,7 +623,10 @@ func campaignConfigurationSnapshotDigest(snapshot CampaignConfigurationSnapshot)
 		Sources                []CampaignSourceProvenance   `json:"sources"`
 		Diagnostics            []CampaignSourceDiagnostic   `json:"diagnostics"`
 	}{snapshot.version, snapshot.metadata.GeneratedAt, snapshot.previousDigest, snapshot.complete, snapshot.authorizationAvailable, snapshot.effectiveAt, snapshot.expiresAt, snapshot.campaigns, snapshot.sources, snapshot.diagnostics})
-	return StableAnalysisID("campaign_configuration_snapshot", string(canonical))
+	if err != nil {
+		return "", err
+	}
+	return StableAnalysisID("campaign_configuration_snapshot", string(canonical)), nil
 }
 
 func campaignSnapshotBounds(sources []CampaignSourceProvenance, maximumAge time.Duration) (time.Time, time.Time) {

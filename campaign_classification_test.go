@@ -106,6 +106,30 @@ func TestClassifyReportedMessageEnforcesMinimumMatchedFactorsForHighConfidence(t
 	}
 }
 
+func TestClassifyReportedMessageRequiresEveryRequiredFactorForPossibleClassification(t *testing.T) {
+	config := campaignTestConfig("missing-required-token", "training.example.test")
+	config.SecuritySimulations[0].MatchPolicy.MinimumMatchedFactors = 3
+	input := campaignTestEvidenceInput()
+	input.TokenDigests = nil
+
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, input),
+		CampaignClassificationOptions{AllowAutomaticDisposition: true},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := result.Records()
+	if len(records) != 1 || campaignMatchedFactorCount(records[0].Factors) < config.SecuritySimulations[0].MatchPolicy.MinimumMatchedFactors {
+		t.Fatalf("test evidence did not reach the optional-factor threshold: %+v", records)
+	}
+	if !campaignAnyFactor(records[0].Missing, CampaignFactorTokenDigest) || records[0].Classification == CampaignPossibleAuthorized ||
+		records[0].Classification == CampaignAuthorizedHighConfidence || records[0].AutomaticDispositionEligible || result.Summary().AutomaticDispositionReady != 0 {
+		t.Fatalf("missing required token entered an authorized classification: records=%+v summary=%+v", records, result.Summary())
+	}
+}
+
 func TestClassifyReportedMessageMatchesNumericDKIMOnlyIdentity(t *testing.T) {
 	config := campaignTestConfig("numeric-selector", "training.example.test")
 	campaign := &config.SecuritySimulations[0]

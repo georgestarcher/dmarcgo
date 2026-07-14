@@ -191,8 +191,13 @@ tests used by the Phase 13 integration gate.
   to both identity and signal. Automatic disposition is dual-opt-in,
   unique-match-only, and still never executed by the library.
 - Enforce `minimum_matched_factors` in addition to every required-factor check
-  before high-confidence or possible classification. Evidence below that floor
-  is never automatic-disposition eligible.
+  before high-confidence or possible classification. Optional matches cannot
+  substitute for any required factor, and evidence below either gate is never
+  automatic-disposition eligible.
+- Reject adapter-supplied retrieval and Last-Modified times that cannot be
+  represented by the JSON contract before retaining those timestamps in source
+  provenance. Never convert snapshot serialization failures into an
+  empty-payload digest.
 - Exact campaign DKIM identities match only a passing signature unless the
   campaign explicitly sets `authentication.dkim: not_expected`; optional DKIM
   never treats a failed signature as a campaign-specific signal.

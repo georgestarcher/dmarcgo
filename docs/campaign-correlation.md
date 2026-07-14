@@ -143,6 +143,10 @@ Last-Modified values, retrieval times, freshness states, and optional detached
 signature verification results. Restricted provenance also retains the exact
 replacement-ID allowlist so the snapshot digest covers the merge policy that
 produced the inventory.
+Adapter-supplied retrieval and Last-Modified times must fit the JSON timestamp
+contract. An invalid value makes that source unusable and is excluded from
+retained provenance. Snapshot digest serialization errors are returned rather
+than converted into a digest of an empty payload.
 
 Every source document must include `security_simulations`. An explicit
 `security_simulations: []` is a valid authoritative empty inventory; an omitted
@@ -228,7 +232,8 @@ authorization.
 `match_policy.minimum_matched_factors` is an additional floor for both
 high-confidence and possible classification. Matching every individually
 required factor does not bypass a stricter configured factor-count threshold,
-and evidence below that threshold is never automatic-disposition eligible.
+and reaching that threshold with optional matches does not bypass any required
+factor. Evidence below either gate is never automatic-disposition eligible.
 
 When required authentication has an expected envelope domain or exact DKIM
 domain/selector, a pass from a different SPF or DKIM identity cannot mask that

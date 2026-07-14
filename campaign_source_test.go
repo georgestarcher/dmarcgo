@@ -88,6 +88,47 @@ func TestResolveCampaignConfigurationRejectsEmptySourceSet(t *testing.T) {
 	}
 }
 
+func TestResolveCampaignConfigurationRejectsUnmarshalableSourceMetadataTimes(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	invalid := time.Date(10000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name     string
+		metadata CampaignConfigurationMetadata
+	}{
+		{name: "retrieved at", metadata: CampaignConfigurationMetadata{RetrievedAt: invalid}},
+		{name: "last modified", metadata: CampaignConfigurationMetadata{LastModified: invalid}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+				ID: "invalid-metadata", Source: NewCampaignBytesSource(marshalCampaignConfig(t, campaignTestConfig("invalid-metadata", "training.example.test")), test.metadata), Required: true,
+			}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return now })})
+			if err != nil {
+				t.Fatal(err)
+			}
+			sources := snapshot.Sources()
+			if snapshot.Complete() || snapshot.AuthorizationAvailable() || snapshot.Digest() == "" ||
+				snapshot.Digest() == StableAnalysisID("campaign_configuration_snapshot", "") || len(sources) != 1 ||
+				sources[0].State != CampaignSourceFailed || !sources[0].RetrievedAt.IsZero() || !sources[0].LastModified.IsZero() ||
+				!hasCampaignSourceDiagnostic(snapshot.Diagnostics(), "campaign.source.invalid_metadata_time") {
+				t.Fatalf("invalid source metadata was retained or authorized: snapshot=%+v sources=%+v diagnostics=%+v", snapshot, sources, snapshot.Diagnostics())
+			}
+			if _, err := json.Marshal(sources); err != nil {
+				t.Fatalf("invalid source metadata escaped into serializable provenance: %v", err)
+			}
+		})
+	}
+}
+
+func TestCampaignConfigurationSnapshotDigestPropagatesSerializationFailure(t *testing.T) {
+	invalid := time.Date(10000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if digest, err := campaignConfigurationSnapshotDigest(CampaignConfigurationSnapshot{
+		metadata: ResultMetadata{GeneratedAt: invalid}, version: CampaignConfigurationSnapshotVersion,
+	}); err == nil || digest != "" {
+		t.Fatalf("snapshot digest accepted an unmarshalable time: digest=%q error=%v", digest, err)
+	}
+}
+
 func TestResolveCampaignConfigurationRequiresUsableSelectedSource(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	stale := campaignTestConfig("stale-optional", "training.example.test")

@@ -354,7 +354,7 @@ func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedM
 	case (identityMatched || specificMatched) && campaignRequiredContradiction(evaluations):
 		record.Classification = CampaignConfigurationMismatch
 		record.Confidence = FindingConfidenceMedium
-	case matchedFactorCount >= campaign.MinimumMatchedFactors && (identityMatched && specificMatched || specificMatched && campaignEvaluationState(evaluations, CampaignFactorOrganizationScope) == CampaignFactorMatched):
+	case requiredMatched && matchedFactorCount >= campaign.MinimumMatchedFactors && (identityMatched && specificMatched || specificMatched && campaignEvaluationState(evaluations, CampaignFactorOrganizationScope) == CampaignFactorMatched):
 		record.Classification = CampaignPossibleAuthorized
 		record.Confidence = FindingConfidenceMedium
 	default:

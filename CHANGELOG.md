@@ -98,6 +98,13 @@ and this project uses semantic versioning for public API changes.
   correlation-disabled review defaults, deterministic UUIDs and timestamps,
   defensive evidence references, strict native-payload validation, and no
   discovery, credentials, HTTP, publication, or submission side effects.
+- Pure Anomali ThreatStream direct-observable and reviewed-import request
+  encoding for explicitly selected review candidates, requiring an exact
+  versioned tenant contract for endpoint, fields, IP `itype` values, allowed
+  metadata, encodings, limits, conservative private defaults, and response
+  assumptions, with defensive evidence references, strict native-payload
+  validation, and no discovery, credentials, HTTP, polling, approval, or
+  submission side effects.
 
 ### Changed
 

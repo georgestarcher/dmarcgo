@@ -112,6 +112,17 @@
 // HTTP, submission, publication, warning-list lookup, retry, clock access, or
 // direct source-IP activity.
 //
+// BuildThreatStreamPayloads performs another separate pure transformation into
+// tenant-native Anomali ThreatStream direct-observable or reviewed-import JSON.
+// It requires an exact caller-supplied, versioned tenant capability covering
+// endpoint, fields, itypes, allowed values, encodings, limits, conservative
+// private review defaults, and response assumptions. Evidence confidence and
+// candidate severity are mapped only through explicit caller policy. Native
+// bodies retain no hidden agent wrapper, while defensive Source metadata keeps
+// candidate and evidence references separately. The encoder performs no tenant
+// discovery, credentials, HTTP, response parsing, polling, approval, retry,
+// clock access, submission, or direct source-IP activity.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

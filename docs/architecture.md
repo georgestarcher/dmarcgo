@@ -17,6 +17,7 @@ threat candidates + optional enrichment -> enriched candidates
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
 threat candidates + optional matching enrichment -> STIX 2.1 bundle
 explicit threat-candidate/ASN selections + optional matching enrichment -> ThreatConnect v3 request payloads
+explicit threat-candidate selections + versioned tenant contract -> Anomali ThreatStream request payloads
 completed result values -> output encoders
 ```
 
@@ -48,6 +49,7 @@ structure containing every possible input or output.
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
 | ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
+| Anomali ThreatStream exchange | `ThreatStreamPayload` (tenant-native, not an analysis mode) | ThreatStream export feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
 | Campaign classification | `campaign_classification` | Campaign-correlation feature |
 | Serialization | Existing output modes, later extended per completed mode | Output feature |
@@ -118,6 +120,16 @@ retains source references outside the native JSON, does not infer Threat
 Rating, and performs no credentials, HTTP, owner discovery, duplicate lookup,
 submission, clock access, or source-IP activity.
 
+`ThreatStreamPayload` is a separate tenant-native exchange boundary, not an
+`AnalysisMode` or `OutputEnvelope`. `BuildThreatStreamPayloads` accepts a
+completed threat-candidate result, explicit candidate/`itype` selections, and
+one versioned tenant capability for a direct-observable or reviewed-import
+shape. The capability owns endpoint, fields, allowed values, encodings, limits,
+private review defaults, and response assumptions because no universal public
+ingestion schema is assumed. Payload provenance stays outside the native JSON.
+The builder performs no discovery, credentials, HTTP, response parsing,
+polling, approval, submission, clock access, or source-IP activity.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -160,6 +172,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | ThreatConnect export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
+| ThreatStream export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | Output encoding | No | Writer supplied by caller | No | No | Representation only |
 
 No stage may use global mutable configuration or a global cache. Caches belong
@@ -253,6 +266,16 @@ and keeps its dmarcgo evidence references in defensive `Source()` metadata.
 Owner-scoped duplicate checks, credentials, HTTP, response handling, and audit
 storage belong to the application; a duplicate POST can update an existing
 Indicator according to the vendor contract.
+
+`BuildThreatStreamPayloads` is the Anomali ThreatStream exchange entry point.
+It accepts no context or side-effect dependency. A zero generation time
+preserves the candidate-result timestamp. Each payload matches only the exact
+caller-supplied tenant capability and keeps dmarcgo evidence references in
+defensive `Source()` metadata. Tenant discovery, credentials, HTTP, live
+response parsing, duplicate handling, asynchronous polling, import approval,
+retry, and audit storage belong to the application. A valid encoded request is
+not proof that a tenant will accept, create, approve, publish, or deduplicate an
+observable.
 
 ## Persistence and composition
 

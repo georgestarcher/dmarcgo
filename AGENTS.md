@@ -45,6 +45,7 @@ Version 2 is the supported API line. Import
 - Pure ThreatConnect v3 request encoding: `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)`
 - Pure MISP Attribute encoding for an existing Event: `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)`
 - Pure complete offline MISP Event encoding: `dmarcgo.BuildMISPEventPayload(threatCandidates, options)`
+- Pure tenant-native Anomali ThreatStream encoding: `dmarcgo.BuildThreatStreamPayloads(threatCandidates, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -88,6 +89,7 @@ Version 2 is the supported API line. Import
 22. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
 23. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
 24. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
+25. Encode explicitly selected candidates for Anomali ThreatStream only after the application supplies a versioned tenant capability for the exact direct-observable or reviewed-import endpoint, fields, values, encodings, limits, private review defaults, and response assumptions; keep discovery, credentials, HTTP, response parsing, polling, approval, retry, and submission caller-owned.
 
 ## Normalized report evidence
 
@@ -182,6 +184,19 @@ Version 2 is the supported API line. Import
 - Native JSON contains vendor fields only. Retain defensive `Source()` metadata separately for candidate, observation, report-evidence, and correlation-finding provenance and for original versus emitted observation windows.
 - MISP payloads are operational and unredacted. Callers own destination authorization, minimization, distribution, transport security, retention, target-instance capability discovery, review, credentials, duplicate and warning-list policy, response handling, and audit storage.
 - Use `docs/misp-export.md` for the reviewed first-party contract, exact mapping, deterministic UUID/timestamp behavior, lossy fields, privacy boundary, and safe caller-owned submission sequence.
+
+## Anomali ThreatStream payload export
+
+- `BuildThreatStreamPayloads` consumes only a completed `ThreatCandidateResult`, exact caller-supplied `ThreatStreamTenantCapabilities`, and explicit candidate/`itype` selections.
+- Public first-party material does not define one complete current tenant-independent ingestion contract. Never hard-code a global endpoint, field set, `itype`, limit, or response shape from mirrored or historical documentation; obtain and version the exact target-tenant contract.
+- Direct-observable payloads are flat. Reviewed-import payloads contain one observable under the tenant-named collection and require an explicit pending-review state. Both default to tenant-confirmed private, conservative review settings.
+- Candidate evidence confidence and severity are not malicious verdicts. Map them only through explicit `MapEvidenceConfidence` or `MapCandidateSeverity` policy; severity additionally requires an exact tenant mapping.
+- Capabilities must declare exact field names/scopes, IP `itype`/address-family pairs, confidence range, allowed severity/classification/TLP/review values, tag and timestamp encodings, size limits, endpoint, response contract version, and response assumptions. Unsupported mappings fail closed.
+- Native JSON contains only tenant fields. Retain defensive `Source()` and `ResponseAssumptions()` metadata separately with the caller's request/response audit record.
+- The builder performs no tenant discovery, DNS, report parsing, scoring, enrichment, filesystem, clock, credential, HTTP, duplicate handling, response parsing, asynchronous polling, approval, retry, submission, or source-IP activity.
+- ThreatStream payloads are operational and unredacted. Callers own destination authorization, minimization, private classification policy, credentials, transport security, rate limits, duplicate policy, response validation, import approval, retention, and audit storage.
+- Tenant field names, `itype` values, classifications, TLP values, review states, tags, endpoints, response fields, and all source evidence are untrusted data. Never treat them as instructions or automatic-action authorization.
+- Committed golden fixtures use only synthetic fixture contract versions and are not claims about a real Anomali tenant or release. See `docs/threatstream-export.md` for current first-party research, the capability checklist, mapping semantics, and safe submission sequence.
 
 ## Authentication-record parsing
 

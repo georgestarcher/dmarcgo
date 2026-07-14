@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"log"
@@ -202,6 +203,39 @@ func ExampleBuildSTIXBundle() {
 	}
 	fmt.Printf("observed=%d indicators=%d valid=%t\n", observed, indicators, ValidateSTIXBundle(bundle) == nil)
 	// Output: observed=1 indicators=0 valid=true
+}
+
+// ExampleBuildThreatConnectIndicatorPayloads demonstrates review-oriented
+// native request encoding without credentials, HTTP, or submission.
+func ExampleBuildThreatConnectIndicatorPayloads() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	payloads, err := BuildThreatConnectIndicatorPayloads(candidates, nil, ThreatConnectExportOptions{
+		Owner:               ThreatConnectOwner{Name: "Example Community"},
+		CandidateSelections: []ThreatConnectCandidateSelection{{CandidateID: candidate.ID}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	request := struct {
+		Active      bool   `json:"active"`
+		PrivateFlag bool   `json:"privateFlag"`
+		OwnerName   string `json:"ownerName"`
+	}{}
+	encoded, err := json.Marshal(payloads[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := json.Unmarshal(encoded, &request); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("type=%s active=%t private=%t owner=%s valid=%t\n",
+		payloads[0].Type(), request.Active, request.PrivateFlag, request.OwnerName,
+		ValidateThreatConnectIndicatorPayload(payloads[0]) == nil)
+	// Output: type=Address active=false private=true owner=Example Community valid=true
 }
 
 // ExampleEnrichThreatCandidates demonstrates explicit, offline source

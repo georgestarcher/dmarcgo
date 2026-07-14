@@ -86,6 +86,12 @@ and this project uses semantic versioning for public API changes.
   with explicit Indicator promotion, producer and TLP controls, deterministic
   identifiers, a strict embedded evidence-extension schema, official OASIS
   interoperability validation, and no analysis or submission side effects.
+- Pure ThreatConnect v3 Indicator request encoding for explicitly selected
+  Address candidates and evidence-backed ASN rollups, with inactive/private
+  review defaults, exact vendor field validation, opt-in confidence and Threat
+  Rating, deterministic tenant metadata, defensive source references,
+  owner-scoped duplicate/update documentation, and no credentials, HTTP, or
+  submission side effects.
 
 ### Changed
 

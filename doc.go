@@ -88,6 +88,17 @@
 // WriteSTIXBundle, and STIXEvidenceExtensionSchema for validation and schema
 // discovery.
 //
+// BuildThreatConnectIndicatorPayloads performs a separate pure transformation
+// of explicit review-candidate and enriched-ASN selections into native
+// ThreatConnect v3 Indicator request bodies. Payloads default to inactive and
+// private; confidence and Threat Rating require explicit caller policy.
+// ThreatConnect documents duplicate POSTs as owner-scoped updates, so the
+// application owns review, credentials, transport, response handling, and
+// audit storage. The encoder performs no lookup, clock access, HTTP, submission,
+// retry, or direct source-IP activity. Use ValidateThreatConnectIndicatorPayload
+// and retain each payload's defensive Source metadata before caller-owned
+// submission.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

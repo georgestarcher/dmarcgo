@@ -16,6 +16,7 @@ portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
 threat candidates + optional matching enrichment -> STIX 2.1 bundle
+explicit threat-candidate/ASN selections + optional matching enrichment -> ThreatConnect v3 request payloads
 completed result values -> output encoders
 ```
 
@@ -46,6 +47,7 @@ structure containing every possible input or output.
 | Optional enrichment | `source_enrichment` | Enrichment feature |
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
+| ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
 | Campaign classification | `campaign_classification` | Campaign-correlation feature |
 | Serialization | Existing output modes, later extended per completed mode | Output feature |
@@ -108,6 +110,14 @@ rerun analysis, evaluate jurisdiction policy, consult a clock, or submit data.
 Serialization validates the supported STIX subset and writes only to the
 caller-supplied writer.
 
+`ThreatConnectIndicatorPayload` is a separate vendor-native exchange boundary,
+not an `AnalysisMode` or `OutputEnvelope`. The pure builder accepts completed
+threat candidates, optional matching source enrichment, and explicit Address
+or ASN selections. It applies inactive/private review-oriented defaults,
+retains source references outside the native JSON, does not infer Threat
+Rating, and performs no credentials, HTTP, owner discovery, duplicate lookup,
+submission, clock access, or source-IP activity.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -149,6 +159,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Threat candidates | Supplied completed values only | No | No | No | Explainable scoring |
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
+| ThreatConnect export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | Output encoding | No | Writer supplied by caller | No | No | Representation only |
 
 No stage may use global mutable configuration or a global cache. Caches belong
@@ -234,6 +245,14 @@ Raw source IPs and operational context remain present by design; callers own
 markings, recipient authorization, minimization, transport, and retention.
 Indicator promotion is an explicit export option and never mutates upstream
 promotion state.
+
+`BuildThreatConnectIndicatorPayloads` is the ThreatConnect exchange entry
+point. It accepts no context or side-effect dependency. A zero generation time
+preserves the latest input-result timestamp. Each payload uses native v3 fields
+and keeps its dmarcgo evidence references in defensive `Source()` metadata.
+Owner-scoped duplicate checks, credentials, HTTP, response handling, and audit
+storage belong to the application; a duplicate POST can update an existing
+Indicator according to the vendor contract.
 
 ## Persistence and composition
 

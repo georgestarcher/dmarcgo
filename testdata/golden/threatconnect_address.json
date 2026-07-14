@@ -1,0 +1,36 @@
+{
+  "type": "Address",
+  "ip": "198.51.100.20",
+  "active": false,
+  "privateFlag": true,
+  "firstSeen": "1970-01-01T00:01:40Z",
+  "lastSeen": "1970-01-02T03:46:40Z",
+  "observations": 140,
+  "attributes": {
+    "data": [
+      {
+        "type": "Description",
+        "value": "DMARC aggregate authentication-failure source selected for human review. This payload does not assert malicious activity or authorize blocking.",
+        "default": true
+      },
+      {
+        "type": "Source",
+        "value": "dmarcgo",
+        "default": true
+      }
+    ]
+  },
+  "tags": {
+    "data": [
+      {
+        "name": "DMARC Aggregate"
+      },
+      {
+        "name": "Human Review Required"
+      },
+      {
+        "name": "dmarcgo"
+      }
+    ]
+  }
+}

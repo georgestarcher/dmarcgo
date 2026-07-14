@@ -73,6 +73,39 @@ func TestClassifyReportedMessageHighConfidenceAndExplicitAutomation(t *testing.T
 	}
 }
 
+func TestClassifyReportedMessageEnforcesMinimumMatchedFactorsForHighConfidence(t *testing.T) {
+	config := campaignTestConfig("strict-threshold", "training.example.test")
+	config.SecuritySimulations[0].MatchPolicy.MinimumMatchedFactors = 8
+	input := campaignTestEvidenceInput()
+	input.EnvelopeFromDomain = ""
+	input.MessageIDDomain = ""
+	input.SourceAddresses = nil
+	input.SourceHostnames = nil
+	input.InfrastructureIDs = nil
+	input.DeliveryExceptionIDs = nil
+	input.RecipientDomains = nil
+	input.RecipientScopeIDs = nil
+	input.URLDomains = nil
+	input.ContentFingerprints = nil
+
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, input),
+		CampaignClassificationOptions{AllowAutomaticDisposition: true},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := result.Records()
+	if len(records) != 1 || campaignMatchedFactorCount(records[0].Factors) >= config.SecuritySimulations[0].MatchPolicy.MinimumMatchedFactors {
+		t.Fatalf("test evidence unexpectedly met the strict threshold: %+v", records)
+	}
+	if records[0].Classification == CampaignAuthorizedHighConfidence || records[0].AutomaticDispositionEligible ||
+		result.Summary().AutomaticDispositionReady != 0 {
+		t.Fatalf("strict matched-factor threshold was bypassed: records=%+v summary=%+v", records, result.Summary())
+	}
+}
+
 func TestClassifyReportedMessageMatchesNumericDKIMOnlyIdentity(t *testing.T) {
 	config := campaignTestConfig("numeric-selector", "training.example.test")
 	campaign := &config.SecuritySimulations[0]

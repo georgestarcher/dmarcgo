@@ -190,6 +190,9 @@ tests used by the Phase 13 integration gate.
   a campaign-specific exact signal, and high-confidence provenance appropriate
   to both identity and signal. Automatic disposition is dual-opt-in,
   unique-match-only, and still never executed by the library.
+- Enforce `minimum_matched_factors` in addition to every required-factor check
+  before high-confidence or possible classification. Evidence below that floor
+  is never automatic-disposition eligible.
 - Exact campaign DKIM identities match only a passing signature unless the
   campaign explicitly sets `authentication.dkim: not_expected`; optional DKIM
   never treats a failed signature as a campaign-specific signal.

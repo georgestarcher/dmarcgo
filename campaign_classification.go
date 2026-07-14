@@ -334,6 +334,7 @@ func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedM
 	authRequired := campaignAuthenticationIsRequired(campaign.Authentication)
 	matchedFactorCount := campaignMatchedFactorCount(evaluations)
 	baseHigh := snapshot.authorizationAvailable && campaign.Status != CampaignStatusCanceled && !value.AggregateOnly && requiredMatched &&
+		matchedFactorCount >= campaign.MinimumMatchedFactors &&
 		identityMatched && specificMatched && windowState == CampaignFactorMatched && campaignEvaluationState(evaluations, CampaignFactorOrganizationScope) == CampaignFactorMatched &&
 		campaignEvaluationState(evaluations, CampaignFactorEvidenceConfidence) == CampaignFactorMatched && (!authRequired || authState == CampaignFactorMatched)
 	switch {

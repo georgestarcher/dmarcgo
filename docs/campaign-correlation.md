@@ -225,6 +225,10 @@ token digests, content-scanner provenance supports content fingerprints, and
 gateway provenance supports infrastructure IDs. A reporting user's assertion
 alone remains reviewable evidence but cannot establish high-confidence
 authorization.
+`match_policy.minimum_matched_factors` is an additional floor for both
+high-confidence and possible classification. Matching every individually
+required factor does not bypass a stricter configured factor-count threshold,
+and evidence below that threshold is never automatic-disposition eligible.
 
 When required authentication has an expected envelope domain or exact DKIM
 domain/selector, a pass from a different SPF or DKIM identity cannot mask that

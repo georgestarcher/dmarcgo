@@ -202,6 +202,53 @@ func TestBuildMISPEventPayloadRequiresCompleteContext(t *testing.T) {
 	}
 }
 
+func TestBuildMISPPayloadsAllowMultipleMappingsPerCandidate(t *testing.T) {
+	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
+	candidate := candidates.Candidates()[0]
+	sourceMapping := MISPAttributeMapping{Type: MISPAttributeTypeIPSource, Category: "Network activity"}
+	destinationMapping := MISPAttributeMapping{Type: MISPAttributeTypeIPDestination, Category: "External analysis"}
+	capabilities := MISPInstanceCapabilities{
+		ContractVersion: "2.5.42", AttributeMappings: []MISPAttributeMapping{sourceMapping, destinationMapping},
+	}
+	selections := []MISPAttributeSelection{
+		{CandidateID: candidate.ID, Mapping: sourceMapping},
+		{CandidateID: candidate.ID, Mapping: destinationMapping},
+	}
+
+	attributes, err := BuildMISPAttributePayloads(candidates, MISPAttributeExportOptions{
+		Event: MISPEventReference{Identifier: "42"}, Capabilities: capabilities, Selections: selections,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(attributes) != 2 || attributes[0].CandidateID() != candidate.ID || attributes[1].CandidateID() != candidate.ID ||
+		attributes[0].UUID() == attributes[1].UUID() {
+		t.Fatalf("multiple mappings did not produce distinct candidate attributes: %+v", attributes)
+	}
+	first, second := mispDecodeAttribute(t, attributes[0]), mispDecodeAttribute(t, attributes[1])
+	if first.Type != MISPAttributeTypeIPDestination || second.Type != MISPAttributeTypeIPSource {
+		t.Fatalf("multiple mappings were not deterministically ordered: first=%+v second=%+v", first, second)
+	}
+
+	published, disabled := false, true
+	event, err := BuildMISPEventPayload(candidates, MISPEventExportOptions{
+		Capabilities: capabilities,
+		Event: MISPEventDefinition{
+			UUID: "11111111-2222-4333-8444-555555555555", Info: "Review", Date: candidates.ResultMetadata().GeneratedAt,
+			Distribution: MISPDistributionOrganizationOnly, ThreatLevel: MISPThreatLevelUndefined, Analysis: MISPAnalysisInitial,
+			Published: &published, DisableCorrelation: &disabled,
+		},
+		Selections: selections,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := mispDecodeEvent(t, event)
+	if len(request.Attributes) != 2 || request.Attributes[0].UUID == request.Attributes[1].UUID || ValidateMISPEventPayload(event) != nil {
+		t.Fatalf("event did not retain both candidate mappings: %+v", request.Attributes)
+	}
+}
+
 func TestMISPMappingAndContextFailuresAreExplicit(t *testing.T) {
 	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
 	candidate := candidates.Candidates()[0]

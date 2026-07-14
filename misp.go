@@ -443,7 +443,8 @@ func normalizeMISPExport(candidates ThreatCandidateResult, generatedAt time.Time
 		return mispMappingKey(result.Selections[i].Mapping) < mispMappingKey(result.Selections[j].Mapping)
 	})
 	for index, selection := range result.Selections {
-		if selection.CandidateID == "" || index > 0 && result.Selections[index-1].CandidateID == selection.CandidateID {
+		if selection.CandidateID == "" || index > 0 && result.Selections[index-1].CandidateID == selection.CandidateID &&
+			result.Selections[index-1].Mapping == selection.Mapping {
 			return normalizedMISPExport{}, ErrInvalidMISPExportOptions
 		}
 		if _, found := slices.BinarySearchFunc(result.Capabilities.AttributeMappings, selection.Mapping, func(left, right MISPAttributeMapping) int {

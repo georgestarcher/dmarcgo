@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/stix/dmarcgo-evidence/v1.json",
+  "title": "dmarcgo STIX 2.1 DMARC evidence property extension v1",
+  "type": "object",
+  "required": [
+    "extensions"
+  ],
+  "properties": {
+    "extensions": {
+      "type": "object",
+      "required": [
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8"
+      ],
+      "properties": {
+        "extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/candidate_evidence_extension"
+            },
+            {
+              "$ref": "#/$defs/asn_context_extension"
+            },
+            {
+              "$ref": "#/$defs/candidate_reference_extension"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "identifier_array": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/identifier"
+      },
+      "uniqueItems": true
+    },
+    "text_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      },
+      "uniqueItems": true
+    },
+    "nonempty_identifier_array": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/identifier_array"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "nonempty_text_array": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/text_array"
+        },
+        {
+          "minItems": 1
+        }
+      ]
+    },
+    "candidate_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "candidate_id",
+        "threat_candidate_digest",
+        "observation_ids",
+        "report_evidence_ids",
+        "correlation_finding_ids",
+        "source_enrichment_assertion_ids",
+        "affected_domains",
+        "entity_ids",
+        "score",
+        "dual_failure_messages",
+        "passing_messages",
+        "expected_sender_failure_messages",
+        "review_eligible",
+        "excluded",
+        "recommended_usage",
+        "source_enrichment_status"
+      ],
+      "properties": {
+        "version": {
+          "const": "1"
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "threat_candidate_digest": {
+          "$ref": "#/$defs/identifier"
+        },
+        "source_enrichment_digest": {
+          "$ref": "#/$defs/identifier"
+        },
+        "observation_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "report_evidence_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "correlation_finding_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "source_enrichment_assertion_ids": {
+          "$ref": "#/$defs/identifier_array"
+        },
+        "affected_domains": {
+          "$ref": "#/$defs/text_array"
+        },
+        "entity_ids": {
+          "$ref": "#/$defs/text_array"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "dual_failure_messages": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999999
+        },
+        "passing_messages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_sender_failure_messages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_eligible": {
+          "type": "boolean"
+        },
+        "excluded": {
+          "type": "boolean"
+        },
+        "recommended_usage": {
+          "enum": [
+            "review_only",
+            "monitor_only",
+            "retain_evidence_only"
+          ]
+        },
+        "source_enrichment_status": {
+          "enum": [
+            "not_evaluated",
+            "not_eligible",
+            "success",
+            "unavailable",
+            "stale",
+            "conflicting",
+            "failed",
+            "canceled",
+            "timeout"
+          ]
+        }
+      }
+    },
+    "candidate_evidence_extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_type",
+        "context_type",
+        "evidence"
+      ],
+      "properties": {
+        "extension_type": {
+          "const": "property-extension"
+        },
+        "context_type": {
+          "const": "candidate_evidence"
+        },
+        "evidence": {
+          "$ref": "#/$defs/candidate_evidence"
+        }
+      }
+    },
+    "asn_context_extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_type",
+        "context_type",
+        "assertion_ids"
+      ],
+      "properties": {
+        "extension_type": {
+          "const": "property-extension"
+        },
+        "context_type": {
+          "const": "asn_context"
+        },
+        "assertion_ids": {
+          "$ref": "#/$defs/nonempty_identifier_array"
+        },
+        "names": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "organizations": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "network_prefixes": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "country_codes": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "providers": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "stale_source_ips": {
+          "$ref": "#/$defs/nonempty_text_array"
+        },
+        "conflicting_source_ips": {
+          "$ref": "#/$defs/nonempty_text_array"
+        }
+      }
+    },
+    "candidate_reference_extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_type",
+        "context_type",
+        "candidate_id"
+      ],
+      "properties": {
+        "extension_type": {
+          "const": "property-extension"
+        },
+        "context_type": {
+          "const": "candidate_reference"
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    }
+  }
+}

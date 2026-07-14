@@ -174,6 +174,36 @@ func ExampleScoreThreatCandidates() {
 	// Output: candidates=1 score=35 confidence=45 usage=review_only promotion=false
 }
 
+// ExampleBuildSTIXBundle demonstrates the default observation-only STIX 2.1
+// export. Creating an Indicator requires an explicit promotion option.
+func ExampleBuildSTIXBundle() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	bundle, err := BuildSTIXBundle(candidates, nil, STIXExportOptions{
+		Producer: STIXProducer{
+			Name:      "Example SOC",
+			CreatedAt: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		TLP: STIXTLPAmber,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	observed, indicators := 0, 0
+	for _, object := range bundle.Objects() {
+		switch object.Type() {
+		case "observed-data":
+			observed++
+		case "indicator":
+			indicators++
+		}
+	}
+	fmt.Printf("observed=%d indicators=%d valid=%t\n", observed, indicators, ValidateSTIXBundle(bundle) == nil)
+	// Output: observed=1 indicators=0 valid=true
+}
+
 // ExampleEnrichThreatCandidates demonstrates explicit, offline source
 // enrichment after candidate scoring. Applications may instead supply their
 // own context-aware third-party service adapter.

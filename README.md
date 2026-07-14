@@ -95,6 +95,11 @@ It accepts only a caller-supplied context-aware dependency, performs no built-in
 network or PTR lookups, and never contacts an observed source IP. See
 [Optional source enrichment](docs/source-enrichment.md).
 
+STIX 2.1 export is a pure final transformation of completed threat-candidate
+evidence and optional enrichment. It defaults to SCOs plus Observed Data;
+Indicators require an explicit caller promotion. See
+[STIX 2.1 observed-data export](docs/stix-export.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -129,6 +134,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want expected-sender and DNS/report variance | `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)` | Correlates already completed values without DNS, parsing, enrichment, storage, or malicious attribution. |
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
+| You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
 | You want versioned jurisdiction review context | `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)` | Purely evaluates fresh, unambiguous coarse country assertions against an explicit immutable policy; the optional separate priority adjustment is default-off and never changes threat scoring or authorizes action. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
@@ -896,6 +902,29 @@ authorize blocking or assert malicious ownership. The scoring stage performs no
 enrichment or network access. See
 [`docs/threat-candidates.md`](docs/threat-candidates.md) for the complete score,
 confidence, exclusion, and safety contract.
+
+## STIX 2.1 observed-data export
+
+Use `BuildSTIXBundle` after threat-candidate scoring and, optionally, source
+enrichment. The standards-native bundle contains canonical IP SCOs, Observed
+Data with report-period bounds and counts, producer identity, versioned dmarcgo
+evidence extensions, and optional ASN SCO relationships. It performs no
+analysis, enrichment, lookup, clock access, or submission.
+
+The default never creates an Indicator. A caller must explicitly name a
+review-eligible, non-excluded candidate in `STIXExportOptions.Promotions` and
+supply `valid_from` policy. Optional review notes and Indicator descriptions
+contain only fixed safety text; report, provider, domain, and producer values
+remain untrusted structured data.
+
+STIX output contains raw source IPs and may contain operational domains and
+provider context. It has no public-redaction profile; callers own recipient
+authorization, minimization, markings, transport, and retention. Use
+`ValidateSTIXBundle` before storage or transport, or `WriteSTIXBundle` to
+validate and write one complete bundle. See
+[`docs/stix-export.md`](docs/stix-export.md) for object mappings, deterministic
+IDs, TLP behavior, the embedded extension schema, count limits, interoperability
+validation, and the observation-versus-Indicator boundary.
 
 ## Versioned jurisdiction context
 

@@ -15,6 +15,7 @@ portfolio + DNS health + provider context + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
+threat candidates + optional matching enrichment -> STIX 2.1 bundle
 completed result values -> output encoders
 ```
 
@@ -44,6 +45,7 @@ structure containing every possible input or output.
 | Suspicious-source candidates | `threat_candidates` | Candidate-scoring feature |
 | Optional enrichment | `source_enrichment` | Enrichment feature |
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
+| STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
 | Campaign classification | `campaign_classification` | Campaign-correlation feature |
 | Serialization | Existing output modes, later extended per completed mode | Output feature |
@@ -97,6 +99,15 @@ adjustment is a separate default-off queue hint; it never changes upstream
 candidate scoring or enables promotion or automatic action. Evaluation has no
 side-effect interface and cannot refresh policies or contact a source address.
 
+`STIXBundle` is a separate standards-native exchange boundary rather than an
+`AnalysisMode` or `OutputEnvelope`. `BuildSTIXBundle` consumes completed threat
+candidates and optional matching source enrichment, defaults to SCOs plus
+Observed Data, and requires explicit caller policy for any Indicator. It
+preserves upstream identifiers in a versioned property extension but does not
+rerun analysis, evaluate jurisdiction policy, consult a clock, or submit data.
+Serialization validates the supported STIX subset and writes only to the
+caller-supplied writer.
+
 ## Shared contracts
 
 - `AnalysisMode` is the canonical mode vocabulary. `OutputMode` is an alias so
@@ -137,6 +148,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Correlation and variance | Supplied completed values only | No | No | No | Correlation |
 | Threat candidates | Supplied completed values only | No | No | No | Explainable scoring |
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
+| STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | Output encoding | No | Writer supplied by caller | No | No | Representation only |
 
 No stage may use global mutable configuration or a global cache. Caches belong
@@ -214,6 +226,14 @@ dependency. A zero generated time preserves the source-enrichment timestamp;
 an explicit time supports reproducible later assessment. Policy expiration and
 assertion freshness are evaluated at that timestamp. Policy strings remain
 untrusted structured data and are never copied into fixed finding prose.
+
+`BuildSTIXBundle` is the STIX exchange entry point. It accepts no context or
+side-effect dependency. A zero generated time preserves the latest input result
+timestamp, and `STIXProducer.CreatedAt` controls producer-identity stability.
+Raw source IPs and operational context remain present by design; callers own
+markings, recipient authorization, minimization, transport, and retention.
+Indicator promotion is an explicit export option and never mutates upstream
+promotion state.
 
 ## Persistence and composition
 

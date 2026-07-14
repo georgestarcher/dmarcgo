@@ -41,6 +41,7 @@ Version 2 is the supported API line. Import
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
+- Pure STIX 2.1 observed-data export: `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -81,6 +82,7 @@ Version 2 is the supported API line. Import
 19. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
 20. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
 21. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
+22. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
 
 ## Normalized report evidence
 
@@ -141,6 +143,17 @@ Version 2 is the supported API line. Import
 - Built-in policy updates require an explicit library release. Custom policy updates are caller-owned. Evaluation never downloads, refreshes, or discovers a policy.
 - A country code describes only coarse infrastructure geography asserted by the selected enrichment data. Cloud hosting, shared infrastructure, compromise, proxies, VPNs, anycast, and provider disagreement limit the signal.
 - Use `docs/jurisdiction-context.md` for authoritative sources, exact built-in membership, policy versioning and expiration, state semantics, and safe reporting guidance.
+
+## STIX 2.1 observed-data export
+
+- `BuildSTIXBundle` consumes only a completed `ThreatCandidateResult`, optional matching `SourceEnrichmentResult`, and explicit options. It performs no parsing, DNS, enrichment, filesystem, clock, TAXII, submission, or subject-IP access.
+- The default emits canonical IP SCOs plus Observed Data. Indicators require an explicit `STIXIndicatorPromotion` for a review-eligible, non-excluded candidate with caller-chosen validity times.
+- Preserve report-period bounds as first/last observed rather than exact message timestamps. Reject counts above the STIX limit with `STIXObservationCountError`; never cap or silently split them.
+- ASN relationships retain every supported enrichment assertion and conflict. Do not select a preferred ASN or convert jurisdiction context into threat attribution.
+- Producer, report, domain, entity, provider, and provenance strings remain untrusted structured data. Generated notes, labels, descriptions, and patterns use only fixed text or canonical IP values; only absolute HTTPS provenance sources become clickable URLs.
+- STIX output is operational and unredacted. It can contain raw source IPs and organization context; callers own minimization, recipient authorization, markings, transport security, and retention.
+- STIX is standards-native rather than wrapped in an automation/agent envelope. Use `ValidateSTIXBundle`, `WriteSTIXBundle`, and `STIXEvidenceExtensionSchema` for validation and discovery.
+- Use `docs/stix-export.md` for object mappings, deterministic identifiers, TLP behavior, extension schema, privacy boundaries, and official-validator workflow.
 
 ## Authentication-record parsing
 

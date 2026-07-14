@@ -81,6 +81,11 @@ and this project uses semantic versioning for public API changes.
   enrichment, and jurisdiction context, with embedded mode schemas,
   deterministic streamed records, stable record IDs, spreadsheet-injection
   protection, and public/operational/restricted privacy controls.
+- Pure standards-native STIX 2.1 export of completed threat candidates and
+  optional source enrichment, defaulting to IP/ASN SCOs plus Observed Data,
+  with explicit Indicator promotion, producer and TLP controls, deterministic
+  identifiers, a strict embedded evidence-extension schema, official OASIS
+  interoperability validation, and no analysis or submission side effects.
 
 ### Changed
 

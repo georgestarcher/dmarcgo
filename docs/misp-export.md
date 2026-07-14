@@ -17,6 +17,7 @@ sources at commit `f63f85106b9235b7109aeaba9393dc30f86a4e5a`:
 
 - the [MISP 2.5 OpenAPI definition](https://github.com/MISP/MISP/blob/f63f85106b9235b7109aeaba9393dc30f86a4e5a/app/webroot/doc/openapi.yaml);
 - the instance [type/category definitions](https://github.com/MISP/MISP/blob/f63f85106b9235b7109aeaba9393dc30f86a4e5a/describeTypes.json);
+- the normal [Event add path](https://github.com/MISP/MISP/blob/f63f85106b9235b7109aeaba9393dc30f86a4e5a/app/Controller/EventsController.php) and [sharing-group authorization model](https://github.com/MISP/MISP/blob/f63f85106b9235b7109aeaba9393dc30f86a4e5a/app/Model/SharingGroup.php);
 - the official [MISP automation guide](https://www.circl.lu/doc/misp/automation/); and
 - the official PyMISP [`MISPAttribute` and `MISPEvent` models](https://github.com/MISP/PyMISP/blob/ff8834fcaf7592bf5c275c7035dc2dd9f687758f/pymisp/mispevent.py) and [submission methods](https://github.com/MISP/PyMISP/blob/ff8834fcaf7592bf5c275c7035dc2dd9f687758f/pymisp/api.py).
 
@@ -77,10 +78,14 @@ The review-oriented Attribute defaults are:
 
 The caller may deliberately override distribution, sharing group, comment,
 tags, observation window, `to_ids`, and correlation behavior. Distribution `4`
-requires a non-zero numeric sharing-group ID or UUID. A sharing-group ID is
-rejected for every other distribution. Caller-controlled text must be valid
-UTF-8, contain no Unicode control characters, and fit within the encoder's
-conservative 4 KiB per-field limit. Caller strings remain untrusted data.
+requires a canonical positive numeric sharing-group ID. A sharing-group ID is
+rejected for every other distribution. Although the generic MISP OpenAPI type
+also permits a UUID, normal Event and Attribute add authorization uses local
+numeric sharing-group IDs. Nested `SharingGroup` UUID data belongs to sync or
+import flows and is deliberately outside this request encoder. Caller-controlled
+text must be valid UTF-8, contain no Unicode control characters, and fit within
+the encoder's conservative 4 KiB per-field limit. Caller strings remain
+untrusted data.
 
 ## Complete offline event requests
 

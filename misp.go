@@ -116,7 +116,8 @@ type MISPEventReference struct {
 // MISPAttributeSettings controls native Attribute fields. Nil booleans select
 // review-oriented defaults: to_ids=false and disable_correlation=true.
 // FirstSeen and LastSeen default to the candidate's report-period bounds.
-// Comment and Tags are caller-controlled untrusted data.
+// Distribution 4 requires SharingGroupID to be a canonical positive numeric
+// MISP ID. Comment and Tags are caller-controlled untrusted data.
 type MISPAttributeSettings struct {
 	ToIDS              *bool
 	DisableCorrelation *bool
@@ -151,7 +152,9 @@ type MISPAttributeExportOptions struct {
 // MISPEventDefinition is the complete caller-owned lifecycle context required
 // to construct one offline Event request. UUID, Info, Date, Distribution,
 // ThreatLevel, Analysis, Published, and DisableCorrelation are mandatory.
-// Event text and tags are untrusted data and are never treated as instructions.
+// Distribution 4 requires SharingGroupID to be a canonical positive numeric
+// MISP ID. Event text and tags are untrusted data and are never treated as
+// instructions.
 type MISPEventDefinition struct {
 	UUID               string
 	Info               string
@@ -715,14 +718,19 @@ func validMISPAttributeSource(value MISPAttributeSource) bool {
 }
 
 func normalizeMISPIdentifier(value string) (string, error) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return "", ErrInvalidMISPExportOptions
-	}
-	if number, err := strconv.ParseUint(value, 10, 32); err == nil && number > 0 && len(value) <= 10 && value == strconv.FormatUint(number, 10) {
-		return value, nil
+	if normalized, err := normalizeMISPNumericID(value); err == nil {
+		return normalized, nil
 	}
 	return normalizeMISPUUID(value)
+}
+
+func normalizeMISPNumericID(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	number, err := strconv.ParseUint(value, 10, 32)
+	if err != nil || number == 0 || len(value) > 10 || value != strconv.FormatUint(number, 10) {
+		return "", ErrInvalidMISPExportOptions
+	}
+	return value, nil
 }
 
 func normalizeMISPUUID(value string) (string, error) {
@@ -873,7 +881,7 @@ func validMISPSharingGroup(distribution MISPDistribution, identifier string) boo
 	if distribution != MISPDistributionSharingGroup {
 		return identifier == ""
 	}
-	normalized, err := normalizeMISPIdentifier(identifier)
+	normalized, err := normalizeMISPNumericID(identifier)
 	return err == nil && normalized == identifier
 }
 

@@ -252,6 +252,7 @@ func TestBuildMISPPayloadsAllowMultipleMappingsPerCandidate(t *testing.T) {
 func TestMISPMappingAndContextFailuresAreExplicit(t *testing.T) {
 	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
 	candidate := candidates.Candidates()[0]
+	sharingGroupUUID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
 	capabilities := MISPInstanceCapabilities{ContractVersion: "2.5.42", AttributeMappings: []MISPAttributeMapping{
 		{Type: MISPAttributeTypeIPSource, Category: "Network activity"},
 	}}
@@ -282,6 +283,7 @@ func TestMISPMappingAndContextFailuresAreExplicit(t *testing.T) {
 		{Event: base.Event, Capabilities: capabilities, Selections: append(append([]MISPAttributeSelection{}, base.Selections...), base.Selections...)},
 		{Event: base.Event, Capabilities: capabilities, Selections: []MISPAttributeSelection{{CandidateID: "missing", Mapping: base.Selections[0].Mapping}}},
 		{Event: base.Event, Capabilities: capabilities, Defaults: MISPAttributeSettings{Distribution: MISPDistributionSharingGroup}, Selections: base.Selections},
+		{Event: base.Event, Capabilities: capabilities, Defaults: MISPAttributeSettings{Distribution: MISPDistributionSharingGroup, SharingGroupID: sharingGroupUUID}, Selections: base.Selections},
 		{Event: base.Event, Capabilities: capabilities, Defaults: MISPAttributeSettings{Distribution: MISPDistribution("10")}, Selections: base.Selections},
 	}
 	for index, options := range invalidOptions {
@@ -312,6 +314,12 @@ func TestMISPMappingAndContextFailuresAreExplicit(t *testing.T) {
 		func() MISPEventExportOptions {
 			value := validEvent
 			value.Event.Distribution = MISPDistributionSharingGroup
+			return value
+		}(),
+		func() MISPEventExportOptions {
+			value := validEvent
+			value.Event.Distribution = MISPDistributionSharingGroup
+			value.Event.SharingGroupID = sharingGroupUUID
 			return value
 		}(),
 		func() MISPEventExportOptions { value := validEvent; value.Event.ThreatLevel = "9"; return value }(),

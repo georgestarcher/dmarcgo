@@ -981,7 +981,8 @@ Native Attributes default to `to_ids: false`,
 report-period bounds, a deterministic UUID and timestamp, and fixed
 review-limitation text. Tags are never invented. Distribution, sharing group,
 tags, comments, observation times, IDS behavior, and correlation behavior can
-be changed only through explicit caller settings.
+be changed only through explicit caller settings. Distribution `4` requires a
+canonical positive numeric sharing-group ID accepted by the target instance.
 
 `BuildMISPEventPayload` additionally requires a complete caller-owned Event
 definition: UUID, information, date, distribution, threat and analysis levels,

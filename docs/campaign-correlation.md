@@ -55,6 +55,8 @@ service and ambiguous partial matching. Raw campaign tokens and credentials are
 not accepted. YAML aliases, anchors, duplicate keys, unknown fields,
 environment placeholders, multiple documents, and secret-bearing fields are
 rejected.
+IPv4-mapped IPv6 source CIDRs are canonicalized to equivalent IPv4 prefixes so
+they use the same address family as normalized message evidence.
 
 Every campaign contains:
 
@@ -70,6 +72,10 @@ Every campaign contains:
 Authentication evidence retention is mandatory. The field may be omitted or
 set to `true`; explicit `false` is invalid. Campaign configuration cannot
 suppress SPF, DKIM, or DMARC variance.
+
+Canceled campaigns retain restricted audit context, but matching evidence stays
+in the ordinary suspicious-message workflow. A canceled campaign can never be
+possible or high-confidence authorization.
 
 The library enforces a non-bypassable high-confidence invariant: current
 authorization, campaign time, organization scope, a message identity, and a

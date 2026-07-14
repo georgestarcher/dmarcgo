@@ -112,6 +112,31 @@ func TestClassifyReportedMessageRequiresHighConfidenceSignalProvenance(t *testin
 	}
 }
 
+func TestClassifyReportedMessageCanceledCampaignRemainsOrdinary(t *testing.T) {
+	config := campaignTestConfig("canceled-awareness", "training.example.test")
+	config.SecuritySimulations[0].Status = CampaignStatusCanceled
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, campaignTestEvidenceInput()),
+		CampaignClassificationOptions{AllowAutomaticDisposition: true},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := result.Records()
+	if len(records) != 1 || records[0].Classification != CampaignUnknownSuspiciousMessage || records[0].AutomaticDispositionEligible ||
+		result.Summary().OverallClassification != CampaignUnknownSuspiciousMessage || result.Summary().AutomaticDispositionReady != 0 {
+		t.Fatalf("canceled campaign changed ordinary handling: records=%+v summary=%+v", records, result.Summary())
+	}
+	safe, err := result.DisclosureSafe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(safe.Records) != 1 || safe.Records[0].Routing != CampaignRouteOrdinaryReview {
+		t.Fatalf("canceled campaign received campaign-review routing: %+v", safe.Records)
+	}
+}
+
 func TestClassifyReportedMessageRetainsMismatchWindowAndImitationEvidence(t *testing.T) {
 	snapshot := campaignTestSnapshot(t, campaignTestConfig("quarterly-awareness", "training.example.test"))
 	mismatch := campaignTestEvidenceInput()

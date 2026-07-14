@@ -648,6 +648,13 @@ func (normalizer *campaignConfigurationNormalizer) normalizeExpectedSources(conf
 			normalizer.add("campaign.configuration.invalid_cidr", fmt.Sprintf("%s.cidrs[%d]", path, index), "The source CIDR is invalid.")
 			continue
 		}
+		if prefix.Addr().Is4In6() {
+			if prefix.Bits() < 96 {
+				normalizer.add("campaign.configuration.invalid_cidr", fmt.Sprintf("%s.cidrs[%d]", path, index), "The source CIDR is invalid.")
+				continue
+			}
+			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), prefix.Bits()-96)
+		}
 		prefix = prefix.Masked()
 		value := prefix.String()
 		if _, duplicate := seen[value]; !duplicate {

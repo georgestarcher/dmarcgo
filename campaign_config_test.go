@@ -111,6 +111,30 @@ func TestCampaignConfigurationNormalizationIsDeterministicAndImmutable(t *testin
 	}
 }
 
+func TestCampaignConfigurationCanonicalizesMappedCIDRs(t *testing.T) {
+	config := campaignTestConfig("mapped-cidr", "training.example.test")
+	config.SecuritySimulations[0].ExpectedSources.CIDRs = []string{"::ffff:192.0.2.0/120"}
+	document, err := NormalizeCampaignConfiguration(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	campaigns := document.Campaigns()
+	if len(campaigns) != 1 || len(campaigns[0].ExpectedSources.CIDRs) != 1 || campaigns[0].ExpectedSources.CIDRs[0] != "192.0.2.0/24" {
+		t.Fatalf("mapped CIDR was not canonicalized: %+v", campaigns)
+	}
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, campaignTestEvidenceInput()),
+		CampaignClassificationOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Records()) != 1 || !campaignAnyFactor(result.Records()[0].Matched, CampaignFactorSourceAddress) {
+		t.Fatalf("canonical mapped CIDR did not match the observed IPv4 address: %+v", result.Records())
+	}
+}
+
 func TestCampaignConfigurationRejectsUnsafeOrWeakDocuments(t *testing.T) {
 	base := campaignTestYAML("quarterly-awareness", "training.example.test")
 	tests := []struct {

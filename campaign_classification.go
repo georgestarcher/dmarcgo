@@ -324,6 +324,9 @@ func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedM
 		identityMatched && specificMatched && windowState == CampaignFactorMatched && campaignEvaluationState(evaluations, CampaignFactorOrganizationScope) == CampaignFactorMatched &&
 		campaignEvaluationState(evaluations, CampaignFactorEvidenceConfidence) == CampaignFactorMatched && (!authRequired || authState == CampaignFactorMatched)
 	switch {
+	case campaign.Status == CampaignStatusCanceled:
+		record.Classification = CampaignUnknownSuspiciousMessage
+		record.Confidence = FindingConfidenceLow
 	case baseHigh:
 		record.Classification = CampaignAuthorizedHighConfidence
 		record.Confidence = FindingConfidenceHigh

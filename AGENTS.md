@@ -175,6 +175,9 @@ tests used by the Phase 13 integration gate.
 - Required stale, future, expired, invalid, or unavailable authorization never
   produces an authorized classification. Last-known-good reuse requires an
   explicit complete unexpired caller-supplied snapshot.
+- Canceled campaigns retain audit context only. They must stay in the ordinary
+  suspicious-message workflow and never become possible or high-confidence
+  authorization.
 - `NormalizeReportedMessageEvidence` accepts no body or raw campaign token.
   Retain only complete SHA-256 token/content digests and structured provenance.
 - `ClassifyReportedMessage` is pure and bounded. High confidence always requires

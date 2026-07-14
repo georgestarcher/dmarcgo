@@ -200,6 +200,43 @@ func TestCampaignConfigurationAcceptsNumericDKIMSelectorAndDefaultsDKIMIdentity(
 	}
 }
 
+func TestCampaignConfigurationRejectsUnmarshalableProgrammaticTimes(t *testing.T) {
+	invalid := time.Date(10000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name   string
+		path   string
+		mutate func(*CampaignConfigurationConfig)
+	}{
+		{name: "generated", path: "generated_at", mutate: func(config *CampaignConfigurationConfig) { config.GeneratedAt = invalid }},
+		{name: "effective", path: "effective_at", mutate: func(config *CampaignConfigurationConfig) { config.EffectiveAt = &invalid }},
+		{name: "expires", path: "expires_at", mutate: func(config *CampaignConfigurationConfig) { config.ExpiresAt = invalid }},
+		{name: "created", path: "security_simulations[0].created_at", mutate: func(config *CampaignConfigurationConfig) { config.SecuritySimulations[0].CreatedAt = invalid }},
+		{name: "valid from", path: "security_simulations[0].valid_from", mutate: func(config *CampaignConfigurationConfig) { config.SecuritySimulations[0].ValidFrom = invalid }},
+		{name: "valid until", path: "security_simulations[0].valid_until", mutate: func(config *CampaignConfigurationConfig) { config.SecuritySimulations[0].ValidUntil = invalid }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			config := campaignTestConfig("invalid-time", "training.example.test")
+			test.mutate(&config)
+			_, err := NormalizeCampaignConfiguration(config)
+			var validation *CampaignConfigurationValidationError
+			if !errors.As(err, &validation) {
+				t.Fatalf("error = %v, want campaign validation error", err)
+			}
+			found := false
+			for _, diagnostic := range validation.Diagnostics() {
+				if diagnostic.Code == "campaign.configuration.invalid_time" && diagnostic.Path == test.path {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("invalid-time diagnostic for %q missing: %+v", test.path, validation.Diagnostics())
+			}
+		})
+	}
+}
+
 func hasCampaignConfigurationDiagnostic(values []CampaignConfigurationDiagnostic, code DiagnosticCode) bool {
 	for _, value := range values {
 		if value.Code == code {

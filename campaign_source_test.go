@@ -78,6 +78,14 @@ func TestResolveCampaignConfigurationRejectsEmptySourceSet(t *testing.T) {
 	if _, err := ResolveCampaignConfiguration(context.Background(), nil, CampaignConfigurationResolveOptions{}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
 		t.Fatalf("empty source set error = %v", err)
 	}
+	config := campaignTestConfig("invalid-clock", "training.example.test")
+	if _, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "invalid-clock", Source: NewCampaignBytesSource(marshalCampaignConfig(t, config), CampaignConfigurationMetadata{}),
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time {
+		return time.Date(10000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	})}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
+		t.Fatalf("unmarshalable clock error = %v", err)
+	}
 }
 
 func TestResolveCampaignConfigurationRequiresUsableSelectedSource(t *testing.T) {

@@ -255,7 +255,7 @@ func normalizeCampaignClassificationOptions(snapshot CampaignConfigurationSnapsh
 		options.GeneratedAt = snapshot.metadata.GeneratedAt
 	}
 	options.GeneratedAt = options.GeneratedAt.UTC()
-	if options.GeneratedAt.Before(snapshot.metadata.GeneratedAt) {
+	if !campaignTimeMarshalable(options.GeneratedAt) || options.GeneratedAt.Before(snapshot.metadata.GeneratedAt) {
 		return CampaignClassificationOptions{}, ErrInvalidCampaignClassificationOptions
 	}
 	if options.MaximumCampaignsEvaluated == 0 {

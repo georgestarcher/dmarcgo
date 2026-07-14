@@ -55,6 +55,10 @@ service and ambiguous partial matching. Raw campaign tokens and credentials are
 not accepted. YAML aliases, anchors, duplicate keys, unknown fields,
 environment placeholders, multiple documents, and secret-bearing fields are
 rejected.
+Programmatic configuration timestamps, source-resolution clocks, and
+classification evaluation times must be representable by Go's JSON timestamp
+contract. Unmarshalable values are rejected before any campaign, document,
+snapshot, or result digest is created.
 IPv4-mapped IPv6 source CIDRs are canonicalized to equivalent IPv4 prefixes so
 they use the same address family as normalized message evidence.
 

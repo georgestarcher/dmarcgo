@@ -503,7 +503,7 @@ func (normalizer *campaignConfigurationNormalizer) normalize(config CampaignConf
 	}
 	sort.Slice(document.campaigns, func(i, j int) bool { return document.campaigns[i].ID < document.campaigns[j].ID })
 	if len(normalizer.diagnostics) == 0 {
-		canonical, _ := json.Marshal(struct {
+		canonical, err := json.Marshal(struct {
 			SchemaVersion int                          `json:"schema_version"`
 			GeneratedAt   time.Time                    `json:"generated_at"`
 			EffectiveAt   time.Time                    `json:"effective_at"`
@@ -511,7 +511,11 @@ func (normalizer *campaignConfigurationNormalizer) normalize(config CampaignConf
 			Imports       []CampaignImportConfig       `json:"imports"`
 			Campaigns     []SecuritySimulationCampaign `json:"security_simulations"`
 		}{document.schemaVersion, document.generatedAt, document.effectiveAt, document.expiresAt, document.imports, document.campaigns})
-		document.digest = StableAnalysisID("campaign_configuration_document", string(canonical))
+		if err != nil {
+			normalizer.add("campaign.configuration.serialization_failed", "$", "The normalized campaign configuration cannot be serialized.")
+		} else {
+			document.digest = StableAnalysisID("campaign_configuration_document", string(canonical))
+		}
 	}
 	return document
 }
@@ -587,9 +591,16 @@ func (normalizer *campaignConfigurationNormalizer) normalizeCampaign(config Secu
 	if campaign.MinimumMatchedFactors < 1 || campaign.MinimumMatchedFactors > 16 {
 		normalizer.add("campaign.configuration.invalid_match_threshold", path+".match_policy.minimum_matched_factors", "The minimum matched-factor threshold is invalid.")
 	}
-	canonical, _ := json.Marshal(struct {
+	if len(normalizer.diagnostics) != 0 {
+		return campaign, true
+	}
+	canonical, err := json.Marshal(struct {
 		Campaign SecuritySimulationCampaign `json:"campaign"`
 	}{campaign})
+	if err != nil {
+		normalizer.add("campaign.configuration.serialization_failed", path, "The normalized campaign cannot be serialized.")
+		return SecuritySimulationCampaign{}, false
+	}
 	campaign.Digest = StableAnalysisID("security_simulation_campaign", string(canonical))
 	return campaign, true
 }
@@ -771,7 +782,17 @@ func normalizeCampaignTime(value time.Time, path string, normalizer *campaignCon
 		normalizer.add("campaign.configuration.missing_time", path, "The required timestamp is missing.")
 		return time.Time{}
 	}
-	return value.UTC()
+	value = value.UTC()
+	if !campaignTimeMarshalable(value) {
+		normalizer.add("campaign.configuration.invalid_time", path, "The timestamp cannot be represented by the campaign JSON contract.")
+		return time.Time{}
+	}
+	return value
+}
+
+func campaignTimeMarshalable(value time.Time) bool {
+	_, err := value.MarshalJSON()
+	return err == nil
 }
 
 func normalizeCampaignID(value, path string, required bool, normalizer *campaignConfigurationNormalizer) string {

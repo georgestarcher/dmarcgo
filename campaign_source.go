@@ -236,8 +236,12 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 	if err != nil {
 		return CampaignConfigurationSnapshot{}, err
 	}
+	now := options.Clock.Now().UTC()
+	if !campaignTimeMarshalable(now) {
+		return CampaignConfigurationSnapshot{}, ErrInvalidCampaignSourceOptions
+	}
 	resolver := campaignSourceResolver{
-		ctx: ctx, options: options, now: options.Clock.Now().UTC(), specs: normalized,
+		ctx: ctx, options: options, now: now, specs: normalized,
 		loaded: map[string]*campaignLoadedSource{}, selected: map[string]bool{}, runtimeRequired: map[string]bool{},
 		visiting: map[string]bool{}, visited: map[string]bool{},
 	}

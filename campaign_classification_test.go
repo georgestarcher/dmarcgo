@@ -382,6 +382,11 @@ func TestClassifyReportedMessageRechecksSnapshotLifetime(t *testing.T) {
 	}); !errors.Is(err, ErrInvalidCampaignClassificationOptions) {
 		t.Fatalf("backdated classification error = %v", err)
 	}
+	if _, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{
+		GeneratedAt: time.Date(10000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}); !errors.Is(err, ErrInvalidCampaignClassificationOptions) {
+		t.Fatalf("unmarshalable classification time error = %v", err)
+	}
 }
 
 func TestClassifyReportedMessageHonorsWindowBoundariesAndDynamicInfrastructure(t *testing.T) {

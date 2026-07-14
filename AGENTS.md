@@ -177,6 +177,9 @@ tests used by the Phase 13 integration gate.
   explicit complete unexpired caller-supplied snapshot and reapplies the
   current `MaximumAge` without broadening the prior authorization lifetime or
   accepting a snapshot from a later resolution time.
+- Reject programmatic configuration, source-clock, and evaluation timestamps
+  that cannot be represented by the JSON contract before creating campaign
+  digests.
 - Canceled campaigns retain audit context only. They must stay in the ordinary
   suspicious-message workflow and never become possible or high-confidence
   authorization.

@@ -1,0 +1,13 @@
+{
+  "classification": "private",
+  "confidence": 20,
+  "expiration_ts": "1970-01-03T03:46:40Z",
+  "ip": "198.51.100.20",
+  "itype": "review_ip",
+  "severity": "low",
+  "tags": [
+    "dmarc-aggregate",
+    "human-review-required"
+  ],
+  "tlp": "amber"
+}

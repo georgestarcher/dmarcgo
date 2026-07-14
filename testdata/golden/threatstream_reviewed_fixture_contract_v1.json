@@ -1,0 +1,18 @@
+{
+  "classification": "private",
+  "expiration_ts": "1970-01-03T03:46:40Z",
+  "observables": [
+    {
+      "itype": "review_ip",
+      "value": "198.51.100.20"
+    }
+  ],
+  "review_state": "pending",
+  "severity": "low",
+  "source_confidence": 20,
+  "tags": [
+    "dmarc-aggregate",
+    "human-review-required"
+  ],
+  "tlp": "amber"
+}

@@ -306,6 +306,66 @@ func ExampleBuildMISPEventPayload() {
 	// Output: endpoint=/events/add uuid=11111111-2222-4333-8444-555555555555 attributes=1 valid=true
 }
 
+// ExampleBuildThreatStreamPayloads demonstrates a reviewed, private native
+// request using an exact tenant-confirmed fixture contract. The application
+// obtains the real fields, allowed values, endpoint, and response assumptions
+// from its own ThreatStream tenant; the library never discovers or calls them.
+func ExampleBuildThreatStreamPayloads() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	root := func(name string) ThreatStreamJSONField {
+		return ThreatStreamJSONField{Name: name, Scope: ThreatStreamFieldRoot}
+	}
+	payloads, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+		Capabilities: ThreatStreamTenantCapabilities{
+			ContractVersion: "example-tenant-import-v1", Variant: ThreatStreamReviewedImport,
+			Endpoint: "/tenant/api/imports", ItemsField: "observables",
+			Fields: ThreatStreamFieldMappings{
+				Observable: ThreatStreamJSONField{Name: "value", Scope: ThreatStreamFieldItem},
+				IType:      ThreatStreamJSONField{Name: "itype", Scope: ThreatStreamFieldItem},
+				Confidence: root("source_confidence"), Severity: root("severity"), Classification: root("classification"),
+				TLP: root("tlp"), Tags: root("tags"), Expiration: root("expiration_ts"), ReviewState: root("review_state"),
+			},
+			ITypes:     []ThreatStreamITypeCapability{{Value: "review_ip", IPTypes: []ThreatCandidateIPType{ThreatCandidateIPv4}}},
+			Confidence: ThreatStreamValueRange{Minimum: 0, Maximum: 100},
+			Severities: []string{"low"}, Classifications: []string{"private"}, TLPs: []string{"amber"}, ReviewStates: []string{"pending"},
+			TagEncoding: ThreatStreamTagsStringArray, TimestampEncoding: ThreatStreamTimestampRFC3339,
+			MaximumStringBytes: 256, MaximumTags: 8, MaximumPayloadBytes: 4096,
+			ReviewDefaults: ThreatStreamReviewDefaults{
+				Confidence: 20, Severity: "low", PrivateClassification: "private", TLP: "amber",
+				PendingReviewState: "pending", Tags: []string{"human-review-required"}, ExpirationAfter: 24 * time.Hour,
+			},
+			Response: ThreatStreamResponseAssumptions{
+				ContractVersion: "example-response-v1", Mode: ThreatStreamResponseAsynchronous,
+				IdentifierField: "job_id", StatusField: "status", AcceptedStatuses: []string{"queued"},
+			},
+		},
+		Selections: []ThreatStreamCandidateSelection{{CandidateID: candidate.ID, IType: "review_ip"}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	request := struct {
+		Classification string `json:"classification"`
+		ReviewState    string `json:"review_state"`
+		Observables    []any  `json:"observables"`
+	}{}
+	encoded, err := json.Marshal(payloads[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := json.Unmarshal(encoded, &request); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("variant=%s private=%s review=%s observables=%d valid=%t\n",
+		payloads[0].Variant(), request.Classification, request.ReviewState, len(request.Observables),
+		ValidateThreatStreamPayload(payloads[0]) == nil)
+	// Output: variant=reviewed_import private=private review=pending observables=1 valid=true
+}
+
 // ExampleEnrichThreatCandidates demonstrates explicit, offline source
 // enrichment after candidate scoring. Applications may instead supply their
 // own context-aware third-party service adapter.

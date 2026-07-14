@@ -113,6 +113,14 @@ supplies all lifecycle context. It performs no capability discovery, HTTP,
 event creation, publication, or submission. See
 [MISP event and attribute export](docs/misp-export.md).
 
+Anomali ThreatStream export is a separate tenant-contract transformation. It
+converts explicit review candidates into direct-observable or reviewed-import
+native JSON only after the application supplies the exact versioned endpoint,
+fields, allowed values, encodings, limits, review defaults, and response
+assumptions for its tenant. It performs no discovery, credentials, HTTP,
+response parsing, polling, approval, or submission. See
+[Anomali ThreatStream payload export](docs/threatstream-export.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -150,6 +158,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
 | You want reviewed ThreatConnect v3 request bodies | `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)` | Purely encodes explicitly selected Address and enriched ASN requests; defaults are inactive/private, confidence and rating are opt-in, and the application owns submission. |
 | You want reviewed MISP Attribute or complete offline Event bodies | `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)` or `dmarcgo.BuildMISPEventPayload(threatCandidates, options)` | Requires explicit event context and target-instance type/category capabilities; Attributes default to `to_ids: false` with correlation disabled, and the application owns discovery, review, HTTP, and submission. |
+| You want tenant-native Anomali ThreatStream request bodies | `dmarcgo.BuildThreatStreamPayloads(threatCandidates, options)` | Requires an exact versioned tenant capability and explicit candidate/`itype` selections; direct and reviewed-import shapes default to tenant-confirmed private review settings, and the application owns discovery, credentials, HTTP, responses, polling, approval, and submission. |
 | You want versioned jurisdiction review context | `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)` | Purely evaluates fresh, unambiguous coarse country assertions against an explicit immutable policy; the optional separate priority adjustment is default-off and never changes threat scoring or authorizes action. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
@@ -998,6 +1007,39 @@ submission, publication, retry, or response handling. See
 [`docs/misp-export.md`](docs/misp-export.md) for the reviewed upstream
 contract, capability model, exact mappings, deterministic identity, privacy
 boundary, and safe caller-owned submission sequence.
+
+## Anomali ThreatStream payload export
+
+Use `BuildThreatStreamPayloads` only after the application has explicitly
+selected review-eligible, non-excluded candidate IDs and obtained the current
+request and response contract for its own ThreatStream tenant. Public
+first-party material confirms observable and reviewed-import workflows but does
+not publish one complete, current, tenant-independent ingestion schema, so the
+library deliberately has no global ThreatStream endpoint, field, `itype`, or
+response contract.
+
+`ThreatStreamTenantCapabilities` declares one direct-observable or
+reviewed-import variant, a relative endpoint, exact JSON field names and
+scopes, allowed IP `itype` values, confidence range, severity mappings,
+classification/TLP/review-state allowlists, tag and timestamp encodings,
+payload limits, conservative private review defaults, and response assumptions.
+Reviewed imports require a tenant-named item collection and pending-review
+state. Unsupported values fail closed.
+
+Evidence confidence and candidate severity are not threat verdicts and are not
+mapped by default. They require explicit `MapEvidenceConfidence` and
+`MapCandidateSeverity` policy; the latter also requires an exact tenant mapping.
+Native JSON contains only tenant-declared fields. Defensive `Source()` metadata
+retains contract versions, endpoint, candidate/evidence references, report
+period bounds, and the raw source IP outside that JSON.
+
+The builder performs no tenant discovery, network access, credentials, HTTP,
+response parsing, duplicate handling, asynchronous polling, approval, retry,
+or submission. The synthetic golden fixture contracts are regression data and
+must not be treated as real Anomali schemas. See
+[`docs/threatstream-export.md`](docs/threatstream-export.md) for current
+first-party research, the capability checklist, mapping and limit semantics,
+untrusted-data boundaries, and the safe caller-owned submission sequence.
 
 ## Versioned jurisdiction context
 

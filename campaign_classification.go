@@ -602,23 +602,24 @@ func campaignDKIMAuthenticationState(campaign SecuritySimulationCampaign, eviden
 	if expected != CampaignAuthenticationRequired || len(campaign.ExpectedIdentity.DKIM) == 0 {
 		return campaignAuthenticationOutcomeState(expected, evidence.DKIMOutcome)
 	}
-	foundIdentity := false
+	foundFailure := false
 	foundUnknown := false
 	for _, want := range campaign.ExpectedIdentity.DKIM {
 		for _, got := range evidence.DKIM {
 			if want.Domain != got.Domain || !campaignContainsString(want.Selectors, got.Selector) {
 				continue
 			}
-			foundIdentity = true
 			switch got.Outcome {
 			case ReportAuthenticationPass:
 				return campaignAuthenticationOutcomeState(expected, evidence.DKIMOutcome)
+			case ReportAuthenticationFail:
+				foundFailure = true
 			case ReportAuthenticationUnknown:
 				foundUnknown = true
 			}
 		}
 	}
-	if foundIdentity && !foundUnknown {
+	if foundFailure {
 		return CampaignFactorMismatched
 	}
 	if foundUnknown || len(evidence.DKIM) == 0 {

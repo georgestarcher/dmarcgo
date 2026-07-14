@@ -195,6 +195,21 @@ func TestClassifyReportedMessageDoesNotMaskExpectedAuthenticationIdentityFailure
 	if result.Summary().OverallClassification != CampaignConfigurationMismatch || !hasCampaignClassificationFinding(result.Findings(), "campaign.authentication_variance") {
 		t.Fatalf("unrelated SPF pass masked the expected envelope identity: records=%+v findings=%+v", result.Records(), result.Findings())
 	}
+
+	input = campaignTestEvidenceInput()
+	input.DKIM = []CampaignDKIMEvidenceInput{
+		{Domain: "training.example.test", Selector: "simulation-2026", Outcome: ReportAuthenticationFail},
+		{Domain: "training.example.test", Selector: "simulation-2026", Outcome: ReportAuthenticationUnknown},
+	}
+	input.DKIMOutcome = ReportAuthenticationUnknown
+	result, err = ClassifyReportedMessage(snapshot, campaignTestEvidence(t, input), CampaignClassificationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !campaignAnyFactor(result.Records()[0].Mismatched, CampaignFactorAuthentication) ||
+		!hasCampaignClassificationFinding(result.Findings(), "campaign.authentication_variance") {
+		t.Fatalf("unknown DKIM result masked a definite expected signer failure: records=%+v findings=%+v", result.Records(), result.Findings())
+	}
 }
 
 func TestClassifyReportedMessageRequiresExpectedDKIMIdentityOutcome(t *testing.T) {

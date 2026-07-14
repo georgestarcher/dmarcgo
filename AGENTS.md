@@ -196,6 +196,9 @@ tests used by the Phase 13 integration gate.
   sources retain root identity and reject replacement before loading.
 - Campaign configuration resolution requires at least one explicit source;
   never treat a missing source inventory as an authoritative empty inventory.
+- Authorization additionally requires at least one selected usable source. If
+  every optional source is unusable, the snapshot remains incomplete and
+  authorization unavailable.
 - Recheck snapshot effective and expiry bounds at the explicit classification
   generation time. A reused expired snapshot must remain expired and can never
   recover authorization or automatic-disposition eligibility.

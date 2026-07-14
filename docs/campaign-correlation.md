@@ -146,6 +146,10 @@ may continue, but missing, invalid, future, stale, expired, or unavailable
 required authorization disables campaign authorization. It does not mean
 "trust on error." `CampaignSourceFailClosed` returns the same immutable partial
 snapshot plus `ErrCampaignSourceFailed`.
+Authorization also requires at least one selected usable source. If every
+selected optional source is unavailable, invalid, future, stale, or expired,
+the snapshot is incomplete and authorization remains unavailable rather than
+representing an authoritative empty inventory.
 
 Last-known-good reuse is explicit. The caller must set `UseLastKnownGood` and
 supply a complete, authorization-capable, unexpired prior snapshot. The library

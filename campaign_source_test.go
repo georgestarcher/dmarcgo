@@ -80,6 +80,54 @@ func TestResolveCampaignConfigurationRejectsEmptySourceSet(t *testing.T) {
 	}
 }
 
+func TestResolveCampaignConfigurationRequiresUsableSelectedSource(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	stale := campaignTestConfig("stale-optional", "training.example.test")
+	future := campaignTestConfig("future-optional", "training.example.test")
+	future.GeneratedAt = now.Add(time.Hour)
+	future.EffectiveAt = &future.GeneratedAt
+	future.ExpiresAt = now.Add(48 * time.Hour)
+	expired := campaignTestConfig("expired-optional", "training.example.test")
+	expired.SecuritySimulations[0].ValidUntil = now.Add(-time.Hour)
+	expired.ExpiresAt = now
+	tests := []struct {
+		name       string
+		source     CampaignConfigurationSource
+		maximumAge time.Duration
+	}{
+		{name: "unavailable", source: campaignFailingSource{}},
+		{name: "stale", source: NewCampaignBytesSource(marshalCampaignConfig(t, stale), CampaignConfigurationMetadata{}), maximumAge: 24 * time.Hour},
+		{name: "future", source: NewCampaignBytesSource(marshalCampaignConfig(t, future), CampaignConfigurationMetadata{})},
+		{name: "expired", source: NewCampaignBytesSource(marshalCampaignConfig(t, expired), CampaignConfigurationMetadata{})},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			options := CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return now }), MaximumAge: test.maximumAge}
+			specs := []CampaignConfigurationSourceSpec{{ID: "optional", Source: test.source}}
+			snapshot, err := ResolveCampaignConfiguration(context.Background(), specs, options)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if snapshot.Complete() || snapshot.AuthorizationAvailable() || len(snapshot.Campaigns()) != 0 {
+				t.Fatalf("unusable optional source produced an authoritative inventory: %+v", snapshot)
+			}
+			options.FailurePolicy = CampaignSourceFailClosed
+			if _, err := ResolveCampaignConfiguration(context.Background(), specs, options); !errors.Is(err, ErrCampaignSourceFailed) {
+				t.Fatalf("fail-closed unusable source error = %v", err)
+			}
+		})
+	}
+	usable, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "optional", Source: NewCampaignBytesSource(marshalCampaignConfig(t, campaignTestConfig("optional-usable", "training.example.test")), CampaignConfigurationMetadata{}),
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return now })})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !usable.Complete() || !usable.AuthorizationAvailable() || len(usable.Campaigns()) != 1 {
+		t.Fatalf("usable optional source was not authoritative: %+v", usable)
+	}
+}
+
 func TestResolveCampaignConfigurationFailurePolicyAndLastKnownGood(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	goodSpec := CampaignConfigurationSourceSpec{ID: "required", Source: NewCampaignBytesSource(marshalCampaignConfig(t, campaignTestConfig("good", "training.example.test")), CampaignConfigurationMetadata{}), Required: true, Priority: 10}

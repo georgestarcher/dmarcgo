@@ -260,8 +260,9 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 	}
 	campaigns, mergeComplete := resolver.mergeCampaigns()
 	resolver.validateProviderCatalog(campaigns)
-	complete := !resolver.requiredFailure && !resolver.graphFailure && mergeComplete
-	authorizationAvailable := !resolver.requiredFailure && !resolver.graphFailure
+	usableSelectedSource := resolver.hasUsableSelectedSource()
+	complete := usableSelectedSource && !resolver.requiredFailure && !resolver.graphFailure && mergeComplete
+	authorizationAvailable := usableSelectedSource && !resolver.requiredFailure && !resolver.graphFailure
 	snapshot := resolver.snapshot(campaigns, complete, authorizationAvailable)
 	if !authorizationAvailable && options.UseLastKnownGood && validCampaignLastKnownGood(options.LastKnownGood, resolver.now, options.MaximumAge) {
 		snapshot = resolver.lastKnownGoodSnapshot(*options.LastKnownGood)
@@ -270,6 +271,15 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 		return snapshot, ErrCampaignSourceFailed
 	}
 	return snapshot, nil
+}
+
+func (resolver *campaignSourceResolver) hasUsableSelectedSource() bool {
+	for id := range resolver.selected {
+		if loaded, ok := resolver.loaded[id]; ok && loaded.usable {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeCampaignSourceOptions(specs []CampaignConfigurationSourceSpec, options CampaignConfigurationResolveOptions) (CampaignConfigurationResolveOptions, map[string]normalizedCampaignSourceSpec, error) {

@@ -40,6 +40,104 @@ func (enricher exampleIPEnricher) EnrichIP(ctx context.Context, ip netip.Addr) (
 	return metadata, nil
 }
 
+func exampleCampaignConfiguration() CampaignConfigurationConfig {
+	return CampaignConfigurationConfig{
+		SchemaVersion: CampaignConfigurationSchemaVersion,
+		GeneratedAt:   time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC),
+		ExpiresAt:     time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+		SecuritySimulations: []SecuritySimulationCampaignConfig{{
+			ID: "quarterly-awareness", Provider: CampaignProviderConfig{Type: CampaignProviderSelfHosted, ID: "awareness-platform", Name: "Example Awareness Platform"},
+			Organization: "example-org", Owner: "security-awareness", ApprovalReference: "TEST-1001", Status: CampaignStatusActive,
+			CreatedAt: time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC), ValidFrom: time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC), ValidUntil: time.Date(2026, 7, 20, 23, 59, 59, 0, time.UTC),
+			RecipientDomains: []string{"example.test"},
+			ExpectedIdentity: CampaignExpectedIdentityConfig{
+				HeaderFromDomains: []string{"training.example.test"},
+				DKIM:              []CampaignDKIMIdentityConfig{{Domain: "training.example.test", Selectors: []string{"simulation-2026"}}},
+			},
+			TokenDigests:   []string{"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+			Authentication: CampaignAuthenticationConfig{DMARC: CampaignAuthenticationRequired, DKIM: CampaignAuthenticationRequired},
+			ResponsePolicy: CampaignResponsePolicyConfig{EmployeeDisclosure: CampaignDisclosureProhibited},
+			Handling:       CampaignHandlingConfig{WorkflowID: "restricted-simulation-review"},
+			MatchPolicy: CampaignMatchPolicyConfig{RequiredFactors: []CampaignMatchFactor{
+				CampaignFactorWindow, CampaignFactorOrganizationScope, CampaignFactorHeaderFrom, CampaignFactorDKIM, CampaignFactorTokenDigest, CampaignFactorAuthentication,
+			}},
+		}},
+	}
+}
+
+// ExampleLoadCampaignConfiguration demonstrates strict, offline parsing and
+// normalization of a versioned campaign inventory.
+func ExampleLoadCampaignConfiguration() {
+	data, err := json.Marshal(exampleCampaignConfiguration())
+	if err != nil {
+		log.Fatal(err)
+	}
+	document, err := LoadCampaignConfiguration(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("schema=%d campaigns=%d\n", document.SchemaVersion(), len(document.Campaigns()))
+	// Output: schema=1 campaigns=1
+}
+
+// ExampleResolveCampaignConfiguration demonstrates explicit source loading and
+// an immutable freshness-checked snapshot.
+func ExampleResolveCampaignConfiguration() {
+	data, err := json.Marshal(exampleCampaignConfiguration())
+	if err != nil {
+		log.Fatal(err)
+	}
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "testing-team-feed", Source: NewCampaignBytesSource(data, CampaignConfigurationMetadata{}), Required: true,
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time {
+		return time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	})})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("complete=%t authorization=%t sources=%d\n", snapshot.Complete(), snapshot.AuthorizationAvailable(), len(snapshot.Sources()))
+	// Output: complete=true authorization=true sources=1
+}
+
+// ExampleClassifyReportedMessage demonstrates pure classification followed by
+// a disclosure-safe view suitable for neutral response routing.
+func ExampleClassifyReportedMessage() {
+	data, err := json.Marshal(exampleCampaignConfiguration())
+	if err != nil {
+		log.Fatal(err)
+	}
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "testing-team-feed", Source: NewCampaignBytesSource(data, CampaignConfigurationMetadata{}), Required: true,
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time {
+		return time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	})})
+	if err != nil {
+		log.Fatal(err)
+	}
+	evidence, err := NormalizeReportedMessageEvidence(ReportedMessageEvidenceInput{
+		Organization: "example-org", HeaderFromDomain: "training.example.test",
+		DKIM:        []CampaignDKIMEvidenceInput{{Domain: "training.example.test", Selector: "simulation-2026", Outcome: ReportAuthenticationPass}},
+		DKIMOutcome: ReportAuthenticationPass, DMARCOutcome: ReportAuthenticationPass,
+		RecipientDomains: []string{"example.test"}, TokenDigests: []string{"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+		MessageTime: time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC),
+		Provenance:  []CampaignEvidenceProvenanceInput{{SourceID: "message-parser", Type: CampaignEvidenceMessageHeaders, ObservedAt: time.Date(2026, 7, 15, 12, 1, 0, 0, time.UTC), Confidence: FindingConfidenceHigh}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	safe, err := result.DisclosureSafe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("privileged=%s safe_route=%s employee_template=%s automatic=%t\n",
+		result.Summary().OverallClassification, safe.Records[0].Routing, safe.Records[0].NeutralEmployeeTemplateID, safe.Records[0].AutomaticDispositionEligible)
+	// Output: privileged=authorized_simulation_high_confidence safe_route=restricted_policy_review employee_template=suspicious-message-received automatic=false
+}
+
 // ExampleEvaluateDNSHealth demonstrates explicit collection followed by pure
 // authentication parsing and DNS-only posture evaluation.
 func ExampleEvaluateDNSHealth() {

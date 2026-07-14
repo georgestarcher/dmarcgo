@@ -2,6 +2,7 @@ package dmarcgo
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/netip"
@@ -33,6 +34,94 @@ func FuzzParseProviderCatalogYAML(f *testing.F) {
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		_, _ = ParseProviderCatalogYAML(payload)
 	})
+}
+
+func FuzzParseCampaignConfiguration(f *testing.F) {
+	f.Add([]byte(campaignTestYAML("fuzz-campaign", "training.example.test")))
+	f.Add([]byte("schema_version: 1\nsecurity_simulations: []\n"))
+	f.Add([]byte("security_simulations: &campaigns [*campaigns]\n"))
+	f.Fuzz(func(t *testing.T, payload []byte) {
+		_, _ = ParseCampaignConfiguration(payload)
+	})
+}
+
+func FuzzCampaignConfigurationImports(f *testing.F) {
+	f.Add("child", true, 4)
+	f.Add("root", false, 1)
+	f.Add("${SECRET}", true, 80)
+	f.Fuzz(func(t *testing.T, importedID string, required bool, maximumDepth int) {
+		if maximumDepth < 1 || maximumDepth > 64 {
+			maximumDepth = 8
+		}
+		config := campaignTestConfig("fuzz-import", "training.example.test")
+		config.Imports = []CampaignImportConfig{{SourceID: importedID, Required: required}}
+		data, err := json.Marshal(config)
+		if err != nil {
+			t.Fatal(err)
+		}
+		document, err := LoadCampaignConfiguration(data)
+		if err != nil {
+			return
+		}
+		normalizedImports := document.Imports()
+		specs := []CampaignConfigurationSourceSpec{{ID: "root", Source: NewCampaignBytesSource(data, CampaignConfigurationMetadata{}), Required: true}}
+		if len(normalizedImports) == 1 && normalizedImports[0].SourceID != "root" {
+			child := campaignTestConfig("fuzz-child", "child.example.test")
+			specs = append(specs, CampaignConfigurationSourceSpec{ID: normalizedImports[0].SourceID, Source: NewCampaignBytesSource(mustMarshalFuzz(t, child), CampaignConfigurationMetadata{})})
+		}
+		_, _ = ResolveCampaignConfiguration(context.Background(), specs, CampaignConfigurationResolveOptions{
+			Clock: ClockFunc(func() time.Time { return time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC) }), RootSourceIDs: []string{"root"}, MaximumImportDepth: maximumDepth,
+		})
+	})
+}
+
+func FuzzCampaignClassificationAndOutput(f *testing.F) {
+	config := campaignTestConfig("fuzz-campaign", "training.example.test")
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "fuzz-source", Source: NewCampaignBytesSource(mustMarshalFuzz(f, config), CampaignConfigurationMetadata{}), Required: true,
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC) })})
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add("training.example.test", "simulation-2026", campaignTestTokenDigest, "192.0.2.10", int64(1784116800), "pass")
+	f.Add("attacker.example", "wrong", campaignTestContentDigest, "not-an-ip", int64(0), "fail")
+	f.Fuzz(func(t *testing.T, domain, selector, token, sourceIP string, unixTime int64, outcomeText string) {
+		outcome := ReportAuthenticationOutcome(outcomeText)
+		input := campaignTestEvidenceInput()
+		input.HeaderFromDomain = domain
+		input.DKIM = []CampaignDKIMEvidenceInput{{Domain: domain, Selector: selector, Outcome: outcome}}
+		input.TokenDigests = []string{token}
+		input.SourceAddresses = []string{sourceIP}
+		input.MessageTime = time.Unix(unixTime, 0)
+		input.SPFOutcome, input.DKIMOutcome, input.DMARCOutcome = outcome, outcome, outcome
+		evidence, err := NormalizeReportedMessageEvidence(input)
+		if err != nil {
+			return
+		}
+		first, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{GeneratedAt: time.Date(2026, 7, 14, 1, 0, 0, 0, time.UTC)})
+		if err != nil {
+			return
+		}
+		second, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{GeneratedAt: time.Date(2026, 7, 14, 1, 0, 0, 0, time.UTC)})
+		if err != nil || first.Digest() != second.Digest() {
+			t.Fatalf("non-deterministic classification: %v %q %q", err, first.Digest(), second.Digest())
+		}
+		for _, format := range []CampaignOutputFormat{CampaignOutputJSON, CampaignOutputJSONL} {
+			var output bytes.Buffer
+			if err := WriteCampaignClassificationOutput(&output, first, format, CampaignOutputOptions{View: CampaignOutputDisclosureSafe}); err != nil {
+				t.Fatal(err)
+			}
+		}
+	})
+}
+
+func mustMarshalFuzz(t testing.TB, value any) []byte {
+	t.Helper()
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 func FuzzAnalyzeReportEvidence(f *testing.F) {

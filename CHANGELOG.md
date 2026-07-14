@@ -9,6 +9,15 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- Strict versioned commercial/self-hosted security-simulation campaign
+  configuration; explicit bounded multi-source resolution with freshness,
+  integrity, deterministic override/conflict, import, provenance, fail-open or
+  fail-closed, and caller-owned last-known-good semantics; body-free normalized
+  reported-message evidence; pure bounded campaign classification and aggregate
+  report review; dual-opt-in automatic-disposition eligibility; and explicit
+  privileged or disclosure-safe JSON/JSONL output with neutral employee routing,
+  embedded schemas, synthetic fixtures, examples, fuzz/race/resource tests, and
+  no implicit source, DNS, mailbox, response, or enforcement activity.
 - Versioned organization portfolio configuration for entities, domains,
   monitored SPF/DKIM/DMARC names, expected senders, reusable policies,
   ownership, inheritance, and scoped exclusions.

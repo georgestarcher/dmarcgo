@@ -17,6 +17,9 @@ it never causes another stage to run.
 | What has the report corpus observed? | `AnalyzeReportEvidence` | Parsed reports | None |
 | What is the current DNS posture? | `CollectDNSSnapshot`, `ParseAuthenticationRecords`, then `EvaluateDNSHealth` | Normalized portfolio and explicit resolver | DNS only during collection |
 | Does observed mail match declared senders and current DNS? | `CorrelateReportEvidence` | Portfolio plus completed DNS health and report evidence | None |
+| Does one reported message match an authorized simulation? | `ResolveCampaignConfiguration`, `NormalizeReportedMessageEvidence`, then `ClassifyReportedMessage` | Explicit campaign sources plus caller-parsed body-free evidence | Only explicit source adapters during resolution |
+| Did aggregate reports show campaign-like streams? | `CorrelateCampaignReportEvidence` | Completed campaign snapshot and report evidence | None; never individual-message proof |
+| How do I route without disclosing an exercise? | `WriteCampaignClassificationOutput` with the disclosure-safe view | Completed campaign classification | Supplied writer only |
 | Which unexplained sources deserve review? | `ScoreThreatCandidates` | Portfolio plus completed evidence and correlation | None |
 | What ASN or coarse country context did my selected provider assert? | `EnrichThreatCandidates` | Completed candidates and explicit `IPEnricher` | Only the supplied enricher |
 | Does completed enrichment match a versioned jurisdiction policy? | `EvaluateJurisdictionContext` | Completed enrichment and explicit policy | None |
@@ -32,6 +35,10 @@ need a resolver. An export does not rerun parsing, DNS, scoring, or enrichment.
 ```text
 portfolio -> explicit DNS collection -> record parsing -> DNS health
 reports -> report evidence
+explicit campaign sources -> campaign snapshot
+campaign snapshot + normalized message evidence -> campaign classification
+campaign snapshot + report evidence -> aggregate campaign review
+campaign classification -> privileged or disclosure-safe output
 portfolio + DNS health + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional explicit enricher -> source enrichment
@@ -107,6 +114,17 @@ The integration gate preserves these operational distinctions:
 10. **Failures:** preserve cancellation, partial DNS evidence, unavailable
     enrichment, stale or conflicting assertions, and writer errors in their
     documented stage. No serializer retries an earlier stage.
+11. **Authorized simulation:** require current organization authorization,
+    campaign window, organization scope, identity, and a campaign-specific
+    signal; domain, provider, URL, delivery exception, or source IP alone is
+    insufficient.
+12. **Disclosure-safe routing:** derive a neutral routing record and fixed
+    employee-response template from a completed classification without exposing
+    campaign names, dates, infrastructure, exact state, or restricted workflow
+    IDs.
+13. **Aggregate campaign review:** retain overlapping report periods as
+    unverifiable exact message time and never enable high-confidence individual
+    authorization or automatic disposition.
 
 The individual feature tests own the detailed variants. Phase 13 adds the
 cross-mode evidence-chain and static dependency tests without duplicating each
@@ -167,6 +185,13 @@ be dictionary-enumerated. Operational output removes restricted free-form
 fields while retaining defensive identifiers. Restricted output belongs only
 inside the complete operational trust boundary.
 
+Campaign classification has a separate privacy contract. Privileged output is
+restricted campaign/SOC data. Disclosure-safe output omits campaign identity,
+source, dates, infrastructure, factors, digests, and exact classification labels
+and supplies only neutral routing metadata. Its fixed
+`suspicious-message-received` template ID may select approved employee text;
+neither the route nor privileged state should be copied into that text.
+
 ## AI and hostile-input boundary
 
 Report values, DNS text, contacts, domains, provider data, policy labels,
@@ -219,7 +244,10 @@ new version even when the JSON shape is unchanged.
 
 ## Release-quality checks
 
-`make workflow-check` runs the Phase 13 integration and isolation gate.
+`make workflow-check` runs the Phase 13 and Phase 14 integration and isolation gates.
+`make campaign-check` runs the Phase 14 configuration, source, evidence,
+classification, aggregate, output, schema, example, security, and resource-limit
+gate.
 `make ci` additionally runs formatting, module verification, vet, static
 analysis, vulnerability checks, README compilation in an isolated external
 module, schema/output checks, unit and race tests, coverage, fuzz smoke tests,

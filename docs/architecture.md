@@ -12,6 +12,10 @@ portfolio/configuration -> DNS collection -> DNS parsing -> DNS health
 provider catalog + parsed static SPF dependencies -> provider context
 reports -> normalized report evidence
 portfolio + DNS health + provider context + report evidence -> correlation
+explicit campaign sources -> immutable campaign snapshot
+campaign snapshot + normalized reported-message evidence -> campaign classification
+campaign snapshot + report evidence -> aggregate campaign review
+completed campaign classification -> privileged or disclosure-safe output
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
@@ -52,8 +56,8 @@ structure containing every possible input or output.
 | ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
 | MISP exchange | `MISPAttributePayload`, `MISPEventPayload` (vendor-native, not analysis modes) | MISP export feature |
 | Anomali ThreatStream exchange | `ThreatStreamPayload` (tenant-native, not an analysis mode) | ThreatStream export feature |
-| Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
-| Campaign classification | `campaign_classification` | Campaign-correlation feature |
+| Campaign configuration | `campaign_configuration_validation`, `CampaignConfigurationDocument`, `CampaignConfigurationSnapshot` | Campaign-correlation feature |
+| Campaign classification | `campaign_classification`, `CampaignClassificationResult`, `CampaignReportCorrelationResult` | Campaign-correlation feature |
 | Serialization | Existing output modes, later extended per completed mode | Output feature |
 
 Future concrete result types should embed `ResultMetadata` and expose their
@@ -179,6 +183,10 @@ not hide calls to `time.Now` inside pure evaluation.
 | DNS parsing and health | No | No | No | No | Evaluation of supplied snapshot |
 | Report evidence | Supplied report/results only | No implicit loading | No | No | Evidence normalization |
 | Correlation and variance | Supplied completed values only | No | No | No | Correlation |
+| Campaign source resolution | No | Explicit adapters only | Explicit HTTPS adapter only | No | Bounded loading, verification, and merge |
+| Message campaign classification | Caller-supplied normalized evidence only | No | No | No | Bounded pure matching |
+| Aggregate campaign review | Supplied report evidence only | No | No | No | Lower-confidence pure correlation |
+| Campaign output | No | Writer supplied by caller | No | No | Privacy representation only |
 | Threat candidates | Supplied completed values only | No | No | No | Explainable scoring |
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
@@ -201,6 +209,14 @@ The Phase 13 workflow gate adds a complete synthetic evidence chain, generated
 metadata samples for every native analysis mode, common-candidate exchange
 proof, and a static dependency audit across all pure analysis and export
 implementations. See [Independent automation workflows](automation-workflows.md).
+
+The Phase 14 campaign gate adds a separate synthetic commercial/self-hosted
+inventory, explicit source resolution, body-free message evidence, pure bounded
+classification, and disclosure-safe output proof. The explicit source adapter
+file is intentionally outside the pure-stage import audit; campaign
+configuration normalization, evidence normalization, matching, aggregate
+review, and output remain inside it. See
+[Security-simulation campaign correlation](campaign-correlation.md).
 
 The provider catalog is inert, versioned context rather than a collection
 stage. Catalog loading reads only caller-supplied bytes or the embedded file.

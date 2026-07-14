@@ -1,0 +1,103 @@
+schema_version: 1
+generated_at: 2026-07-14T00:00:00Z
+effective_at: 2026-07-14T00:00:00Z
+expires_at: 2026-08-15T00:00:00Z
+security_simulations:
+  - id: commercial-simulation-2026-q3
+    external_campaign_id: vendor-campaign-1234
+    provider:
+      type: catalog
+      id: commercial-awareness-provider
+    organization: example-holdings
+    entity: primary-company
+    business_unit: corporate-security
+    owner: security-awareness
+    approval_reference: TEST-1001
+    status: active
+    created_at: 2026-07-01T00:00:00Z
+    valid_from: 2026-07-15T00:00:00Z
+    valid_until: 2026-07-31T23:59:59Z
+    recipient_domains: [example.test]
+    recipient_scope_ids: [all-employees]
+    expected_identity:
+      header_from_domains: [training.example.test]
+      envelope_from_domains: [bounce.training.example.test]
+      dkim:
+        - domain: training.example.test
+          selectors: [simulation-2026]
+      message_id_domains: [training.example.test]
+    expected_sources:
+      infrastructure_ids: [vendor-tenant-route]
+    campaign_token_digests:
+      - sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    url_domains: [landing.example.test]
+    authentication:
+      dmarc: required
+      spf: required
+      dkim: required
+    delivery_exception_ids: [gateway-exception-1001]
+    response_policy:
+      employee_disclosure: prohibited
+      employee_template_id: suspicious-message-received
+      analyst_visibility: full
+      campaign_owner_visibility: full
+    handling:
+      workflow_id: simulation-reported-message
+      retain_authentication_findings: true
+      automatic_disposition_eligible: false
+    match_policy:
+      required_factors:
+        - campaign_window
+        - organization_scope
+        - header_from_domain
+        - dkim_identity
+        - campaign_token_digest
+        - authentication
+      minimum_matched_factors: 5
+
+  - id: subsidiary-self-hosted-2026-q3
+    provider:
+      type: self_hosted
+      id: subsidiary-awareness-platform
+      name: Synthetic Subsidiary Awareness Platform
+    organization: example-holdings
+    entity: subsidiary-company
+    business_unit: regional-security
+    owner: subsidiary-security-awareness
+    approval_reference: TEST-2001
+    status: scheduled
+    created_at: 2026-07-10T00:00:00Z
+    valid_from: 2026-08-01T00:00:00Z
+    valid_until: 2026-08-10T23:59:59Z
+    recipient_domains: [subsidiary.example.test]
+    expected_identity:
+      header_from_domains: [training.subsidiary.example.test]
+      dkim:
+        - domain: training.subsidiary.example.test
+          selectors: [regional-simulation]
+    expected_sources:
+      cidrs: [192.0.2.0/28]
+      hostnames: [outbound.training.subsidiary.example.test]
+      infrastructure_ids: [self-hosted-cluster-a]
+    content_fingerprints:
+      - sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    authentication:
+      dmarc: required
+      spf: optional
+      dkim: required
+    response_policy:
+      employee_disclosure: prohibited
+      analyst_visibility: full
+      campaign_owner_visibility: full
+    handling:
+      workflow_id: subsidiary-simulation-review
+      retain_authentication_findings: true
+      automatic_disposition_eligible: false
+    match_policy:
+      required_factors:
+        - campaign_window
+        - organization_scope
+        - header_from_domain
+        - dkim_identity
+        - content_fingerprint
+      minimum_matched_factors: 5

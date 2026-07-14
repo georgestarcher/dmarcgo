@@ -187,6 +187,11 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 		"threatconnect.go",
 		"misp.go",
 		"threatstream.go",
+		"campaign_config.go",
+		"campaign_evidence.go",
+		"campaign_classification.go",
+		"campaign_report.go",
+		"campaign_output.go",
 	}
 	forbiddenImports := map[string]bool{
 		"net": true, "net/http": true, "os": true, "os/exec": true,

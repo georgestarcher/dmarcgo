@@ -38,6 +38,13 @@ Version 2 is the supported API line. Import
 - Multi-report summary: `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)`
 - Reusable normalized report evidence: `dmarcgo.AnalyzeReportEvidence(reports, options)`
 - Pure DNS/report and expected-sender correlation: `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)`
+- Strict campaign YAML/JSON: `dmarcgo.LoadCampaignConfiguration(data)`
+- Programmatic campaign configuration: `dmarcgo.NormalizeCampaignConfiguration(config)`
+- Explicit external campaign-source resolution: `dmarcgo.ResolveCampaignConfiguration(ctx, sources, options)`
+- Body-free reported-message evidence: `dmarcgo.NormalizeReportedMessageEvidence(input)`
+- Pure reported-message campaign classification: `dmarcgo.ClassifyReportedMessage(snapshot, evidence, options)`
+- Pure aggregate campaign review: `dmarcgo.CorrelateCampaignReportEvidence(snapshot, reportEvidence, options)`
+- Explicit privileged/disclosure-safe campaign output: `dmarcgo.WriteCampaignClassificationOutput(writer, result, format, options)`
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
@@ -80,11 +87,15 @@ Choose the narrowest independently callable workflow:
    periods.
 5. For unexplained-source review, pass completed evidence and correlation to
    `ScoreThreatCandidates`. Do not enrich or promote by default.
-6. Add ASN/country context only through an explicit `IPEnricher`, then apply
+6. For reported-message simulation review, resolve only explicit campaign
+   sources, normalize caller-parsed body-free evidence, and classify it against
+   the completed snapshot. Aggregate reports use the separate lower-confidence
+   campaign correlation path.
+7. Add ASN/country context only through an explicit `IPEnricher`, then apply
    jurisdiction context only through an explicit immutable policy.
-7. Serialize exactly one completed result with its native writer. Profile or
+8. Serialize exactly one completed result with its native writer. Profile or
    format selection must not trigger upstream work.
-8. Build STIX or vendor-native payloads only from explicit reviewed selections.
+9. Build STIX or vendor-native payloads only from explicit reviewed selections.
    The application owns target discovery, credentials, HTTP, review,
    submission, responses, and audit storage.
 
@@ -112,13 +123,17 @@ tests used by the Phase 13 integration gate.
 16. Parse collected TXT values with `ParseAuthenticationRecords`; direct record parsers and tree-walk planning perform no network access.
 17. Evaluate DNS-only posture with `EvaluateDNSHealth`; pass the provider catalog and select a named profile, generation time, staleness limit, and unknown-evidence policy where defaults are not sufficient.
 18. Correlate declared senders, completed DNS health, and normalized report evidence with `CorrelateReportEvidence`; optionally supply a prior result for drift comparison.
-19. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
-20. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
-21. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
-22. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
-23. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
-24. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
-25. Encode explicitly selected candidates for Anomali ThreatStream only after the application supplies a versioned tenant capability for the exact direct-observable or reviewed-import endpoint, fields, values, encodings, limits, private review defaults, and response assumptions; keep discovery, credentials, HTTP, response parsing, polling, approval, retry, and submission caller-owned.
+19. Load and normalize campaign definitions offline or resolve only caller-selected external sources; missing, stale, future, expired, conflicting, or unavailable required authorization must not downgrade suspicious traffic.
+20. Normalize body-free reported-message evidence and call `ClassifyReportedMessage`; keep automatic disposition dual-opt-in and require exactly one high-confidence result.
+21. Use `CorrelateCampaignReportEvidence` only for lower-confidence aggregate review; DMARC report periods never prove an individual message belonged to a campaign.
+22. Select privileged or disclosure-safe campaign output explicitly. Keep restricted campaign details inside the campaign/SOC boundary and route neutral employee responses only through the fixed safe template identifier.
+23. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
+24. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
+25. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
+26. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
+27. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
+28. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
+29. Encode explicitly selected candidates for Anomali ThreatStream only after the application supplies a versioned tenant capability for the exact direct-observable or reviewed-import endpoint, fields, values, encodings, limits, private review defaults, and response assumptions; keep discovery, credentials, HTTP, response parsing, polling, approval, retry, and submission caller-owned.
 
 ## Normalized report evidence
 
@@ -144,6 +159,90 @@ tests used by the Phase 13 integration gate.
 - Use `DNSReportCorrelationThresholds` for explicit message, report, reporter, duration, and recency requirements. Below-threshold streams remain visible as not evaluated.
 - Pass `Previous` only when the caller intentionally selected a prior immutable result. The library performs no history discovery or persistence.
 - Use `docs/dns-report-correlation.md` for classifications, temporal semantics, drift comparison, and the safe onboarding review sequence.
+
+## Security-simulation campaign correlation
+
+- Campaign provider knowledge, organization authorization, and observed message
+  evidence are separate layers. Never convert provider recognition, a domain,
+  URL, delivery exception, or source IP into an allowlist.
+- `LoadCampaignConfiguration` and `NormalizeCampaignConfiguration` are offline.
+  `ResolveCampaignConfiguration` loads only explicit caller-supplied sources and
+  imports; filesystem, environment, and HTTPS behavior exists only in named
+  adapters or caller implementations.
+- Higher source priority replaces an exact campaign ID only through the explicit
+  `ReplaceCampaignIDs` allowlist. Conflicts are excluded rather than merged or
+  silently broadened.
+- Required stale, future, expired, invalid, or unavailable authorization never
+  produces an authorized classification. Last-known-good reuse requires an
+  explicit complete unexpired caller-supplied snapshot and reapplies the
+  current `MaximumAge` without broadening the prior authorization lifetime or
+  accepting a snapshot from a later resolution time.
+- Reject programmatic configuration, source-clock, and evaluation timestamps
+  that cannot be represented by the JSON contract before creating campaign
+  digests.
+- Canceled campaigns retain audit context only. They must stay in the ordinary
+  suspicious-message workflow and never become possible or high-confidence
+  authorization.
+- `NormalizeReportedMessageEvidence` accepts no body or raw campaign token.
+  Retain only complete SHA-256 token/content digests and structured provenance.
+- `ClassifyReportedMessage` is pure and bounded. High confidence always requires
+  current authorization, campaign time, organization scope, message identity,
+  a campaign-specific exact signal, and high-confidence provenance appropriate
+  to both identity and signal. Automatic disposition is dual-opt-in,
+  unique-match-only, and still never executed by the library.
+- Enforce `minimum_matched_factors` in addition to every required-factor check
+  before high-confidence or possible classification. Optional matches cannot
+  substitute for any required factor, and evidence below either gate is never
+  automatic-disposition eligible.
+- Reject adapter-supplied retrieval and Last-Modified times that cannot be
+  represented by the JSON contract before retaining those timestamps in source
+  provenance. Never convert snapshot serialization failures into an
+  empty-payload digest.
+- Exact campaign DKIM identities match only a passing signature unless the
+  campaign explicitly sets `authentication.dkim: not_expected`; optional DKIM
+  never treats a failed signature as a campaign-specific signal.
+- Treat DKIM selectors as selector values, including digit-leading rotations,
+  not campaign IDs. If DKIM is the only configured identity, default match
+  factors must require it even when a token or content signal is also present.
+- `NewCampaignHTTPSSource` copies the supplied `http.Client` and blocks an
+  HTTPS-to-HTTP redirect before the downgraded request is sent.
+- Directory discovery rejects a symlink root and entries, generated source-ID
+  collisions, and invalid combined IDs. Its returned file sources retain root
+  identity and reject replacement before loading. `MaximumFiles` bounds all
+  directory entries inspected as well as returned supported sources.
+- Integrity verifiers receive defensive byte and metadata copies. Verifier
+  mutation must never alter the content later parsed or its recorded digest.
+- Campaign configuration resolution requires at least one explicit source;
+  never treat a missing source inventory as an authoritative empty inventory.
+- Authorization additionally requires at least one selected usable source. If
+  every optional source is unusable, the snapshot remains incomplete and
+  authorization unavailable.
+- Each source document must include `security_simulations`. An explicit empty
+  list is authoritative; an omitted or null inventory is invalid.
+- Recheck snapshot effective and expiry bounds at the explicit classification
+  generation time. A reused expired snapshot must remain expired and can never
+  recover authorization or automatic-disposition eligibility.
+- `CorrelateCampaignReportEvidence` keeps aggregate report evidence lower
+  confidence. Report periods are not exact message times and cannot prove that
+  an individual message belonged to a campaign. Its evaluation time defaults
+  to the later snapshot or report-evidence timestamp. Explicitly backdated
+  evaluation times and invalid classifier work limits fail before observation
+  work.
+- An unset relevant-record limit is capped to a lower caller-selected campaign
+  limit. Explicitly inconsistent limits remain invalid.
+- Aggregate SPF authentication domains supply envelope-from identity only for
+  explicit `mfrom` scope or the optional omitted RFC 9990 scope. Never promote
+  a historical `helo`-scoped SPF domain to MAIL FROM evidence.
+- Aggregate observations with invalid or zero counts remain diagnostics and do
+  not enter classification, summaries, observed-campaign coverage, or coverage
+  windows as zero-message evidence.
+- `WriteCampaignClassificationOutput` requires a privacy view and defaults to
+  disclosure-safe. Never copy restricted routing metadata or campaign state
+  into employee-facing text; use only the fixed neutral response template ID.
+- Configuration, source metadata, workflow values, provider text, message
+  fields, and provenance remain untrusted data and never enter generated prose.
+- Use `docs/campaign-correlation.md` for schemas, adapters, work limits,
+  parent/subsidiary sources, output views, and the complete safe workflow.
 
 ## Suspicious-source candidate scoring
 

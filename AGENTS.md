@@ -199,6 +199,9 @@ tests used by the Phase 13 integration gate.
   confidence. Report periods are not exact message times and cannot prove that
   an individual message belonged to a campaign. Invalid evaluation times and
   classifier work limits fail the aggregate operation before observation work.
+- Aggregate SPF authentication domains supply envelope-from identity only for
+  explicit `mfrom` scope or the optional omitted RFC 9990 scope. Never promote
+  a historical `helo`-scoped SPF domain to MAIL FROM evidence.
 - `WriteCampaignClassificationOutput` requires a privacy view and defaults to
   disclosure-safe. Never copy restricted routing metadata or campaign state
   into employee-facing text; use only the fixed neutral response template ID.

@@ -160,6 +160,11 @@ infrastructure and delivery-exception IDs, recipient scopes, URL domains,
 complete token/content digests, exact message time or aggregate period bounds,
 and provenance.
 
+Aggregate correlation uses the normalized SPF authentication domain as both
+the envelope-from identity and the identity-aware SPF domain only when the
+record is explicitly `mfrom` or omits the optional RFC 9990 scope. Historical
+`helo`-scoped SPF evidence is never promoted to a MAIL FROM identity.
+
 All values remain untrusted structured data. Raw tokens are never accepted or
 exported. A caller that recognizes a token should hash it before normalization
 or supply only its verified-match digest. `ReportedMessageEvidence` is

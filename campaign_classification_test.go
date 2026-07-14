@@ -552,6 +552,7 @@ func TestCampaignPublicResultAccessors(t *testing.T) {
 func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.T) {
 	config := campaignTestConfig("quarterly-awareness", "training.example.test")
 	unobserved := campaignTestConfig("unobserved-campaign", "unobserved.example.test").SecuritySimulations[0]
+	unobserved.ExpectedIdentity.EnvelopeFromDomains = []string{"bounce.unobserved.example.test"}
 	unobserved.ExpectedSources = CampaignExpectedSourcesConfig{}
 	config.SecuritySimulations = append(config.SecuritySimulations, unobserved)
 	snapshot := campaignTestSnapshot(t, config)
@@ -563,7 +564,7 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 		Record: []Record{{
 			Row:         Row{SourceIP: "192.0.2.10", Count: "5", PolicyEvaluated: PolicyEvaluated{DKIM: "pass", SPF: "pass"}},
 			Identifiers: Identifiers{HeaderFrom: "training.example.test"},
-			AuthResults: AuthResults{DKIM: []DKIMAuthResult{{Domain: "training.example.test", Selector: "simulation-2026", Result: "pass"}}, SPF: &SPFAuthResult{Domain: "bounce.training.example.test", Result: "pass"}},
+			AuthResults: AuthResults{DKIM: []DKIMAuthResult{{Domain: "training.example.test", Selector: "simulation-2026", Result: "pass"}}, SPF: &SPFAuthResult{Domain: "bounce.training.example.test", Scope: "mfrom", Result: "pass"}},
 		}},
 	}
 	reportEvidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: time.Date(2026, 7, 16, 1, 0, 0, 0, time.UTC)})
@@ -586,6 +587,9 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 			if record.Classification == CampaignAuthorizedHighConfidence || record.AutomaticDispositionEligible {
 				t.Fatalf("aggregate evidence proved an individual campaign message: %+v", record)
 			}
+			if record.CampaignID == "quarterly-awareness" && !campaignAnyFactor(record.Matched, CampaignFactorEnvelopeFrom) {
+				t.Fatalf("aggregate SPF mfrom identity was not preserved as envelope-from evidence: %+v", record)
+			}
 		}
 	}
 	if !hasCampaignReportDiagnostic(result.Diagnostics(), "campaign.report.declared_not_observed") {
@@ -601,6 +605,26 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 		t.Run(test.name, func(t *testing.T) {
 			if _, err := CorrelateCampaignReportEvidence(snapshot, reportEvidence, test.options); !errors.Is(err, ErrInvalidCampaignClassificationOptions) {
 				t.Fatalf("aggregate option error = %v", err)
+			}
+		})
+	}
+}
+
+func TestCampaignReportMailFromDomainRejectsHistoricalHELOScope(t *testing.T) {
+	evaluated := Evaluation{State: EvaluationStateEvaluated}
+	for _, test := range []struct {
+		name  string
+		scope ReportEvidenceValue
+		want  string
+	}{
+		{name: "explicit mfrom", scope: ReportEvidenceValue{Value: "mfrom", Evaluation: evaluated}, want: "bounce.example.test"},
+		{name: "implicit RFC 9990 mfrom", scope: ReportEvidenceValue{Evaluation: Evaluation{State: EvaluationStateUnknown, Reason: reportEvidenceReasonMissingValue}}, want: "bounce.example.test"},
+		{name: "historical helo", scope: ReportEvidenceValue{Value: "helo", Evaluation: evaluated}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			spf := ReportEvidenceSPF{Evaluation: evaluated, Domain: ReportEvidenceValue{Value: "bounce.example.test", Evaluation: evaluated}, Scope: test.scope}
+			if got := campaignReportMailFromDomain(spf); got != test.want {
+				t.Fatalf("campaignReportMailFromDomain() = %q, want %q", got, test.want)
 			}
 		})
 	}

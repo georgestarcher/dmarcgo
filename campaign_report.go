@@ -156,8 +156,12 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 		if observation.SourceIP.Evaluation.State == EvaluationStateEvaluated {
 			input.SourceAddresses = []string{observation.SourceIP.Value}
 		}
-		if observation.SPF.Evaluation.State == EvaluationStateEvaluated && observation.SPF.Domain.Evaluation.State == EvaluationStateEvaluated {
-			input.SPFDomain = observation.SPF.Domain.Value
+		if mailFromDomain := campaignReportMailFromDomain(observation.SPF); mailFromDomain != "" {
+			// RFC 9990 reports only the MAIL FROM SPF identity; its optional
+			// scope can only be mfrom. Preserve that identity for both the
+			// envelope-from factor and identity-aware SPF authentication.
+			input.EnvelopeFromDomain = mailFromDomain
+			input.SPFDomain = mailFromDomain
 		}
 		for _, dkim := range observation.DKIM {
 			if dkim.Domain.Evaluation.State == EvaluationStateEvaluated && dkim.Selector.Evaluation.State == EvaluationStateEvaluated {
@@ -232,6 +236,18 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 	}{result.metadata, result.version, result.snapshotDigest, result.reportEvidenceDigest, result.observations, result.diagnostics, result.summary})
 	result.digest = StableAnalysisID("campaign_report_correlation", string(canonical))
 	return result, nil
+}
+
+func campaignReportMailFromDomain(spf ReportEvidenceSPF) string {
+	if spf.Evaluation.State != EvaluationStateEvaluated || spf.Domain.Evaluation.State != EvaluationStateEvaluated {
+		return ""
+	}
+	// RFC 9990 makes scope optional because only mfrom is valid. Historical
+	// reports can explicitly carry helo, which must not become MAIL FROM.
+	if spf.Scope.Evaluation.State == EvaluationStateEvaluated && spf.Scope.Value != "mfrom" {
+		return ""
+	}
+	return spf.Domain.Value
 }
 
 func campaignMatchesReportScope(campaign SecuritySimulationCampaign, organization, entity, businessUnit string) bool {

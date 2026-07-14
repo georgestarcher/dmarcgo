@@ -284,9 +284,6 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(path, filepath.Join(directory, "linked.yaml")); err != nil {
-		t.Fatalf("create symlink fixture: %v", err)
-	}
 	fileSource, err := NewCampaignFileSource(path)
 	if err != nil {
 		t.Fatal(err)
@@ -294,13 +291,6 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 	loaded, _, err := fileSource.Load(context.Background())
 	if err != nil || string(loaded) != string(data) {
 		t.Fatalf("file source = %q, %v", loaded, err)
-	}
-	linkedSource, err := NewCampaignFileSource(filepath.Join(directory, "linked.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err = linkedSource.Load(context.Background()); !errors.Is(err, ErrCampaignSourceFailed) {
-		t.Fatalf("symlink file source error = %v", err)
 	}
 	specs, err := CampaignConfigurationSourcesFromDirectory(context.Background(), directory, CampaignDirectoryOptions{SourceIDPrefix: "testing-team", Required: true, Priority: 5})
 	if err != nil || len(specs) != 1 || specs[0].ID != "testing-team-campaign" {
@@ -345,6 +335,25 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 	cancel()
 	if _, _, err := fileSource.Load(canceled); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled file load error = %v", err)
+	}
+}
+
+func TestCampaignFileSourceRejectsSymlinkWhenSupported(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "campaign.yaml")
+	if err := os.WriteFile(path, []byte(campaignTestYAML("symlink", "training.example.test")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	linkedPath := filepath.Join(directory, "linked.yaml")
+	if err := os.Symlink(path, linkedPath); err != nil {
+		t.Skipf("symlink fixture unavailable: %v", err)
+	}
+	linkedSource, err := NewCampaignFileSource(linkedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := linkedSource.Load(context.Background()); !errors.Is(err, ErrCampaignSourceFailed) {
+		t.Fatalf("symlink file source error = %v", err)
 	}
 }
 

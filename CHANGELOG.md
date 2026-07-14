@@ -9,6 +9,12 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- A repository-owned, task-oriented project wiki source with distinct domain
+  monitoring, report ingestion, correlation, approved campaign, suspicious
+  source, scoring, defensive export, and automation/AI-safety journeys; a
+  versioned documentation index; deterministic link and privacy validation;
+  and least-privilege trusted-main publishing that keeps pull requests
+  credential-free.
 - Strict versioned commercial/self-hosted security-simulation campaign
   configuration; explicit bounded multi-source resolution with freshness,
   integrity, deterministic override/conflict, import, provenance, fail-open or

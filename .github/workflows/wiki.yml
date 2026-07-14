@@ -1,0 +1,61 @@
+name: dmarcgo Wiki
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/wiki.yml"
+      - "Makefile"
+      - "docs/wiki/**"
+      - "scripts/check_wiki.py"
+      - "scripts/publish_wiki.sh"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/wiki.yml"
+      - "Makefile"
+      - "docs/wiki/**"
+      - "scripts/check_wiki.py"
+      - "scripts/publish_wiki.sh"
+
+jobs:
+  validate:
+    name: Validate canonical source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Validate wiki source
+        run: make wiki-check
+
+  publish:
+    name: Publish trusted main
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Publish canonical source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WIKI_SOURCE_SHA: ${{ github.sha }}
+        run: scripts/publish_wiki.sh

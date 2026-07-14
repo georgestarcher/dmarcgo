@@ -10,6 +10,16 @@ MIT license. See [LICENSE](LICENSE) for details.
 
 All text above must be included in any redistribution.
 
+## Choose your workflow
+
+New to the library? Start with the
+[task-oriented project wiki](https://github.com/georgestarcher/dmarcgo/wiki) to
+choose between domain monitoring, report ingestion, DNS/report correlation,
+approved campaign classification, suspicious-source review, defensive exports,
+and automation output. The wiki is a navigation layer; the
+[repository documentation index](docs/README.md), Go documentation, and shipped
+schemas remain the versioned contracts.
+
 ## Install
 
 From another Go module:

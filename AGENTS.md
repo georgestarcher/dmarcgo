@@ -12,6 +12,26 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
 - It can explicitly collect reusable TXT evidence for record names already declared in a normalized organization portfolio. DNS collection is never implicit in report parsing or output generation.
 
+## Project wiki
+
+- The task-oriented GitHub wiki helps new users choose among domain monitoring,
+  report ingestion, DNS/report correlation, campaign classification,
+  suspicious-source review, defensive exports, and automation output.
+- Canonical wiki source lives under `docs/wiki`. Do not edit the rendered wiki
+  directly after its one-time bootstrap.
+- The wiki is navigation, not a separate API or behavioral contract. Link each
+  workflow page to the authoritative repository guide, schema, or Go
+  documentation and update those sources first when behavior changes.
+- Run `make wiki-check` after wiki edits. Pull requests validate source with
+  read-only permissions; only trusted `main` or an explicit trusted manual run
+  may publish.
+- Wiki pages and examples must remain synthetic. Never copy private portfolios,
+  record-name lists, report corpora, campaign inventories, source IPs,
+  credentials, contacts, local paths, or private provider overlays into them.
+- Keep separate journeys separate. In particular, do not present DNS posture,
+  historical report evidence, approved campaign classification, or suspicious
+  source scoring as interchangeable verdicts.
+
 ## Install in an application project
 
 Use the Go module normally:

@@ -317,6 +317,10 @@ automatic disposition.
 The explicit evaluation time and classifier work limits are validated before
 the observation loop; a backdated time or invalid limit fails the aggregate
 operation instead of becoming an observation-level availability diagnostic.
+An observation with an invalid or zero DMARC count remains an explicit
+diagnostic and is excluded from classification, summaries, observed-campaign
+coverage, and coverage-window calculation. It never becomes zero-message
+campaign evidence.
 
 The caller may set `CoverageSufficient` only when it knows the supplied corpus
 is complete enough for a declared-not-observed diagnostic. The library never

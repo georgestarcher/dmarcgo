@@ -589,6 +589,10 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 			Row:         Row{SourceIP: "192.0.2.10", Count: "5", PolicyEvaluated: PolicyEvaluated{DKIM: "pass", SPF: "pass"}},
 			Identifiers: Identifiers{HeaderFrom: "training.example.test"},
 			AuthResults: AuthResults{DKIM: []DKIMAuthResult{{Domain: "training.example.test", Selector: "simulation-2026", Result: "pass"}}, SPF: &SPFAuthResult{Domain: "bounce.training.example.test", Scope: "mfrom", Result: "pass"}},
+		}, {
+			Row:         Row{SourceIP: "192.0.2.11", Count: "0", PolicyEvaluated: PolicyEvaluated{DKIM: "pass", SPF: "pass"}},
+			Identifiers: Identifiers{HeaderFrom: "unobserved.example.test"},
+			AuthResults: AuthResults{DKIM: []DKIMAuthResult{{Domain: "unobserved.example.test", Selector: "simulation-2026", Result: "pass"}}, SPF: &SPFAuthResult{Domain: "bounce.unobserved.example.test", Scope: "mfrom", Result: "pass"}},
 		}},
 	}
 	reportEvidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: time.Date(2026, 7, 16, 1, 0, 0, 0, time.UTC)})
@@ -633,6 +637,9 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 	}
 	if !hasCampaignReportDiagnostic(result.Diagnostics(), "campaign.report.declared_not_observed") {
 		t.Fatalf("caller-confirmed complete coverage omitted declared-not-observed diagnostic: %+v", result.Diagnostics())
+	}
+	if !hasCampaignReportDiagnostic(result.Diagnostics(), "campaign.report.count_unavailable") {
+		t.Fatalf("invalid-count observation did not remain diagnostic-only: %+v", result.Diagnostics())
 	}
 	for _, test := range []struct {
 		name    string

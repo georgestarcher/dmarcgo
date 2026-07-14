@@ -147,6 +147,10 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 		observations: []CampaignReportObservationClassification{}, diagnostics: []CampaignReportCorrelationDiagnostic{},
 	}
 	for _, observation := range evidence.observations {
+		if !observation.Count.Available {
+			result.diagnostics = append(result.diagnostics, campaignReportDiagnostic(observation.ID, "campaign.report.count_unavailable", "A report observation lacked a usable positive message count."))
+			continue
+		}
 		if !observation.Period.Begin.Available || !observation.Period.End.Available {
 			result.diagnostics = append(result.diagnostics, campaignReportDiagnostic(observation.ID, "campaign.report.period_unavailable", "A report observation lacked usable period bounds."))
 			continue
@@ -198,12 +202,8 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 		for _, finding := range classification.findings {
 			findingIDs = append(findingIDs, finding.ID)
 		}
-		messages := int64(0)
-		if observation.Count.Available {
-			messages = observation.Count.Value
-		}
 		result.observations = append(result.observations, CampaignReportObservationClassification{
-			ObservationID: observation.ID, ReportEvidenceID: observation.ReportEvidenceID, Messages: messages,
+			ObservationID: observation.ID, ReportEvidenceID: observation.ReportEvidenceID, Messages: observation.Count.Value,
 			ClassificationDigest: classification.digest, Records: records, FindingIDs: findingIDs, Sensitivity: SensitivityRestricted,
 		})
 	}
@@ -276,7 +276,7 @@ func campaignReportDiagnostic(observationID EvidenceID, code DiagnosticCode, mes
 
 func campaignOverlapsReportEvidence(campaign SecuritySimulationCampaign, observations []ReportEvidenceObservation) bool {
 	for _, observation := range observations {
-		if !observation.Period.Begin.Available || !observation.Period.End.Available {
+		if !observation.Count.Available || !observation.Period.Begin.Available || !observation.Period.End.Available {
 			continue
 		}
 		if !observation.Period.End.Value.Before(campaign.ValidFrom) && !observation.Period.Begin.Value.After(campaign.ValidUntil) {

@@ -216,6 +216,9 @@ tests used by the Phase 13 integration gate.
 - Aggregate SPF authentication domains supply envelope-from identity only for
   explicit `mfrom` scope or the optional omitted RFC 9990 scope. Never promote
   a historical `helo`-scoped SPF domain to MAIL FROM evidence.
+- Aggregate observations with invalid or zero counts remain diagnostics and do
+  not enter classification, summaries, observed-campaign coverage, or coverage
+  windows as zero-message evidence.
 - `WriteCampaignClassificationOutput` requires a privacy view and defaults to
   disclosure-safe. Never copy restricted routing metadata or campaign state
   into employee-facing text; use only the fixed neutral response template ID.

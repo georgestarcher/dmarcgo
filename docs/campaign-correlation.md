@@ -132,6 +132,11 @@ signature verification results. Restricted provenance also retains the exact
 replacement-ID allowlist so the snapshot digest covers the merge policy that
 produced the inventory.
 
+Every source document must include `security_simulations`. An explicit
+`security_simulations: []` is a valid authoritative empty inventory; an omitted
+or null field is invalid and cannot make a source authorization-capable. The
+published JSON Schema enforces the same distinction for JSON and decoded YAML.
+
 Higher priority is not an implicit trust override. A higher-priority source may
 replace an exact campaign ID only when that ID is listed in its
 `ReplaceCampaignIDs`. Otherwise conflicting definitions are excluded and a

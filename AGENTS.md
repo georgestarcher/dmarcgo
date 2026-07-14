@@ -199,6 +199,8 @@ tests used by the Phase 13 integration gate.
 - Authorization additionally requires at least one selected usable source. If
   every optional source is unusable, the snapshot remains incomplete and
   authorization unavailable.
+- Each source document must include `security_simulations`. An explicit empty
+  list is authoritative; an omitted or null inventory is invalid.
 - Recheck snapshot effective and expiry bounds at the explicit classification
   generation time. A reused expired snapshot must remain expired and can never
   recover authorization or automatic-disposition eligibility.

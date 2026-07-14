@@ -76,6 +76,68 @@ func TestCampaignConfigurationYAMLJSONParityAndSchema(t *testing.T) {
 	}
 }
 
+func TestCampaignConfigurationDistinguishesMissingAndExplicitEmptyInventory(t *testing.T) {
+	missingDocuments := map[string]string{
+		"yaml omitted": "schema_version: 1\ngenerated_at: 2026-07-01T00:00:00Z\nexpires_at: 2026-08-01T00:00:00Z\n",
+		"yaml null":    "schema_version: 1\ngenerated_at: 2026-07-01T00:00:00Z\nexpires_at: 2026-08-01T00:00:00Z\nsecurity_simulations: null\n",
+		"json omitted": `{"schema_version":1,"generated_at":"2026-07-01T00:00:00Z","expires_at":"2026-08-01T00:00:00Z"}`,
+		"json null":    `{"schema_version":1,"generated_at":"2026-07-01T00:00:00Z","expires_at":"2026-08-01T00:00:00Z","security_simulations":null}`,
+	}
+	for name, data := range missingDocuments {
+		t.Run(name, func(t *testing.T) {
+			_, err := LoadCampaignConfiguration([]byte(data))
+			var validation *CampaignConfigurationValidationError
+			if !errors.As(err, &validation) || !hasCampaignConfigurationDiagnostic(validation.Diagnostics(), "campaign.configuration.missing_security_simulations") {
+				t.Fatalf("missing inventory error = %v", err)
+			}
+		})
+	}
+	explicitDocuments := map[string]string{
+		"yaml": "schema_version: 1\ngenerated_at: 2026-07-01T00:00:00Z\nexpires_at: 2026-08-01T00:00:00Z\nsecurity_simulations: []\n",
+		"json": `{"schema_version":1,"generated_at":"2026-07-01T00:00:00Z","expires_at":"2026-08-01T00:00:00Z","security_simulations":[]}`,
+	}
+	for name, data := range explicitDocuments {
+		t.Run(name, func(t *testing.T) {
+			document, err := LoadCampaignConfiguration([]byte(data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if document.Digest() == "" || len(document.Campaigns()) != 0 {
+				t.Fatalf("explicit empty inventory = %+v", document)
+			}
+		})
+	}
+	validator := compileCampaignSchema(t, CampaignConfigurationSchemaID, CampaignConfigurationSchema())
+	for _, name := range []string{"json omitted", "json null"} {
+		value, err := jsonschema.UnmarshalJSON(bytes.NewReader([]byte(missingDocuments[name])))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := validator.Validate(value); err == nil {
+			t.Fatalf("schema accepted %s inventory", name)
+		}
+	}
+	explicitValue, err := jsonschema.UnmarshalJSON(bytes.NewReader([]byte(explicitDocuments["json"])))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validator.Validate(explicitValue); err != nil {
+		t.Fatalf("schema rejected explicit empty inventory: %v", err)
+	}
+	config := CampaignConfigurationConfig{
+		SchemaVersion: CampaignConfigurationSchemaVersion,
+		GeneratedAt:   time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC),
+		ExpiresAt:     time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
+	}
+	if _, err := NormalizeCampaignConfiguration(config); !errors.Is(err, ErrInvalidCampaignConfiguration) {
+		t.Fatalf("programmatic nil inventory error = %v", err)
+	}
+	config.SecuritySimulations = []SecuritySimulationCampaignConfig{}
+	if _, err := NormalizeCampaignConfiguration(config); err != nil {
+		t.Fatalf("programmatic explicit empty inventory error = %v", err)
+	}
+}
+
 func TestCampaignConfigurationNormalizationIsDeterministicAndImmutable(t *testing.T) {
 	config := campaignTestConfig("quarterly-awareness", "training.example.test")
 	second := campaignTestConfig("second-campaign", "second.example.test")
@@ -109,6 +171,15 @@ func TestCampaignConfigurationNormalizationIsDeterministicAndImmutable(t *testin
 	if CampaignConfigurationSchema()[0] == 'x' {
 		t.Fatal("CampaignConfigurationSchema() did not return a defensive copy")
 	}
+}
+
+func hasCampaignConfigurationDiagnostic(values []CampaignConfigurationDiagnostic, code DiagnosticCode) bool {
+	for _, value := range values {
+		if value.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func TestCampaignConfigurationCanonicalizesMappedCIDRs(t *testing.T) {

@@ -479,6 +479,9 @@ func (normalizer *campaignConfigurationNormalizer) normalize(config CampaignConf
 		normalizer.add("campaign.configuration.invalid_generation_lifetime", "expires_at", "The configuration expiration must be after its generation time.")
 	}
 	document.imports = normalizer.normalizeImports(config.Imports)
+	if config.SecuritySimulations == nil {
+		normalizer.add("campaign.configuration.missing_security_simulations", "security_simulations", "The campaign inventory field is required; use an explicit empty list for an authoritative empty inventory.")
+	}
 	if len(config.SecuritySimulations) > maxCampaignDefinitions {
 		normalizer.add("campaign.configuration.too_many_campaigns", "security_simulations", "The campaign count exceeds the supported limit.")
 		return document

@@ -953,6 +953,8 @@ Use `LoadCampaignConfiguration` for one strict YAML/JSON document or
 sources. The resolver records freshness, integrity, source precedence, imports,
 conflicts, and exact snapshot digests. Missing, future, stale, expired, or
 unavailable required authorization does not downgrade suspicious traffic.
+Each source must include `security_simulations`; use an explicit empty list for
+an authoritative empty inventory because omission or null is invalid.
 
 Normalize caller-parsed headers and other safe observations with
 `NormalizeReportedMessageEvidence`; raw bodies and raw campaign tokens are not

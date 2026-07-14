@@ -149,7 +149,10 @@ Last-known-good reuse is explicit. The caller must set `UseLastKnownGood` and
 supply a complete, authorization-capable, unexpired prior snapshot. The library
 does not discover or persist history. The new snapshot retains the previous
 digest and failure diagnostics, remains `Complete() == false`, and may authorize
-only while that prior snapshot is still within its declared lifetime.
+only while that prior snapshot is still within its declared lifetime. The
+current resolution's `MaximumAge` is reapplied to every retained source and can
+only shorten the prior snapshot's authorization lifetime. A resolution time
+before the prior snapshot or its effective time cannot reuse it.
 
 ## Reported-message evidence
 

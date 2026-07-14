@@ -262,7 +262,7 @@ func ResolveCampaignConfiguration(ctx context.Context, specs []CampaignConfigura
 	complete := !resolver.requiredFailure && !resolver.graphFailure && mergeComplete
 	authorizationAvailable := !resolver.requiredFailure && !resolver.graphFailure
 	snapshot := resolver.snapshot(campaigns, complete, authorizationAvailable)
-	if !authorizationAvailable && options.UseLastKnownGood && validCampaignLastKnownGood(options.LastKnownGood, resolver.now) {
+	if !authorizationAvailable && options.UseLastKnownGood && validCampaignLastKnownGood(options.LastKnownGood, resolver.now, options.MaximumAge) {
 		snapshot = resolver.lastKnownGoodSnapshot(*options.LastKnownGood)
 	}
 	if options.FailurePolicy == CampaignSourceFailClosed && !snapshot.complete {
@@ -554,7 +554,7 @@ func (resolver *campaignSourceResolver) lastKnownGoodSnapshot(previous CampaignC
 	snapshot := resolver.snapshot(previous.campaigns, false, true)
 	snapshot.previousDigest = previous.digest
 	snapshot.effectiveAt = previous.effectiveAt
-	snapshot.expiresAt = previous.expiresAt
+	snapshot.expiresAt = campaignLastKnownGoodExpiresAt(&previous, resolver.options.MaximumAge)
 	snapshot.sources = cloneCampaignSourceProvenance(previous.sources)
 	for index := range snapshot.sources {
 		if snapshot.sources[index].State == CampaignSourceLoaded || snapshot.sources[index].State == CampaignSourceLastKnownGood {
@@ -604,8 +604,28 @@ func campaignSnapshotBounds(sources []CampaignSourceProvenance, maximumAge time.
 	return effectiveAt, expiresAt
 }
 
-func validCampaignLastKnownGood(snapshot *CampaignConfigurationSnapshot, now time.Time) bool {
-	return snapshot != nil && snapshot.digest != "" && snapshot.complete && snapshot.authorizationAvailable && !snapshot.expiresAt.IsZero() && now.Before(snapshot.expiresAt)
+func validCampaignLastKnownGood(snapshot *CampaignConfigurationSnapshot, now time.Time, maximumAge time.Duration) bool {
+	if snapshot == nil || snapshot.digest == "" || !snapshot.complete || !snapshot.authorizationAvailable ||
+		snapshot.metadata.GeneratedAt.IsZero() || now.Before(snapshot.metadata.GeneratedAt) ||
+		snapshot.effectiveAt.IsZero() || now.Before(snapshot.effectiveAt) {
+		return false
+	}
+	expiresAt := campaignLastKnownGoodExpiresAt(snapshot, maximumAge)
+	return !expiresAt.IsZero() && now.Before(expiresAt)
+}
+
+func campaignLastKnownGoodExpiresAt(snapshot *CampaignConfigurationSnapshot, maximumAge time.Duration) time.Time {
+	if snapshot == nil || snapshot.expiresAt.IsZero() {
+		return time.Time{}
+	}
+	_, currentPolicyExpiry := campaignSnapshotBounds(snapshot.sources, maximumAge)
+	if currentPolicyExpiry.IsZero() {
+		return time.Time{}
+	}
+	if currentPolicyExpiry.Before(snapshot.expiresAt) {
+		return currentPolicyExpiry
+	}
+	return snapshot.expiresAt
 }
 
 func (resolver *campaignSourceResolver) addDiagnostic(code DiagnosticCode, severity FindingSeverity, sourceID, message string) {

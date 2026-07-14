@@ -174,7 +174,9 @@ tests used by the Phase 13 integration gate.
   silently broadened.
 - Required stale, future, expired, invalid, or unavailable authorization never
   produces an authorized classification. Last-known-good reuse requires an
-  explicit complete unexpired caller-supplied snapshot.
+  explicit complete unexpired caller-supplied snapshot and reapplies the
+  current `MaximumAge` without broadening the prior authorization lifetime or
+  accepting a snapshot from a later resolution time.
 - Canceled campaigns retain audit context only. They must stay in the ordinary
   suspicious-message workflow and never become possible or high-confidence
   authorization.

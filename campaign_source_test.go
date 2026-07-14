@@ -128,6 +128,63 @@ func TestResolveCampaignConfigurationRejectsIncompleteLastKnownGood(t *testing.T
 	}
 }
 
+func TestResolveCampaignConfigurationRevalidatesLastKnownGoodMaximumAge(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	config := campaignTestConfig("previous", "training.example.test")
+	config.GeneratedAt = now.Add(-2 * time.Hour)
+	config.EffectiveAt = &config.GeneratedAt
+	config.ExpiresAt = now.Add(24 * time.Hour)
+	goodSpec := CampaignConfigurationSourceSpec{
+		ID: "required", Source: NewCampaignBytesSource(marshalCampaignConfig(t, config), CampaignConfigurationMetadata{}), Required: true,
+	}
+	good, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{goodSpec}, CampaignConfigurationResolveOptions{
+		Clock: ClockFunc(func() time.Time { return now.Add(-time.Hour) }),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failing := CampaignConfigurationSourceSpec{ID: "required", Source: campaignFailingSource{}, Required: true}
+
+	stale, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{failing}, CampaignConfigurationResolveOptions{
+		Clock: ClockFunc(func() time.Time { return now }), UseLastKnownGood: true, LastKnownGood: &good, MaximumAge: time.Hour,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stale.AuthorizationAvailable() || stale.PreviousDigest() != "" {
+		t.Fatalf("last-known-good outside the current maximum age was accepted: %+v", stale)
+	}
+	backdated, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{failing}, CampaignConfigurationResolveOptions{
+		Clock: ClockFunc(func() time.Time { return now.Add(-90 * time.Minute) }), UseLastKnownGood: true, LastKnownGood: &good,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backdated.AuthorizationAvailable() || backdated.PreviousDigest() != "" {
+		t.Fatalf("last-known-good from a later resolution time was accepted: %+v", backdated)
+	}
+
+	fresh, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{failing}, CampaignConfigurationResolveOptions{
+		Clock: ClockFunc(func() time.Time { return now }), UseLastKnownGood: true, LastKnownGood: &good, MaximumAge: 3 * time.Hour,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantExpiry := config.GeneratedAt.Add(3 * time.Hour)
+	if !fresh.AuthorizationAvailable() || fresh.PreviousDigest() != good.Digest() || !fresh.ExpiresAt().Equal(wantExpiry) {
+		t.Fatalf("current maximum age was not retained on last-known-good reuse: available=%v previous=%q expires=%v want=%v", fresh.AuthorizationAvailable(), fresh.PreviousDigest(), fresh.ExpiresAt(), wantExpiry)
+	}
+	result, err := ClassifyReportedMessage(fresh, campaignTestEvidence(t, campaignTestEvidenceInput()), CampaignClassificationOptions{
+		GeneratedAt: wantExpiry, AllowAutomaticDisposition: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Summary().OverallClassification != CampaignAuthorizationExpired || result.Summary().AutomaticDispositionReady != 0 {
+		t.Fatalf("last-known-good authorized beyond the current maximum age: %+v", result.Summary())
+	}
+}
+
 func TestResolveCampaignConfigurationFreshnessImportsAndProviderDrift(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	root := campaignTestConfig("root-campaign", "training.example.test")

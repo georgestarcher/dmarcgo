@@ -112,12 +112,14 @@ general parser for arbitrary third-party STIX extensions. `WriteSTIXBundle`
 validates before writing and propagates writer and short-write failures.
 
 The golden fixture is also checked with the pinned official OASIS
-[`stix2-validator`](https://github.com/oasis-open/cti-stix-validator) in CI.
-Run the local checks with:
+[`stix2-validator`](https://github.com/oasis-open/cti-stix-validator) 3.3.1 in
+CI. The CI checkout includes the validator's pinned JSON Schema submodules;
+the 3.3.1 PyPI artifact omits those base schemas. Run the local checks with an
+equivalent recursive source installation:
 
 ```shell
 make stix-check
-make stix-validator-check # requires stix2-validator 3.3.1
+make stix-validator-check
 ```
 
 The mapping follows [OASIS STIX 2.1](https://docs.oasis-open.org/cti/stix/v2.1/os/stix-v2.1-os.html),

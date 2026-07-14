@@ -51,8 +51,20 @@ jobs:
         with:
           python-version: "3.13"
 
+      # The 3.3.1 PyPI artifact omits the validator's STIX JSON Schema
+      # submodules. Check out the exact release commit recursively so the
+      # validator uses the schema revision pinned by that release.
+      - name: Check out the OASIS STIX validator
+        uses: actions/checkout@v7
+        with:
+          repository: oasis-open/cti-stix-validator
+          ref: d3ef2a5fc0dfdbd12a794ea084b9c48a5e17e3f2
+          path: .stix2-validator
+          submodules: recursive
+          persist-credentials: false
+
       - name: Install the OASIS STIX validator
-        run: python -m pip install stix2-validator==3.3.1
+        run: python -m pip install ./.stix2-validator
 
       - name: Validate the interoperability fixture
         run: make stix-validator-check

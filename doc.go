@@ -164,6 +164,16 @@
 // authority, and negative-cache SOA evidence. A DNSSnapshot is immutable and
 // reusable; consuming it never performs another lookup.
 //
+// CollectDNSPerspectives is a separate optional networked stage over an
+// explicit subset of those same portfolio/snapshot owner names. It calls only a
+// caller-supplied DNSPerspectiveProvider, emits TXT queries at most once, uses
+// bounded concurrency and evidence limits, and performs no retry or sleeping.
+// A nil provider is a no-clock, no-network not-evaluated result. Remote
+// agreement or disagreement is supplemental resolver-consistency context; it
+// never mutates the trusted snapshot or changes DNS health or maturity. The
+// library ships no DShield adapter because bounded 2026-07-14 research did not
+// establish usable authentication-owner TXT behavior.
+//
 // ParseAuthenticationRecords performs the following pure stage over a supplied
 // DNSSnapshot. ParseSPFRecord, ParseDKIMKeyRecord, and ParseDMARCPolicyRecord
 // expose the same side-effect-free parsers for individual values.

@@ -72,3 +72,9 @@ cancellation observations never contain invented TTL evidence.
 Snapshots do not cache or refresh themselves. Applications own persistence,
 refresh policy, scheduling, and any cache. Later parsing and health stages must
 consume the supplied snapshot rather than recollecting DNS.
+
+When an application deliberately needs supplemental remote resolver-consistency
+context, it may pass this completed snapshot to
+[`CollectDNSPerspectives`](dns-perspectives.md) with an explicit disclosure
+selection and caller-supplied provider. That optional branch does not replace
+or mutate the snapshot and never changes DNS health or maturity.

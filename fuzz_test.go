@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/netip"
+	"slices"
 	"testing"
 	"time"
 )
@@ -242,6 +243,54 @@ func FuzzAnalysisOutputSerialization(f *testing.F) {
 					t.Fatalf("format %s produced no output", format)
 				}
 			}
+		}
+	})
+}
+
+func FuzzDNSPerspectiveResponseNormalization(f *testing.F) {
+	f.Add("fixture", "dataset", "resolver-a", "country-a", "ok", "success", "v=spf1 -all", true, false)
+	f.Add("\x00hostile", "", "duplicate", "\u202e", "failed", "failed", "=SYSTEM()", false, true)
+	options, err := normalizeDNSPerspectiveOptions(DNSPerspectiveOptions{}, true)
+	if err != nil {
+		f.Fatal(err)
+	}
+	item := dnsPerspectivePlanItem{
+		query: DNSPerspectiveQuery{Name: "example.test", Type: DNSPerspectiveTXT},
+		snapshot: DNSPerspectiveSnapshotReference{
+			SnapshotDigest: "dns_snapshot:fixture", ObservedAt: time.Unix(100, 0).UTC(), ObservationName: "example.test", Status: DNSObservationSuccess,
+			AnswerFingerprint: StableAnalysisID("dns_perspective_answer_set", "v=spf1 -all"),
+		},
+	}
+	generatedAt := time.Unix(200, 0).UTC()
+	f.Fuzz(func(t *testing.T, provider, dataset, perspectiveID, perspective, status, outcomeText, answer string, fragmentsAvailable, includeAnswer bool) {
+		answers := []DNSPerspectiveAnswer{}
+		if includeAnswer {
+			value := DNSPerspectiveAnswer{Joined: answer, FragmentsAvailable: fragmentsAvailable}
+			if fragmentsAvailable {
+				value.Fragments = []string{answer}
+			}
+			answers = append(answers, value)
+		}
+		response := DNSPerspectiveResponse{
+			Provider: provider, Dataset: dataset,
+			Observations: []DNSPerspectiveProviderObservation{{
+				PerspectiveID: perspectiveID, Perspective: perspective, Status: status,
+				Outcome: DNSPerspectiveOutcome(outcomeText), Answers: answers,
+			}},
+		}
+		first, _, _, _, err := normalizeDNSPerspectiveResponse(item, response, generatedAt, options)
+		if err != nil {
+			return
+		}
+		second, _, _, _, err := normalizeDNSPerspectiveResponse(item, response, generatedAt, options)
+		if err != nil || first.ID != second.ID || first.Outcome != second.Outcome ||
+			!slices.EqualFunc(first.Observations, second.Observations, func(a, b DNSPerspectiveObservation) bool {
+				return a.ID == b.ID && a.AnswerFingerprint == b.AnswerFingerprint
+			}) {
+			t.Fatalf("non-deterministic normalization: error=%v first=%+v second=%+v", err, first, second)
+		}
+		if _, err := json.Marshal(first); err != nil {
+			t.Fatal(err)
 		}
 	})
 }

@@ -16,6 +16,7 @@ it never causes another stage to run.
 | What does one report say? | `LoadFile`, `LoadBytes`, or `ParseBytes`, then `Summary`, `Rows`, or `Validate` | One report artifact | File access only through an explicit load call |
 | What has the report corpus observed? | `AnalyzeReportEvidence` | Parsed reports | None |
 | What is the current DNS posture? | `CollectDNSSnapshot`, `ParseAuthenticationRecords`, then `EvaluateDNSHealth` | Normalized portfolio and explicit resolver | DNS only during collection |
+| Do selected authentication names agree across optional remote perspectives? | `CollectDNSPerspectives` | Portfolio, matching completed snapshot, explicit selection, and caller provider | Only the supplied perspective provider |
 | Does observed mail match declared senders and current DNS? | `CorrelateReportEvidence` | Portfolio plus completed DNS health and report evidence | None |
 | Does one reported message match an authorized simulation? | `ResolveCampaignConfiguration`, `NormalizeReportedMessageEvidence`, then `ClassifyReportedMessage` | Explicit campaign sources plus caller-parsed body-free evidence | Only explicit source adapters during resolution |
 | Did aggregate reports show campaign-like streams? | `CorrelateCampaignReportEvidence` | Completed campaign snapshot and report evidence | None; never individual-message proof |
@@ -34,6 +35,7 @@ need a resolver. An export does not rerun parsing, DNS, scoring, or enrichment.
 
 ```text
 portfolio -> explicit DNS collection -> record parsing -> DNS health
+portfolio + completed DNS snapshot + explicit selection/provider -> optional DNS perspectives
 reports -> report evidence
 explicit campaign sources -> campaign snapshot
 campaign snapshot + normalized message evidence -> campaign classification
@@ -81,7 +83,7 @@ request bodies. `submission_performed` is false for every export because the
 library never submits them.
 
 Use the executable examples in `examples_test.go` for complete calls. They
-cover DNS health, report evidence, correlation, threat scoring, offline source
+cover DNS health, optional DNS perspectives, report evidence, correlation, threat scoring, offline source
 enrichment, jurisdiction context, native output, STIX, ThreatConnect, MISP, and
 ThreatStream. Go's example test runner compiles and executes them in CI.
 

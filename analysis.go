@@ -30,6 +30,7 @@ const (
 	AnalysisModeDNSSnapshot             AnalysisMode = "dns_snapshot"
 	AnalysisModeDNSAuthentication       AnalysisMode = "dns_authentication_records"
 	AnalysisModeDNSHealth               AnalysisMode = "dns_health"
+	AnalysisModeDNSPerspectives         AnalysisMode = "dns_perspectives"
 	AnalysisModeReportEvidence          AnalysisMode = "report_evidence"
 	AnalysisModeSenderVariance          AnalysisMode = "sender_variance"
 	AnalysisModeDNSReportCorrelation    AnalysisMode = "dns_report_correlation"

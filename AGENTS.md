@@ -192,8 +192,9 @@ tests used by the Phase 13 integration gate.
   never treats a failed signature as a campaign-specific signal.
 - `NewCampaignHTTPSSource` copies the supplied `http.Client` and blocks an
   HTTPS-to-HTTP redirect before the downgraded request is sent.
-- Directory discovery rejects a symlink root and entries. Its returned file
-  sources retain root identity and reject replacement before loading.
+- Directory discovery rejects a symlink root and entries, generated source-ID
+  collisions, and invalid combined IDs. Its returned file sources retain root
+  identity and reject replacement before loading.
 - Campaign configuration resolution requires at least one explicit source;
   never treat a missing source inventory as an authoritative empty inventory.
 - Authorization additionally requires at least one selected usable source. If

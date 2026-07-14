@@ -769,7 +769,8 @@ type CampaignDirectoryOptions struct {
 
 // CampaignConfigurationSourcesFromDirectory returns stable file source specs
 // for regular .yaml, .yml, and .json files. It rejects symlink roots and
-// entries, and returned sources reject later root replacement.
+// entries, generated source-ID collisions, and invalid combined source IDs;
+// returned sources reject later root replacement.
 func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string, options CampaignDirectoryOptions) ([]CampaignConfigurationSourceSpec, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -823,6 +824,7 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 		return nil, errors.Join(readErr, closeErr)
 	}
 	result := make([]CampaignConfigurationSourceSpec, 0)
+	seenSourceIDs := make(map[string]struct{})
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -849,8 +851,16 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 		if !valid {
 			return nil, ErrInvalidCampaignSourceOptions
 		}
+		sourceID, valid := normalizeConfigID(prefix + "-" + fragment)
+		if !valid {
+			return nil, ErrInvalidCampaignSourceOptions
+		}
+		if _, duplicate := seenSourceIDs[sourceID]; duplicate {
+			return nil, ErrInvalidCampaignSourceOptions
+		}
+		seenSourceIDs[sourceID] = struct{}{}
 		source := campaignFileSource{path: filepath.Join(directoryPath, entry.Name()), directoryPath: directoryPath, directoryInfo: opened}
-		result = append(result, CampaignConfigurationSourceSpec{ID: prefix + "-" + fragment, Source: source, Required: options.Required, Priority: options.Priority})
+		result = append(result, CampaignConfigurationSourceSpec{ID: sourceID, Source: source, Required: options.Required, Priority: options.Priority})
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result, nil

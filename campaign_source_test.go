@@ -449,6 +449,27 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 	}
 }
 
+func TestCampaignDirectoryRejectsGeneratedSourceIDCollisionsAndOverflow(t *testing.T) {
+	directory := t.TempDir()
+	data := []byte(campaignTestYAML("duplicate-source-id", "training.example.test"))
+	for _, name := range []string{"campaign.yaml", "campaign.json"} {
+		if err := os.WriteFile(filepath.Join(directory, name), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), directory, CampaignDirectoryOptions{SourceIDPrefix: "testing-team"}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
+		t.Fatalf("generated source ID collision error = %v", err)
+	}
+
+	overflowDirectory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(overflowDirectory, strings.Repeat("b", 40)+".yaml"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), overflowDirectory, CampaignDirectoryOptions{SourceIDPrefix: "a" + strings.Repeat("b", 99)}); !errors.Is(err, ErrInvalidCampaignSourceOptions) {
+		t.Fatalf("combined source ID overflow error = %v", err)
+	}
+}
+
 func TestCampaignFileSourceRejectsSymlinkWhenSupported(t *testing.T) {
 	directory := t.TempDir()
 	path := filepath.Join(directory, "campaign.yaml")

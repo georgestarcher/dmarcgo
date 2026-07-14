@@ -182,6 +182,27 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want to recognize a parsed SPF dependency | `catalog.MatchSPFRelationship(relationship)` | Exact-by-default context only; it never authorizes a sender or validates live DNS. |
 | You maintain private provider metadata | `dmarcgo.LoadProviderCatalogYAML(data)` or `dmarcgo.OverlayProviderCatalog(base, overlay)` | Strict, bounded caller data with explicit replacement provenance and no remote updates. |
 
+## Choose an organization-analysis workflow
+
+Start with the smallest mode that answers the question. Each stage consumes
+explicit values and can stop independently; choosing an output format never
+runs another stage.
+
+| Goal | Workflow | What it does not require |
+| --- | --- | --- |
+| Current SPF, DKIM, and DMARC posture | portfolio -> DNS snapshot -> authentication parsing -> DNS health | Reports or enrichment |
+| Historical receiver observations | parsed reports -> report evidence | DNS, portfolio, or enrichment |
+| Sender onboarding and drift review | portfolio + completed DNS health + report evidence -> correlation | New lookups or reparsing |
+| Review unexplained sources | portfolio + report evidence + correlation -> threat candidates | Enrichment or malicious attribution |
+| Add optional ASN/country context | threat candidates + explicit caller enricher -> enrichment -> optional jurisdiction policy | Built-in providers, PTR, or source-IP contact |
+| Serialize one result | completed result -> its native JSON, JSONL, or CSV writer | Any upstream computation |
+| Build exchange payloads | explicit reviewed candidates -> STIX, ThreatConnect, MISP, or ThreatStream | Credentials, HTTP, submission, or enforcement |
+
+See [Independent automation workflows](docs/automation-workflows.md) for the
+complete first-user decision tree, synthetic end-to-end scenarios, sample
+outputs for every completed mode, marketing-service onboarding guidance,
+sister-organization configuration, privacy boundaries, and release checks.
+
 ## Automation and AI-agent output
 
 Use the output builders when results will be consumed by workflow engines,
@@ -411,6 +432,11 @@ Do not publish public output when that correlation risk is unacceptable.
 ## Sample outputs
 
 These examples use synthetic, documentation-safe values. Real reports can expose source IPs, domains, reporter metadata, and authentication behavior.
+
+The generated Phase 13 sample contains one real JSONL metadata record for every
+native organization-analysis mode and identifies the STIX, ThreatConnect, MISP,
+and ThreatStream payloads derived from the same reviewed candidate. See
+[`testdata/golden/phase13_workflow_samples.json`](testdata/golden/phase13_workflow_samples.json).
 
 ### Aggregate summary
 
@@ -1436,6 +1462,7 @@ go test ./...
 go test -race ./...
 go vet ./...
 python3 scripts/check_readme_examples.py
+make workflow-check
 ```
 
 The module targets supported Go toolchains starting at Go 1.25. CI currently runs on Go 1.25 and Go 1.26.

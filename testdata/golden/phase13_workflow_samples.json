@@ -1,0 +1,497 @@
+{
+  "version": "phase13-workflow-samples-v1",
+  "analysis_jsonl_metadata_records": [
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "dns_health",
+        "generated_at": "1970-01-01T00:16:40Z",
+        "result_digest": "dns_health:99bc78ee6860d9604c79f784aa0a6952330b351aa293cd0dcdfedcc08f5250f8",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "authentication_digest": "dns_authentication_records:f8872e3c36ca48401c321e82aaa52febd511e3da00dde0a042c9a0a056801006",
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-01T00:16:40Z",
+            "mode": "dns_health"
+          },
+          "observed_at": "1970-01-01T00:16:40Z",
+          "portfolio_digest": "portfolio:c90bf1dcbe3ee416bd502434bdff3bd1791c499e9ee897edc028f1b18362d1b9",
+          "portfolio_maturity": {
+            "available": true,
+            "coverage": {
+              "evaluated_records": 3,
+              "percent": 100,
+              "planned_records": 3,
+              "unknown_records": 0
+            },
+            "distribution": {
+              "adaptive": 0,
+              "basic": 0,
+              "enforced": 1,
+              "managed": 0,
+              "monitored": 0,
+              "unknown": 0,
+              "unmanaged": 0
+            },
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "level": 3,
+            "maximum_observable_level": 3,
+            "name": "enforced",
+            "signals": null,
+            "version": "1"
+          },
+          "portfolio_score": {
+            "available": true,
+            "contributions": null,
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "grade": "A+",
+            "maximum": 100,
+            "value": 100
+          },
+          "provider_catalog_digest": "provider_catalog:ca436dc35dad65196f646c4c531df7f190c04b1f6d85f56f42aec54dea117c2d",
+          "provider_catalog_provenance": {
+            "added_provider_ids": null,
+            "catalog_version": "2026-07-12",
+            "digest": "provider_catalog:ca436dc35dad65196f646c4c531df7f190c04b1f6d85f56f42aec54dea117c2d",
+            "replaced_provider_ids": null,
+            "source": "embedded"
+          },
+          "scoring_profile": {
+            "child_policy_weaker": 10,
+            "conflicting_record": 100,
+            "dkim_revoked": 30,
+            "dkim_testing": 10,
+            "dkim_weak_key": 15,
+            "dkim_weight": 35,
+            "dmarc_legacy_tag": 5,
+            "dmarc_monitoring_only": 30,
+            "dmarc_no_aggregate_reporting": 10,
+            "dmarc_quarantine": 12,
+            "dmarc_relaxed_alignment": 0,
+            "dmarc_testing": 25,
+            "dmarc_weight": 35,
+            "invalid_record": 100,
+            "malformed_record": 100,
+            "maximum_score": 100,
+            "missing_dkim_record": 100,
+            "missing_dmarc_record": 70,
+            "missing_monitored_mechanism": 25,
+            "missing_spf_record": 100,
+            "name": "balanced",
+            "spf_neutral_all": 30,
+            "spf_no_all": 10,
+            "spf_permissive_all": 30,
+            "spf_softfail_all": 10,
+            "spf_weight": 30,
+            "stale_snapshot": 10,
+            "unknown_evidence": 10,
+            "unmonitored_required_selector": 25,
+            "unsupported_record": 20,
+            "version": "1",
+            "weak_record": 20
+          },
+          "snapshot_digest": "dns_snapshot:cbb6077f62f92540173cec5988c4cc2b603837e5f4c2e0e261bc72935a62cb88"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "record",
+        "domain",
+        "entity",
+        "finding",
+        "provider_context"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "report_evidence",
+        "generated_at": "1970-01-02T03:46:40Z",
+        "result_digest": "report_evidence:983955385cc776e045c960f23ce364ac82f6e20310bbed6f7720c71f716b4d79",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "evidence_schema_version": "2",
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:46:40Z",
+            "mode": "report_evidence"
+          },
+          "summary": {
+            "combinations": [
+              {
+                "dkim": "fail",
+                "messages": 140,
+                "spf": "fail"
+              }
+            ],
+            "combined": {
+              "fail": 140,
+              "pass": 0,
+              "unknown": 0
+            },
+            "counted_records": 2,
+            "dispositions": [
+              {
+                "disposition": "quarantine",
+                "messages": 70
+              },
+              {
+                "disposition": "reject",
+                "messages": 70
+              }
+            ],
+            "dkim": {
+              "fail": 140,
+              "pass": 0,
+              "unknown": 0
+            },
+            "first_seen": {
+              "available": true,
+              "value": "1970-01-01T00:01:40Z"
+            },
+            "invalid_records": 0,
+            "key": {},
+            "last_seen": {
+              "available": true,
+              "value": "1970-01-02T03:46:40Z"
+            },
+            "messages": 140,
+            "records": 2,
+            "reporter_diversity": 2,
+            "reports": 2,
+            "spf": {
+              "fail": 140,
+              "pass": 0,
+              "unknown": 0
+            }
+          }
+        }
+      },
+      "record_types": [
+        "metadata",
+        "report",
+        "observation",
+        "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "dns_report_correlation",
+        "generated_at": "1970-01-02T03:46:40Z",
+        "result_digest": "dns_report_correlation:a486860a8ece15376d457147ac41f2702b8e7f55a8a6befd88ee4774abed10e6",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "authentication_digest": "dns_authentication_records:f8872e3c36ca48401c321e82aaa52febd511e3da00dde0a042c9a0a056801006",
+          "dns_health_digest": "dns_health:99bc78ee6860d9604c79f784aa0a6952330b351aa293cd0dcdfedcc08f5250f8",
+          "dns_observed_at": "1970-01-01T00:16:40Z",
+          "dns_snapshot_digest": "dns_snapshot:cbb6077f62f92540173cec5988c4cc2b603837e5f4c2e0e261bc72935a62cb88",
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:46:40Z",
+            "mode": "dns_report_correlation"
+          },
+          "organization_id": "example-group",
+          "portfolio_digest": "portfolio:c90bf1dcbe3ee416bd502434bdff3bd1791c499e9ee897edc028f1b18362d1b9",
+          "provider_catalog_digest": "provider_catalog:ca436dc35dad65196f646c4c531df7f190c04b1f6d85f56f42aec54dea117c2d",
+          "provider_catalog_provenance": {
+            "added_provider_ids": null,
+            "catalog_version": "2026-07-12",
+            "digest": "provider_catalog:ca436dc35dad65196f646c4c531df7f190c04b1f6d85f56f42aec54dea117c2d",
+            "replaced_provider_ids": null,
+            "source": "embedded"
+          },
+          "report_evidence_digest": "report_evidence:983955385cc776e045c960f23ce364ac82f6e20310bbed6f7720c71f716b4d79",
+          "summary": {
+            "classifications": [
+              {
+                "classification": "configured_selector_not_observed",
+                "findings": 1
+              },
+              {
+                "classification": "new_selector",
+                "findings": 1
+              },
+              {
+                "classification": "new_signing_domain",
+                "findings": 1
+              },
+              {
+                "classification": "new_spf_identity",
+                "findings": 1
+              },
+              {
+                "classification": "unknown_source_authentication_failure",
+                "findings": 1
+              }
+            ],
+            "expected_sender_streams": 0,
+            "findings": 5,
+            "first_seen": {
+              "available": true,
+              "value": "1970-01-01T00:01:40Z"
+            },
+            "last_seen": {
+              "available": true,
+              "value": "1970-01-02T03:46:40Z"
+            },
+            "messages": 140,
+            "reporter_diversity": 2,
+            "reports": 2,
+            "streams": 1,
+            "thresholded_streams": 1,
+            "unknown_source_streams": 1
+          },
+          "thresholds": {
+            "max_report_age": 0,
+            "min_duration": 0,
+            "min_messages": 1,
+            "min_reporters": 1,
+            "min_reports": 1
+          },
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "inventory",
+        "stream",
+        "finding"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "threat_candidates",
+        "generated_at": "1970-01-02T03:46:40Z",
+        "result_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "correlation_digest": "dns_report_correlation:a486860a8ece15376d457147ac41f2702b8e7f55a8a6befd88ee4774abed10e6",
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:46:40Z",
+            "mode": "threat_candidates"
+          },
+          "organization_id": "example-group",
+          "portfolio_digest": "portfolio:c90bf1dcbe3ee416bd502434bdff3bd1791c499e9ee897edc028f1b18362d1b9",
+          "report_evidence_digest": "report_evidence:983955385cc776e045c960f23ce364ac82f6e20310bbed6f7720c71f716b4d79",
+          "scoring_profile": {
+            "disposition_weight": 10,
+            "domain_diversity_weight": 10,
+            "dual_failure_weight": 30,
+            "expected_sender_confidence_cap": 40,
+            "expected_sender_deduction": 30,
+            "high_severity_threshold": 70,
+            "incomplete_evidence_confidence_cap": 50,
+            "incomplete_evidence_deduction": 15,
+            "indirect_mail_confidence_cap": 45,
+            "indirect_mail_deduction": 20,
+            "low_severity_threshold": 20,
+            "low_volume_confidence_cap": 50,
+            "low_volume_deduction": 5,
+            "low_volume_threshold": 10,
+            "medium_severity_threshold": 45,
+            "mixed_passing_confidence_cap": 55,
+            "mixed_passing_deduction": 20,
+            "name": "balanced",
+            "persistence_threshold": 86400000000000,
+            "persistence_weight": 10,
+            "repeated_reports_weight": 15,
+            "reporter_diversity_weight": 10,
+            "review_threshold": 30,
+            "shared_provider_confidence_cap": 55,
+            "shared_provider_deduction": 15,
+            "single_report_confidence_cap": 45,
+            "single_reporter_confidence_cap": 55,
+            "stale_after": 2592000000000000,
+            "stale_evidence_confidence_cap": 55,
+            "stale_evidence_deduction": 10,
+            "unenriched_confidence_cap": 70,
+            "version": "1",
+            "volume_threshold": 100,
+            "volume_weight": 15
+          },
+          "summary": {
+            "candidates": 1,
+            "excluded": 0,
+            "expected_sender_messages_omitted": 0,
+            "expected_sender_sources_omitted": 0,
+            "review_eligible": 1,
+            "severities": [
+              {
+                "candidates": 1,
+                "severity": "high"
+              }
+            ],
+            "sources_observed": 1
+          },
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "candidate"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_enrichment/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "source_enrichment",
+        "generated_at": "1970-01-02T03:48:20Z",
+        "result_digest": "source_enrichment:575b96cda6cc0b56ccd21f12440008e94f83f25a965f153cb8ec7ce4f18fbac1",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "complete": true,
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:48:20Z",
+            "mode": "source_enrichment"
+          },
+          "organization_id": "example-group",
+          "summary": {
+            "asns": 1,
+            "candidates": 1,
+            "eligible": 1,
+            "statuses": [
+              {
+                "candidates": 1,
+                "status": "success"
+              }
+            ]
+          },
+          "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "candidate",
+        "asn",
+        "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "jurisdiction_context",
+        "generated_at": "1970-01-02T03:48:20Z",
+        "result_digest": "jurisdiction_context:3381537534838800a266a27133938ad17dd37c29191554a37ad766f8fa0deb3a",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "reason": "The selected jurisdiction policy is not yet effective.",
+              "state": "not_evaluated"
+            },
+            "generated_at": "1970-01-02T03:48:20Z",
+            "mode": "jurisdiction_context"
+          },
+          "organization_id": "example-group",
+          "policy_digest": "jurisdiction_risk_policy:fe71471668ffdbf68a573e532700daac89e69e2cb7528b2451f3b687140889d6",
+          "policy_freshness": "fresh",
+          "source_enrichment_digest": "source_enrichment:575b96cda6cc0b56ccd21f12440008e94f83f25a965f153cb8ec7ce4f18fbac1",
+          "summary": {
+            "adjusted_candidates": 0,
+            "candidates": 1,
+            "matches": 0,
+            "maximum_applied_adjustment": 0,
+            "statuses": [
+              {
+                "candidates": 1,
+                "status": "not_evaluated"
+              }
+            ]
+          },
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "candidate",
+        "finding"
+      ]
+    }
+  ],
+  "exchange_outputs": [
+    {
+      "name": "stix_2_1",
+      "native_type": "observed-data",
+      "candidate_ids": [
+        "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+      ],
+      "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+      "review_only": true,
+      "submission_performed": false
+    },
+    {
+      "name": "threatconnect_v3",
+      "native_type": "Address",
+      "candidate_ids": [
+        "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+      ],
+      "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+      "review_only": true,
+      "submission_performed": false
+    },
+    {
+      "name": "misp_attribute",
+      "native_type": "ip-src",
+      "candidate_ids": [
+        "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+      ],
+      "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+      "review_only": true,
+      "submission_performed": false
+    },
+    {
+      "name": "anomali_threatstream",
+      "native_type": "reviewed_import",
+      "candidate_ids": [
+        "threat_candidate:5223574e568f9d1cd75a9d2c4a549629fcd839d6a681c188371c37e5b2005fb8"
+      ],
+      "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+      "review_only": true,
+      "submission_performed": false
+    }
+  ]
+}

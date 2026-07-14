@@ -440,7 +440,7 @@ func normalizeSTIXExportOptions(candidates ThreatCandidateResult, enrichment *So
 	}
 	latestInput := candidates.ResultMetadata().GeneratedAt
 	if enrichment != nil {
-		if err := validateSTIXEnrichment(candidates, *enrichment); err != nil {
+		if err := validateMatchingSourceEnrichment(candidates, *enrichment); err != nil {
 			return STIXExportOptions{}, errors.Join(ErrInvalidSTIXExportOptions, err)
 		}
 		if enrichment.ResultMetadata().GeneratedAt.After(latestInput) {
@@ -493,7 +493,7 @@ func normalizeSTIXExportOptions(candidates ThreatCandidateResult, enrichment *So
 	return options, nil
 }
 
-func validateSTIXEnrichment(candidates ThreatCandidateResult, enrichment SourceEnrichmentResult) error {
+func validateMatchingSourceEnrichment(candidates ThreatCandidateResult, enrichment SourceEnrichmentResult) error {
 	metadata := enrichment.ResultMetadata()
 	if enrichment.Digest() == "" || enrichment.Version() != SourceEnrichmentVersion || enrichment.OrganizationID() != candidates.OrganizationID() ||
 		enrichment.ThreatCandidateDigest() != candidates.Digest() || metadata.ContractVersion != AnalysisContractVersion ||

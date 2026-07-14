@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check jurisdiction-context-check stix-check stix-validator-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check jurisdiction-context-check stix-check stix-validator-check threatconnect-check ci
 
 build:
 	go build ./...
@@ -78,6 +78,9 @@ stix-validator-check:
 	cp schemas/stix/dmarcgo-evidence/v1.json "$${tmp_dir}/extension-definition--00d952ee-5f5b-55b4-bdda-8cf91c1785a8.json"; \
 	stix2_validator --version 2.1 --enforce-refs --schemas "$${tmp_dir}" testdata/golden/stix_bundle*.json
 
+threatconnect-check:
+	go test -run 'Test.*ThreatConnect|TestBuildThreatConnectIndicatorPayloads|ExampleBuildThreatConnectIndicatorPayloads' ./...
+
 provider-catalog-check:
 	DMARCGO_PROVIDER_CATALOG_AS_OF=$$(date -u +%F) go test -run 'Test.*ProviderCatalog|Test.*ProviderMatch|Test.*ProviderRecognition|TestEmbeddedProvider' ./...
 
@@ -126,9 +129,9 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzAnalysisOutputSerialization -fuzztime=5s -timeout=2m .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkEvaluateJurisdictionContextLargeCandidateSet|BenchmarkBuildSTIXBundle' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkEvaluateJurisdictionContextLargeCandidateSet|BenchmarkBuildSTIXBundle|BenchmarkBuildThreatConnectIndicatorPayloads' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check jurisdiction-context-check stix-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check release-notes-check api-check output-contract-check portfolio-check dns-snapshot-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check jurisdiction-context-check stix-check threatconnect-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

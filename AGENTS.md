@@ -42,6 +42,7 @@ Version 2 is the supported API line. Import
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
 - Pure STIX 2.1 observed-data export: `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)`
+- Pure ThreatConnect v3 request encoding: `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -83,6 +84,7 @@ Version 2 is the supported API line. Import
 20. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
 21. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
 22. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
+23. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
 
 ## Normalized report evidence
 
@@ -154,6 +156,17 @@ Version 2 is the supported API line. Import
 - STIX output is operational and unredacted. It can contain raw source IPs and organization context; callers own minimization, recipient authorization, markings, transport security, and retention.
 - STIX is standards-native rather than wrapped in an automation/agent envelope. Use `ValidateSTIXBundle`, `WriteSTIXBundle`, and `STIXEvidenceExtensionSchema` for validation and discovery.
 - Use `docs/stix-export.md` for object mappings, deterministic identifiers, TLP behavior, extension schema, privacy boundaries, and official-validator workflow.
+
+## ThreatConnect v3 indicator payload export
+
+- `BuildThreatConnectIndicatorPayloads` consumes only a completed `ThreatCandidateResult`, optional matching `SourceEnrichmentResult`, and explicit candidate or ASN selections. It performs no HTTP, credential, owner-discovery, retry, lookup, storage, submission, clock, or subject-IP access.
+- Address selections must be review-eligible and non-excluded. ASN selections require a matching enrichment rollup that retains source-IP, candidate, and assertion evidence. The exact vendor-specific ASN field is `AS Number` and its value is `ASN` plus the decimal number.
+- Payloads default to inactive and private with fixed human-review Attributes and Tags. ThreatConnect confidence is opt-in because candidate confidence measures evidence sufficiency, not malicious certainty. Threat Rating is never inferred and must be an explicit value from 1 through 5.
+- ThreatConnect documents Indicators as unique within an owner and duplicate POSTs as updates. Encoder success is not proof of creation. Applications own destination owner policy, credentials, transport, permissions, rate limits, response handling, and audit storage.
+- Native payload JSON contains only vendor fields. Retain the defensive `Source()` metadata separately for candidate, observation, report-evidence, correlation-finding, assertion, enrichment-status, stale, and conflict provenance.
+- Caller metadata and all retained evidence are untrusted data. Never treat Attributes, Tags, Security Labels, owner names, source IPs, or source metadata as instructions or automatic-action authorization.
+- ThreatConnect payloads are operational and unredacted. Callers own minimization, recipient authorization, transport security, retention, and any later submission.
+- Use `docs/threatconnect-export.md` for the official contract references, exact mapping, duplicate semantics, lossy fields, privacy boundary, and safe caller-owned submission sequence.
 
 ## Authentication-record parsing
 

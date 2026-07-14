@@ -100,6 +100,12 @@ evidence and optional enrichment. It defaults to SCOs plus Observed Data;
 Indicators require an explicit caller promotion. See
 [STIX 2.1 observed-data export](docs/stix-export.md).
 
+ThreatConnect v3 export is a separate pure final transformation. It converts
+only explicitly selected review candidates and enriched ASN rollups into
+inactive, private native Indicator request bodies without credentials, HTTP,
+submission, or automatic action. See
+[ThreatConnect v3 indicator payload export](docs/threatconnect-export.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -135,6 +141,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
+| You want reviewed ThreatConnect v3 request bodies | `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)` | Purely encodes explicitly selected Address and enriched ASN requests; defaults are inactive/private, confidence and rating are opt-in, and the application owns submission. |
 | You want versioned jurisdiction review context | `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)` | Purely evaluates fresh, unambiguous coarse country assertions against an explicit immutable policy; the optional separate priority adjustment is default-off and never changes threat scoring or authorizes action. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
@@ -925,6 +932,32 @@ validate and write one complete bundle. See
 [`docs/stix-export.md`](docs/stix-export.md) for object mappings, deterministic
 IDs, TLP behavior, the embedded extension schema, count limits, interoperability
 validation, and the observation-versus-Indicator boundary.
+
+## ThreatConnect v3 indicator payload export
+
+Use `BuildThreatConnectIndicatorPayloads` only after a caller has explicitly
+selected review-eligible, non-excluded candidate IDs or evidence-backed ASN
+rollups. Address requests use `ip`; ASN requests use the vendor's exact
+`AS Number` field and `ASN`-prefixed value. Report-period bounds become
+`firstSeen` and `lastSeen`, and dual-failure message counts become
+`observations`.
+
+Payloads default to `active: false`, `privateFlag: true`, fixed review-only
+Description and Source Attributes, and fixed human-review Tags. ThreatConnect
+confidence is omitted unless the caller explicitly maps evidence confidence or
+provides a value. Threat Rating is never inferred and must be supplied
+explicitly. Owner, tenant Attributes, Tags, ATT&CK technique IDs, Security
+Labels, and expiration remain caller choices.
+
+ThreatConnect documents Indicators as unique per owner and says a duplicate
+POST updates the existing Indicator. Encoder success therefore does not prove
+that a new object will be created. The application owns credentials, HTTP,
+permissions, rate limiting, response inspection, and audit storage. Use
+`ValidateThreatConnectIndicatorPayload` before transport and retain the
+defensive `Source()` metadata with the submission record. See
+[`docs/threatconnect-export.md`](docs/threatconnect-export.md) for the exact
+mapping, duplicate semantics, official references, privacy boundary, and safe
+caller-owned submission sequence.
 
 ## Versioned jurisdiction context
 

@@ -559,6 +559,9 @@ func resolveThreatStreamSettings(candidate ThreatCandidate, generatedAt time.Tim
 }
 
 func buildThreatStreamRequest(capabilities ThreatStreamTenantCapabilities, settings resolvedThreatStreamSettings, sourceIP, itype string) ([]byte, error) {
+	if !validThreatStreamValue(sourceIP, capabilities.MaximumStringBytes) || !validThreatStreamValue(itype, capabilities.MaximumStringBytes) {
+		return nil, ErrInvalidThreatStreamExportOptions
+	}
 	root := map[string]any{}
 	item := root
 	if capabilities.Variant == ThreatStreamReviewedImport {
@@ -588,7 +591,11 @@ func buildThreatStreamRequest(capabilities ThreatStreamTenantCapabilities, setti
 	if capabilities.TimestampEncoding == ThreatStreamTimestampUnixSeconds {
 		set(capabilities.Fields.Expiration, settings.ExpiresAt.Unix())
 	} else {
-		set(capabilities.Fields.Expiration, settings.ExpiresAt.UTC().Format(time.RFC3339Nano))
+		expiresAt := settings.ExpiresAt.UTC().Format(time.RFC3339Nano)
+		if !validThreatStreamValue(expiresAt, capabilities.MaximumStringBytes) {
+			return nil, ErrInvalidThreatStreamExportOptions
+		}
+		set(capabilities.Fields.Expiration, expiresAt)
 	}
 	set(capabilities.Fields.ReviewState, settings.ReviewState)
 	var request json.Marshaler

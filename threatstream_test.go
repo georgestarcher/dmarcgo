@@ -206,6 +206,54 @@ func TestThreatStreamCommaSeparatedTagsRespectStringLimit(t *testing.T) {
 	}
 }
 
+func TestThreatStreamGeneratedStringsRespectStringLimit(t *testing.T) {
+	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
+	candidate := candidates.Candidates()[0]
+	selection := ThreatStreamCandidateSelection{CandidateID: candidate.ID, IType: "review_ip"}
+
+	t.Run("source address", func(t *testing.T) {
+		capabilities := threatStreamFixtureCapabilities(ThreatStreamDirectObservable)
+		capabilities.TimestampEncoding = ThreatStreamTimestampUnixSeconds
+		capabilities.ReviewDefaults.Tags = nil
+		capabilities.MaximumStringBytes = len(candidate.SourceIP)
+		if _, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+			Capabilities: capabilities,
+			Selections:   []ThreatStreamCandidateSelection{selection},
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		capabilities.MaximumStringBytes--
+		if _, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+			Capabilities: capabilities,
+			Selections:   []ThreatStreamCandidateSelection{selection},
+		}); !errors.Is(err, ErrInvalidThreatStreamExportOptions) {
+			t.Fatalf("source address string limit error=%v", err)
+		}
+	})
+
+	t.Run("RFC3339 expiration", func(t *testing.T) {
+		capabilities := threatStreamFixtureCapabilities(ThreatStreamDirectObservable)
+		capabilities.ReviewDefaults.Tags = nil
+		expiresAt := candidates.ResultMetadata().GeneratedAt.Add(capabilities.ReviewDefaults.ExpirationAfter).UTC().Format(time.RFC3339Nano)
+		capabilities.MaximumStringBytes = len(expiresAt)
+		if _, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+			Capabilities: capabilities,
+			Selections:   []ThreatStreamCandidateSelection{selection},
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		capabilities.MaximumStringBytes--
+		if _, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+			Capabilities: capabilities,
+			Selections:   []ThreatStreamCandidateSelection{selection},
+		}); !errors.Is(err, ErrInvalidThreatStreamExportOptions) {
+			t.Fatalf("expiration string limit error=%v", err)
+		}
+	})
+}
+
 func TestThreatStreamUnsupportedValuesFailClosed(t *testing.T) {
 	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
 	candidate := candidates.Candidates()[0]

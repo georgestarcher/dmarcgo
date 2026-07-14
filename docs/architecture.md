@@ -17,6 +17,7 @@ threat candidates + optional enrichment -> enriched candidates
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
 threat candidates + optional matching enrichment -> STIX 2.1 bundle
 explicit threat-candidate/ASN selections + optional matching enrichment -> ThreatConnect v3 request payloads
+explicit threat-candidate selections + target-instance capabilities and Event context -> MISP request payloads
 explicit threat-candidate selections + versioned tenant contract -> Anomali ThreatStream request payloads
 completed result values -> output encoders
 ```
@@ -49,6 +50,7 @@ structure containing every possible input or output.
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
 | ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
+| MISP exchange | `MISPAttributePayload`, `MISPEventPayload` (vendor-native, not analysis modes) | MISP export feature |
 | Anomali ThreatStream exchange | `ThreatStreamPayload` (tenant-native, not an analysis mode) | ThreatStream export feature |
 | Campaign configuration | `campaign_configuration_validation` | Campaign-correlation feature |
 | Campaign classification | `campaign_classification` | Campaign-correlation feature |
@@ -120,6 +122,15 @@ retains source references outside the native JSON, does not infer Threat
 Rating, and performs no credentials, HTTP, owner discovery, duplicate lookup,
 submission, clock access, or source-IP activity.
 
+`MISPAttributePayload` and `MISPEventPayload` are separate vendor-native
+exchange boundaries, not `AnalysisMode` or `OutputEnvelope` values. The pure
+builders accept completed threat candidates, explicit candidate direction and
+category mappings, and either an existing Event reference or complete
+caller-owned Event context. They retain source references outside native JSON
+and perform no capability discovery, Event search or creation, credentials,
+HTTP, duplicate or warning-list lookup, submission, publication, retry, clock
+access, or source-IP activity.
+
 `ThreatStreamPayload` is a separate tenant-native exchange boundary, not an
 `AnalysisMode` or `OutputEnvelope`. `BuildThreatStreamPayloads` accepts a
 completed threat-candidate result, explicit candidate/`itype` selections, and
@@ -172,6 +183,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | ThreatConnect export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
+| MISP export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | ThreatStream export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | Output encoding | No | Writer supplied by caller | No | No | Representation only |
 
@@ -184,6 +196,11 @@ current report and output modes. They also inspect the output implementation to
 reject report loading, parsing, evaluation, summarization, and network imports.
 Each future collection or enrichment interface must add counting and failing
 spies that prove unrelated modes never invoke it.
+
+The Phase 13 workflow gate adds a complete synthetic evidence chain, generated
+metadata samples for every native analysis mode, common-candidate exchange
+proof, and a static dependency audit across all pure analysis and export
+implementations. See [Independent automation workflows](automation-workflows.md).
 
 The provider catalog is inert, versioned context rather than a collection
 stage. Catalog loading reads only caller-supplied bytes or the embedded file.

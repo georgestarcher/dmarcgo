@@ -105,6 +105,11 @@ and this project uses semantic versioning for public API changes.
   assumptions, with defensive evidence references, strict native-payload
   validation, and no discovery, credentials, HTTP, polling, approval, or
   submission side effects.
+- Phase 13 integration guidance and release gates covering every completed
+  analysis and exchange mode, with a synthetic shared evidence chain,
+  generated per-mode metadata samples, static side-effect isolation checks,
+  native-output benchmarks, first-user mode selection, and externally compiled
+  application examples.
 
 ### Changed
 

@@ -35,6 +35,12 @@
 // Use AnalysisOutputDescriptorForMode() and AnalysisOutputSchema() for native
 // contract discovery.
 //
+// Applications should start with the narrowest mode that answers their
+// question and stop after any completed result. DNS health requires no report,
+// report evidence requires no resolver, and output or exchange builders require
+// no upstream computation. The repository's independent-automation workflow
+// guide documents the complete decision tree and synthetic evidence chain.
+//
 // AnalysisMode, ResultMetadata, EvaluationState, and Result define the shared
 // conventions used by independently callable analysis stages. Networked stages
 // accept explicit dependencies and Clock values; pure analysis and output

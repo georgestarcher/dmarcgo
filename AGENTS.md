@@ -63,6 +63,35 @@ Version 2 is the supported API line. Import
 - Explicit private overlay: `dmarcgo.OverlayProviderCatalog(base, overlay)`
 - Static SPF provider context: `catalog.MatchSPFRelationship(relationship)`
 
+## Mode-selection decision tree
+
+Choose the narrowest independently callable workflow:
+
+1. For one report or a local report corpus, use the loading, validation,
+   summary, row, and source-review APIs. Do not construct a portfolio or invoke
+   DNS merely to summarize reports.
+2. For historical normalized observations, call `AnalyzeReportEvidence`. Do
+   not supply or infer organization ownership in this report-only stage.
+3. For current authentication posture, normalize a portfolio, collect a DNS
+   snapshot explicitly, parse it, and call `EvaluateDNSHealth`. This workflow
+   opens no report files.
+4. For onboarding and drift, pass completed DNS health and report evidence to
+   `CorrelateReportEvidence`. Keep DNS observation time separate from report
+   periods.
+5. For unexplained-source review, pass completed evidence and correlation to
+   `ScoreThreatCandidates`. Do not enrich or promote by default.
+6. Add ASN/country context only through an explicit `IPEnricher`, then apply
+   jurisdiction context only through an explicit immutable policy.
+7. Serialize exactly one completed result with its native writer. Profile or
+   format selection must not trigger upstream work.
+8. Build STIX or vendor-native payloads only from explicit reviewed selections.
+   The application owns target discovery, credentials, HTTP, review,
+   submission, responses, and audit storage.
+
+See `docs/automation-workflows.md` for the synthetic reference workflow,
+cross-mode sample output, marketing-service onboarding case, and isolation
+tests used by the Phase 13 integration gate.
+
 ## Recommended app integration flow
 
 1. Load reports with `LoadFile`, `LoadBytes`, or `LoadReader`.
@@ -374,4 +403,5 @@ python3 scripts/check_readme_examples.py
 make cover-check
 make fuzz-smoke
 make bench-smoke
+make workflow-check
 ```

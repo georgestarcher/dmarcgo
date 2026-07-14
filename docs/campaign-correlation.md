@@ -162,6 +162,14 @@ immutable and deterministic and can be reused concurrently.
 normalized evidence object and performs no source loading, DNS, HTTP, file,
 environment, enrichment, mailbox, clock, or retry operation.
 
+The classifier rechecks the snapshot's effective and expiry bounds at the
+explicit `GeneratedAt` evaluation time. A reused expired snapshot cannot yield
+high-confidence classification or automatic-disposition eligibility, and an
+evaluation time before the snapshot was resolved is rejected.
+
+When source resolution uses `MaximumAge`, the snapshot authorization expiry is
+the earlier of each document's declared expiry and its freshness deadline.
+
 Each relevant campaign record exposes every factor as `matched`, `mismatched`,
 `missing`, or `unverifiable`. The result retains the exact snapshot and evidence
 digests, a stable record/finding graph, the original authentication variance,

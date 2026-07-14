@@ -182,6 +182,9 @@ tests used by the Phase 13 integration gate.
   a campaign-specific exact signal, and high-confidence provenance appropriate
   to both identity and signal. Automatic disposition is dual-opt-in,
   unique-match-only, and still never executed by the library.
+- Recheck snapshot effective and expiry bounds at the explicit classification
+  generation time. A reused expired snapshot must remain expired and can never
+  recover authorization or automatic-disposition eligibility.
 - `CorrelateCampaignReportEvidence` keeps aggregate report evidence lower
   confidence. Report periods are not exact message times and cannot prove that
   an individual message belonged to a campaign.

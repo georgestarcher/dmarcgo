@@ -961,6 +961,8 @@ authentication, infrastructure, recipient, delivery-exception, and
 campaign-specific evidence independently. High confidence always requires
 current authorization, time, scope, identity, a campaign-specific signal, and
 high-confidence provenance appropriate to the identity and signal.
+Snapshot effective and expiry bounds are rechecked at the explicit evaluation
+time, so reusing an expired snapshot cannot authorize a message.
 Automatic disposition requires dual caller/configuration opt-in and exactly one
 high-confidence match, but the library still performs no action.
 

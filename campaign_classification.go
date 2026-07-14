@@ -173,6 +173,11 @@ func ClassifyReportedMessage(snapshot CampaignConfigurationSnapshot, evidence Re
 		options.GeneratedAt = snapshot.metadata.GeneratedAt
 	}
 	options.GeneratedAt = options.GeneratedAt.UTC()
+	if options.GeneratedAt.Before(snapshot.metadata.GeneratedAt) {
+		return CampaignClassificationResult{}, ErrInvalidCampaignClassificationOptions
+	}
+	evaluationSnapshot := snapshot
+	evaluationSnapshot.authorizationAvailable = campaignSnapshotAuthorizationAvailable(snapshot, options.GeneratedAt)
 	if options.MaximumCampaignsEvaluated == 0 {
 		options.MaximumCampaignsEvaluated = defaultCampaignMaximumEvaluated
 	}
@@ -197,7 +202,7 @@ func ClassifyReportedMessage(snapshot CampaignConfigurationSnapshot, evidence Re
 	}
 	records := make([]CampaignClassificationRecord, 0)
 	for _, campaign := range inScope {
-		record := evaluateCampaign(snapshot, evidence, campaign, options)
+		record := evaluateCampaign(evaluationSnapshot, evidence, campaign, options)
 		if campaignRecordRelevant(record) {
 			records = append(records, record)
 			if len(records) > options.MaximumRelevantRecords {
@@ -235,10 +240,10 @@ func ClassifyReportedMessage(snapshot CampaignConfigurationSnapshot, evidence Re
 			}
 		}
 	}
-	findings := campaignFindings(snapshot, evidence, records, high > 1)
+	findings := campaignFindings(evaluationSnapshot, evidence, records, high > 1, options.GeneratedAt)
 	summary := summarizeCampaignClassification(len(snapshot.campaigns), len(inScope), value.AggregateOnly, records)
-	if !snapshot.authorizationAvailable {
-		summary.OverallClassification = campaignUnavailableClassification(snapshot)
+	if !evaluationSnapshot.authorizationAvailable {
+		summary.OverallClassification = campaignUnavailableClassification(snapshot, options.GeneratedAt)
 	}
 	metadata := ResultMetadata{ContractVersion: AnalysisContractVersion, Mode: AnalysisModeCampaignClassification, GeneratedAt: options.GeneratedAt, Evaluation: Evaluation{State: EvaluationStateEvaluated}}
 	result := CampaignClassificationResult{
@@ -324,7 +329,7 @@ func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedM
 		record.Confidence = FindingConfidenceHigh
 		record.AutomaticDispositionEligible = campaign.Handling.AutomaticDispositionEligible
 	case !snapshot.authorizationAvailable && (identityMatched || specificMatched):
-		record.Classification = campaignUnavailableClassification(snapshot)
+		record.Classification = campaignUnavailableClassification(snapshot, options.GeneratedAt)
 		record.Confidence = FindingConfidenceLow
 	case windowState == CampaignFactorMismatched && (identityMatched || specificMatched):
 		record.Classification = CampaignOutsideWindow
@@ -375,7 +380,15 @@ func campaignEvidenceConfidenceState(evidence ReportedMessageEvidence, evaluatio
 	return CampaignFactorMissing
 }
 
-func campaignUnavailableClassification(snapshot CampaignConfigurationSnapshot) CampaignClassification {
+func campaignSnapshotAuthorizationAvailable(snapshot CampaignConfigurationSnapshot, generatedAt time.Time) bool {
+	return snapshot.authorizationAvailable && !snapshot.expiresAt.IsZero() &&
+		(snapshot.effectiveAt.IsZero() || !generatedAt.Before(snapshot.effectiveAt)) && generatedAt.Before(snapshot.expiresAt)
+}
+
+func campaignUnavailableClassification(snapshot CampaignConfigurationSnapshot, generatedAt time.Time) CampaignClassification {
+	if !snapshot.expiresAt.IsZero() && !generatedAt.Before(snapshot.expiresAt) {
+		return CampaignAuthorizationExpired
+	}
 	for _, source := range snapshot.sources {
 		if source.Required && source.State == CampaignSourceExpired {
 			return CampaignAuthorizationExpired
@@ -677,10 +690,10 @@ func stringSetsIntersect(left, right []string) bool {
 	return false
 }
 
-func campaignFindings(snapshot CampaignConfigurationSnapshot, evidence ReportedMessageEvidence, records []CampaignClassificationRecord, ambiguous bool) []CampaignClassificationFinding {
+func campaignFindings(snapshot CampaignConfigurationSnapshot, evidence ReportedMessageEvidence, records []CampaignClassificationRecord, ambiguous bool, generatedAt time.Time) []CampaignClassificationFinding {
 	findings := make([]CampaignClassificationFinding, 0)
 	if !snapshot.authorizationAvailable {
-		classification := campaignUnavailableClassification(snapshot)
+		classification := campaignUnavailableClassification(snapshot, generatedAt)
 		code := FindingCode("campaign.configuration.unavailable")
 		if classification == CampaignAuthorizationExpired {
 			code = "campaign.authorization_expired"

@@ -538,7 +538,7 @@ func (resolver *campaignSourceResolver) snapshot(campaigns []SecuritySimulationC
 	}
 	sort.Slice(sources, func(i, j int) bool { return sources[i].SourceID < sources[j].SourceID })
 	sort.Slice(resolver.diagnostics, func(i, j int) bool { return resolver.diagnostics[i].ID < resolver.diagnostics[j].ID })
-	effectiveAt, expiresAt := campaignSnapshotBounds(sources)
+	effectiveAt, expiresAt := campaignSnapshotBounds(sources, resolver.options.MaximumAge)
 	metadata := ResultMetadata{ContractVersion: AnalysisContractVersion, Mode: AnalysisModeCampaignValidation, GeneratedAt: resolver.now, Evaluation: Evaluation{State: EvaluationStateEvaluated}}
 	snapshot := CampaignConfigurationSnapshot{
 		metadata: metadata, version: CampaignConfigurationSnapshotVersion, complete: complete, authorizationAvailable: authorizationAvailable,
@@ -581,7 +581,7 @@ func campaignConfigurationSnapshotDigest(snapshot CampaignConfigurationSnapshot)
 	return StableAnalysisID("campaign_configuration_snapshot", string(canonical))
 }
 
-func campaignSnapshotBounds(sources []CampaignSourceProvenance) (time.Time, time.Time) {
+func campaignSnapshotBounds(sources []CampaignSourceProvenance, maximumAge time.Duration) (time.Time, time.Time) {
 	var effectiveAt, expiresAt time.Time
 	for _, source := range sources {
 		if source.State != CampaignSourceLoaded && source.State != CampaignSourceLastKnownGood {
@@ -590,8 +590,15 @@ func campaignSnapshotBounds(sources []CampaignSourceProvenance) (time.Time, time
 		if effectiveAt.IsZero() || source.EffectiveAt.After(effectiveAt) {
 			effectiveAt = source.EffectiveAt
 		}
-		if expiresAt.IsZero() || source.ExpiresAt.Before(expiresAt) {
-			expiresAt = source.ExpiresAt
+		sourceExpiresAt := source.ExpiresAt
+		if maximumAge > 0 {
+			freshUntil := source.GeneratedAt.Add(maximumAge)
+			if sourceExpiresAt.IsZero() || freshUntil.Before(sourceExpiresAt) {
+				sourceExpiresAt = freshUntil
+			}
+		}
+		if expiresAt.IsZero() || sourceExpiresAt.Before(expiresAt) {
+			expiresAt = sourceExpiresAt
 		}
 	}
 	return effectiveAt, expiresAt

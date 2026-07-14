@@ -170,6 +170,32 @@ func TestResolveCampaignConfigurationFreshnessImportsAndProviderDrift(t *testing
 	}
 }
 
+func TestResolveCampaignConfigurationCapsSnapshotLifetimeAtMaximumAge(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	config := campaignTestConfig("freshness-capped", "training.example.test")
+	config.GeneratedAt = now.Add(-time.Hour)
+	config.EffectiveAt = &config.GeneratedAt
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "freshness-capped", Source: NewCampaignBytesSource(marshalCampaignConfig(t, config), CampaignConfigurationMetadata{}), Required: true,
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time { return now }), MaximumAge: 24 * time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantExpiry := config.GeneratedAt.Add(24 * time.Hour)
+	if !snapshot.AuthorizationAvailable() || !snapshot.ExpiresAt().Equal(wantExpiry) {
+		t.Fatalf("freshness-capped snapshot = available=%v expires=%v want=%v", snapshot.AuthorizationAvailable(), snapshot.ExpiresAt(), wantExpiry)
+	}
+	result, err := ClassifyReportedMessage(snapshot, campaignTestEvidence(t, campaignTestEvidenceInput()), CampaignClassificationOptions{
+		GeneratedAt: wantExpiry, AllowAutomaticDisposition: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Summary().OverallClassification != CampaignAuthorizationExpired || result.Summary().AutomaticDispositionReady != 0 {
+		t.Fatalf("snapshot reused beyond maximum age = %+v", result.Summary())
+	}
+}
+
 func TestResolveCampaignConfigurationDetectsImportCycles(t *testing.T) {
 	a := campaignTestConfig("campaign-a", "a.example.test")
 	a.Imports = []CampaignImportConfig{{SourceID: "source-b", Required: true}}

@@ -241,6 +241,29 @@ func TestClassifyReportedMessageDistinguishesExpiredAuthorization(t *testing.T) 
 	}
 }
 
+func TestClassifyReportedMessageRechecksSnapshotLifetime(t *testing.T) {
+	snapshot := campaignTestSnapshot(t, campaignTestConfig("expired-after-resolution", "training.example.test"))
+	evidence := campaignTestEvidence(t, campaignTestEvidenceInput())
+	result, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{
+		GeneratedAt:               snapshot.ExpiresAt(),
+		AllowAutomaticDisposition: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := result.Records()
+	if len(records) != 1 || records[0].Classification != CampaignAuthorizationExpired || records[0].AutomaticDispositionEligible ||
+		result.Summary().OverallClassification != CampaignAuthorizationExpired || result.Summary().AutomaticDispositionReady != 0 ||
+		!hasCampaignClassificationFindingWithClassification(result.Findings(), "campaign.authorization_expired", CampaignAuthorizationExpired) {
+		t.Fatalf("reused expired snapshot authorized a campaign: records=%+v summary=%+v findings=%+v", records, result.Summary(), result.Findings())
+	}
+	if _, err := ClassifyReportedMessage(snapshot, evidence, CampaignClassificationOptions{
+		GeneratedAt: snapshot.ResultMetadata().GeneratedAt.Add(-time.Nanosecond),
+	}); !errors.Is(err, ErrInvalidCampaignClassificationOptions) {
+		t.Fatalf("backdated classification error = %v", err)
+	}
+}
+
 func TestClassifyReportedMessageHonorsWindowBoundariesAndDynamicInfrastructure(t *testing.T) {
 	config := campaignTestConfig("dynamic-provider", "training.example.test")
 	config.SecuritySimulations[0].ExpectedSources = CampaignExpectedSourcesConfig{}

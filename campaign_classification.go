@@ -121,9 +121,10 @@ type CampaignClassificationSummary struct {
 }
 
 // CampaignClassificationOptions controls pure matching. GeneratedAt defaults
-// to the snapshot timestamp; no system clock is consulted. Automatic
-// disposition requires explicit opt-in here and in exactly one high-confidence
-// campaign definition.
+// to the snapshot timestamp; no system clock is consulted. When the caller
+// lowers MaximumCampaignsEvaluated, an unset MaximumRelevantRecords is capped
+// to that campaign limit. Automatic disposition requires explicit opt-in here
+// and in exactly one high-confidence campaign definition.
 type CampaignClassificationOptions struct {
 	GeneratedAt               time.Time
 	MaximumCampaignsEvaluated int
@@ -265,6 +266,9 @@ func normalizeCampaignClassificationOptions(snapshot CampaignConfigurationSnapsh
 	}
 	if options.MaximumRelevantRecords == 0 {
 		options.MaximumRelevantRecords = defaultCampaignMaximumRelevant
+		if options.MaximumRelevantRecords > options.MaximumCampaignsEvaluated {
+			options.MaximumRelevantRecords = options.MaximumCampaignsEvaluated
+		}
 	}
 	if options.MaximumRelevantRecords < 1 || options.MaximumRelevantRecords > options.MaximumCampaignsEvaluated {
 		return CampaignClassificationOptions{}, ErrInvalidCampaignClassificationOptions

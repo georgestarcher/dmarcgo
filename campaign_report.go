@@ -97,8 +97,9 @@ func (result CampaignReportCorrelationResult) Summary() CampaignReportCorrelatio
 // report-period evidence separately. Overlapping report periods remain
 // unverifiable message-time evidence, so this API can never return
 // authorized_simulation_high_confidence or automatic disposition eligibility.
-// Invalid evaluation times and classifier work limits fail before observations
-// are processed.
+// GeneratedAt defaults to the later of the snapshot and report-evidence
+// timestamps. Invalid evaluation times and classifier work limits fail before
+// observations are processed.
 func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evidence ReportEvidenceResult, options CampaignReportCorrelationOptions) (CampaignReportCorrelationResult, error) {
 	if snapshot.digest == "" || snapshot.metadata.ContractVersion != AnalysisContractVersion || snapshot.metadata.Mode != AnalysisModeCampaignValidation ||
 		evidence.digest == "" || evidence.metadata.ContractVersion != AnalysisContractVersion || evidence.metadata.Mode != AnalysisModeReportEvidence {
@@ -116,8 +117,14 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 	if err != nil {
 		return CampaignReportCorrelationResult{}, err
 	}
+	latestInput := snapshot.metadata.GeneratedAt
+	if evidence.metadata.GeneratedAt.After(latestInput) {
+		latestInput = evidence.metadata.GeneratedAt
+	}
 	if options.GeneratedAt.IsZero() {
-		options.GeneratedAt = snapshot.metadata.GeneratedAt
+		options.GeneratedAt = latestInput
+	} else if options.GeneratedAt.Before(latestInput) {
+		return CampaignReportCorrelationResult{}, ErrInvalidCampaignClassificationOptions
 	}
 	classificationOptions, err := normalizeCampaignClassificationOptions(snapshot, CampaignClassificationOptions{
 		GeneratedAt:               options.GeneratedAt,

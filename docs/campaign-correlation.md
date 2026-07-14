@@ -192,7 +192,9 @@ normalized evidence object and performs no source loading, DNS, HTTP, file,
 environment, enrichment, mailbox, clock, or retry operation.
 
 The classifier rechecks the snapshot's effective and expiry bounds at the
-explicit `GeneratedAt` evaluation time. A reused expired snapshot cannot yield
+explicit `GeneratedAt` evaluation time. Aggregate correlation defaults this
+time to the later of the snapshot and report-evidence timestamps and rejects an
+explicit time before either input. A reused expired snapshot cannot yield
 high-confidence classification or automatic-disposition eligibility, and an
 evaluation time before the snapshot was resolved is rejected.
 
@@ -249,8 +251,9 @@ retention, incident policy, and action execution.
 
 The classifier rejects an inventory beyond `MaximumCampaignsEvaluated` and a
 result beyond `MaximumRelevantRecords`. Defaults are 1,024 evaluated campaigns
-and 64 relevant records. It fails without returning a partial authorization
-decision.
+and 64 relevant records. When a caller lowers the campaign limit below 64 and
+leaves the relevant-record limit unset, the latter defaults to the lower
+campaign limit. It fails without returning a partial authorization decision.
 
 ## Privileged and disclosure-safe output
 

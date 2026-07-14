@@ -291,6 +291,15 @@ func TestClassifyReportedMessageReportsUnknownOverallAndBoundsRelevantRecords(t 
 		t.Fatalf("unmatched evidence was not explicitly unknown: records=%+v summary=%+v", result.Records(), result.Summary())
 	}
 
+	boundedSnapshot := campaignTestSnapshot(t, campaignTestConfig("bounded-default", "training.example.test"))
+	bounded, err := ClassifyReportedMessage(boundedSnapshot, campaignTestEvidence(t, campaignTestEvidenceInput()), CampaignClassificationOptions{MaximumCampaignsEvaluated: 1})
+	if err != nil {
+		t.Fatalf("lower campaign limit with default relevant-record limit: %v", err)
+	}
+	if len(bounded.Records()) != 1 {
+		t.Fatalf("lower campaign limit returned records = %+v", bounded.Records())
+	}
+
 	matching := campaignTestConfig("campaign-000", "training.example.test")
 	for index := 1; index <= defaultCampaignMaximumRelevant; index++ {
 		campaign := campaignTestConfig(fmt.Sprintf("campaign-%03d", index), "training.example.test").SecuritySimulations[0]
@@ -597,6 +606,21 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 		result.SnapshotDigest() != snapshot.Digest() || result.ReportEvidenceDigest() != reportEvidence.Digest() || result.Digest() == "" {
 		t.Fatalf("aggregate campaign accessors returned incomplete metadata: %+v", result.ResultMetadata())
 	}
+	if result.ResultMetadata().GeneratedAt != reportEvidence.ResultMetadata().GeneratedAt {
+		t.Fatalf("aggregate generated_at = %s, want later report-evidence time %s", result.ResultMetadata().GeneratedAt, reportEvidence.ResultMetadata().GeneratedAt)
+	}
+	expiredConfig := campaignTestConfig("expired-by-report-evidence", "training.example.test")
+	expiredConfig.ExpiresAt = time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	expiredSnapshot := campaignTestSnapshot(t, expiredConfig)
+	expiredResult, err := CorrelateCampaignReportEvidence(expiredSnapshot, reportEvidence, CampaignReportCorrelationOptions{Organization: "primary"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expiredObservations := expiredResult.Observations()
+	if len(expiredObservations) != 1 || len(expiredObservations[0].Records) != 1 ||
+		expiredObservations[0].Records[0].Classification != CampaignAuthorizationExpired {
+		t.Fatalf("report-evidence-time expiry was not retained: %+v", expiredObservations)
+	}
 	for _, observation := range result.Observations() {
 		for _, record := range observation.Records {
 			if record.Classification == CampaignAuthorizedHighConfidence || record.AutomaticDispositionEligible {
@@ -615,6 +639,7 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 		options CampaignReportCorrelationOptions
 	}{
 		{name: "backdated", options: CampaignReportCorrelationOptions{Organization: "primary", GeneratedAt: snapshot.ResultMetadata().GeneratedAt.Add(-time.Nanosecond)}},
+		{name: "before report evidence", options: CampaignReportCorrelationOptions{Organization: "primary", GeneratedAt: reportEvidence.ResultMetadata().GeneratedAt.Add(-time.Nanosecond)}},
 		{name: "invalid work limits", options: CampaignReportCorrelationOptions{Organization: "primary", MaximumCampaignsEvaluated: 1, MaximumRelevantRecords: 2}},
 	} {
 		t.Run(test.name, func(t *testing.T) {

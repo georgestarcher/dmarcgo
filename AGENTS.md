@@ -207,8 +207,12 @@ tests used by the Phase 13 integration gate.
   recover authorization or automatic-disposition eligibility.
 - `CorrelateCampaignReportEvidence` keeps aggregate report evidence lower
   confidence. Report periods are not exact message times and cannot prove that
-  an individual message belonged to a campaign. Invalid evaluation times and
-  classifier work limits fail the aggregate operation before observation work.
+  an individual message belonged to a campaign. Its evaluation time defaults
+  to the later snapshot or report-evidence timestamp. Explicitly backdated
+  evaluation times and invalid classifier work limits fail before observation
+  work.
+- An unset relevant-record limit is capped to a lower caller-selected campaign
+  limit. Explicitly inconsistent limits remain invalid.
 - Aggregate SPF authentication domains supply envelope-from identity only for
   explicit `mfrom` scope or the optional omitted RFC 9990 scope. Never promote
   a historical `helo`-scoped SPF domain to MAIL FROM evidence.

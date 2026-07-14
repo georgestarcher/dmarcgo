@@ -190,6 +190,9 @@ tests used by the Phase 13 integration gate.
 - Exact campaign DKIM identities match only a passing signature unless the
   campaign explicitly sets `authentication.dkim: not_expected`; optional DKIM
   never treats a failed signature as a campaign-specific signal.
+- Treat DKIM selectors as selector values, including digit-leading rotations,
+  not campaign IDs. If DKIM is the only configured identity, default match
+  factors must require it even when a token or content signal is also present.
 - `NewCampaignHTTPSSource` copies the supplied `http.Client` and blocks an
   HTTPS-to-HTTP redirect before the downgraded request is sent.
 - Directory discovery rejects a symlink root and entries, generated source-ID

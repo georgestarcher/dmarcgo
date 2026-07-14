@@ -225,6 +225,11 @@ authorization.
 When required authentication has an expected envelope domain or exact DKIM
 domain/selector, a pass from a different SPF or DKIM identity cannot mask that
 expected identity's failure or absence.
+DKIM selectors are normalized as selector values rather than campaign IDs, so
+digit-leading rotation selectors such as `202407` are valid. When match factors
+are omitted and DKIM is the only configured identity, the default policy
+requires that DKIM identity in addition to the selected campaign-specific
+signal.
 An exact DKIM domain/selector is a matching identity only when that signature
 passes. A campaign can explicitly describe a deliberately failing DKIM path
 with `authentication.dkim: not_expected`; the default `optional` expectation

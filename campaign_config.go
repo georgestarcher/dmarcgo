@@ -32,6 +32,7 @@ const (
 	maxCampaignDefinitions        = 4096
 	maxCampaignListValues         = 512
 	maxCampaignStringBytes        = 4096
+	maxCampaignSelectorBytes      = 128
 )
 
 var (
@@ -619,7 +620,7 @@ func (normalizer *campaignConfigurationNormalizer) normalizeExpectedIdentity(con
 			normalizer.add("campaign.configuration.invalid_dkim_domain", fmt.Sprintf("%s.dkim[%d].domain", path, index), "The DKIM signing domain is invalid.")
 			continue
 		}
-		selectors := normalizeCampaignIDs(value.Selectors, fmt.Sprintf("%s.dkim[%d].selectors", path, index), normalizer)
+		selectors := normalizeCampaignSelectors(value.Selectors, fmt.Sprintf("%s.dkim[%d].selectors", path, index), normalizer)
 		if len(selectors) == 0 {
 			normalizer.add("campaign.configuration.missing_dkim_selector", fmt.Sprintf("%s.dkim[%d].selectors", path, index), "At least one exact DKIM selector is required.")
 			continue
@@ -676,6 +677,8 @@ func (normalizer *campaignConfigurationNormalizer) normalizeRequiredFactors(valu
 			values = append(values, CampaignFactorHeaderFrom)
 		} else if len(campaign.ExpectedIdentity.EnvelopeFromDomains) != 0 {
 			values = append(values, CampaignFactorEnvelopeFrom)
+		} else if len(campaign.ExpectedIdentity.DKIM) != 0 {
+			values = append(values, CampaignFactorDKIM)
 		} else if len(campaign.ExpectedIdentity.MessageIDDomains) != 0 {
 			values = append(values, CampaignFactorMessageID)
 		}
@@ -818,6 +821,33 @@ func normalizeCampaignIDs(values []string, path string, normalizer *campaignConf
 	}
 	sort.Strings(result)
 	return result
+}
+
+func normalizeCampaignSelectors(values []string, path string, normalizer *campaignConfigurationNormalizer) []string {
+	if len(values) > maxCampaignListValues {
+		normalizer.add("campaign.configuration.too_many_values", path, "The campaign value count exceeds the supported limit.")
+		return nil
+	}
+	result := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for index, value := range values {
+		normalized, ok := normalizeCampaignSelector(value)
+		if !ok {
+			normalizer.add("campaign.configuration.invalid_dkim_selector", fmt.Sprintf("%s[%d]", path, index), "The DKIM selector is invalid.")
+			continue
+		}
+		if _, duplicate := seen[normalized]; !duplicate {
+			seen[normalized] = struct{}{}
+			result = append(result, normalized)
+		}
+	}
+	sort.Strings(result)
+	return result
+}
+
+func normalizeCampaignSelector(value string) (string, bool) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return value, value != "" && len(value) <= maxCampaignSelectorBytes && selectorPattern.MatchString(value)
 }
 
 func normalizeCampaignDomains(values []string, path string, normalizer *campaignConfigurationNormalizer) []string {

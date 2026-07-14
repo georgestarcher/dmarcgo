@@ -257,9 +257,9 @@ func normalizeCampaignDKIMEvidence(values []CampaignDKIMEvidenceInput) ([]Campai
 		if err != nil {
 			return nil, err
 		}
-		selector, err := normalizeCampaignEvidenceID(value.Selector, true)
-		if err != nil {
-			return nil, err
+		selector, ok := normalizeCampaignSelector(value.Selector)
+		if !ok {
+			return nil, fmt.Errorf("%w: DKIM selector is invalid", ErrInvalidReportedMessageEvidence)
 		}
 		outcome, err := normalizeCampaignEvidenceOutcome(value.Outcome)
 		if err != nil {

@@ -173,6 +173,33 @@ func TestCampaignConfigurationNormalizationIsDeterministicAndImmutable(t *testin
 	}
 }
 
+func TestCampaignConfigurationAcceptsNumericDKIMSelectorAndDefaultsDKIMIdentity(t *testing.T) {
+	config := campaignTestConfig("numeric-selector", "training.example.test")
+	campaign := &config.SecuritySimulations[0]
+	campaign.ExpectedIdentity = CampaignExpectedIdentityConfig{DKIM: []CampaignDKIMIdentityConfig{{Domain: "training.example.test", Selectors: []string{"202407"}}}}
+	campaign.MatchPolicy = CampaignMatchPolicyConfig{}
+	document, err := NormalizeCampaignConfiguration(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := document.Campaigns()[0]
+	if len(got.ExpectedIdentity.DKIM) != 1 || len(got.ExpectedIdentity.DKIM[0].Selectors) != 1 || got.ExpectedIdentity.DKIM[0].Selectors[0] != "202407" ||
+		!campaignAnyFactor(got.RequiredFactors, CampaignFactorDKIM) || !campaignAnyFactor(got.RequiredFactors, CampaignFactorTokenDigest) {
+		t.Fatalf("numeric DKIM selector or default factors were lost: %+v", got)
+	}
+	encoded, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(encoded))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compileCampaignSchema(t, CampaignConfigurationSchemaID, CampaignConfigurationSchema()).Validate(value); err != nil {
+		t.Fatalf("numeric DKIM selector did not satisfy the published schema: %v", err)
+	}
+}
+
 func hasCampaignConfigurationDiagnostic(values []CampaignConfigurationDiagnostic, code DiagnosticCode) bool {
 	for _, value := range values {
 		if value.Code == code {

@@ -24,10 +24,12 @@
   "$defs": {
     "timestamp": { "type": "string", "format": "date-time" },
     "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]*$", "maxLength": 128 },
+    "selector": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$", "maxLength": 128 },
     "opaque": { "type": "string", "minLength": 1, "maxLength": 4096 },
     "domain": { "type": "string", "minLength": 1, "maxLength": 253 },
     "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
     "id_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/id" } },
+    "selector_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/selector" } },
     "domain_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/domain" } },
     "digest_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/digest" } },
     "import": {
@@ -55,7 +57,7 @@
       "required": ["domain", "selectors"],
       "properties": {
         "domain": { "$ref": "#/$defs/domain" },
-        "selectors": { "$ref": "#/$defs/id_list" }
+        "selectors": { "$ref": "#/$defs/selector_list" }
       }
     },
     "expected_identity": {

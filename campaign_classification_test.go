@@ -73,6 +73,32 @@ func TestClassifyReportedMessageHighConfidenceAndExplicitAutomation(t *testing.T
 	}
 }
 
+func TestClassifyReportedMessageMatchesNumericDKIMOnlyIdentity(t *testing.T) {
+	config := campaignTestConfig("numeric-selector", "training.example.test")
+	campaign := &config.SecuritySimulations[0]
+	campaign.ExpectedIdentity = CampaignExpectedIdentityConfig{DKIM: []CampaignDKIMIdentityConfig{{
+		Domain:    "training.example.test",
+		Selectors: []string{"202407"},
+	}}}
+	campaign.MatchPolicy = CampaignMatchPolicyConfig{}
+	input := campaignTestEvidenceInput()
+	input.DKIM[0].Selector = "202407"
+
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, input),
+		CampaignClassificationOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := result.Records()
+	if result.Summary().OverallClassification != CampaignAuthorizedHighConfidence || len(records) != 1 ||
+		!campaignAnyFactor(records[0].Matched, CampaignFactorDKIM, CampaignFactorTokenDigest) {
+		t.Fatalf("numeric DKIM-only identity was not matched: summary=%+v records=%+v", result.Summary(), records)
+	}
+}
+
 func TestClassifyReportedMessageDoesNotAuthorizeDomainOrSourceAlone(t *testing.T) {
 	snapshot := campaignTestSnapshot(t, campaignTestConfig("quarterly-awareness", "training.example.test"))
 	input := campaignTestEvidenceInput()

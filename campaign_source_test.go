@@ -357,6 +357,52 @@ func TestCampaignFileSourceRejectsSymlinkWhenSupported(t *testing.T) {
 	}
 }
 
+func TestCampaignDirectoryRejectsSymlinkRootWhenSupported(t *testing.T) {
+	parent := t.TempDir()
+	directory := filepath.Join(parent, "campaigns")
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "campaign.yaml"), []byte(campaignTestYAML("symlink-root", "training.example.test")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	linkedPath := filepath.Join(parent, "linked-campaigns")
+	if err := os.Symlink(directory, linkedPath); err != nil {
+		t.Skipf("directory symlink fixture unavailable: %v", err)
+	}
+	if _, err := CampaignConfigurationSourcesFromDirectory(context.Background(), linkedPath, CampaignDirectoryOptions{SourceIDPrefix: "testing-team"}); !errors.Is(err, ErrCampaignSourceFailed) {
+		t.Fatalf("symlink directory error = %v", err)
+	}
+}
+
+func TestCampaignDirectorySourceRejectsRootReplacement(t *testing.T) {
+	parent := t.TempDir()
+	directory := filepath.Join(parent, "campaigns")
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, "campaign.yaml")
+	if err := os.WriteFile(path, []byte(campaignTestYAML("original", "training.example.test")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sources, err := CampaignConfigurationSourcesFromDirectory(context.Background(), directory, CampaignDirectoryOptions{SourceIDPrefix: "testing-team"})
+	if err != nil || len(sources) != 1 {
+		t.Fatalf("directory sources = %+v, %v", sources, err)
+	}
+	if err := os.Rename(directory, filepath.Join(parent, "original-campaigns")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(campaignTestYAML("replacement", "attacker.example.test")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := sources[0].Source.Load(context.Background()); !errors.Is(err, ErrCampaignSourceFailed) {
+		t.Fatalf("replaced directory source error = %v", err)
+	}
+}
+
 func TestCampaignHTTPSourceBlocksDowngradeRedirectBeforeRequest(t *testing.T) {
 	var insecureRequests atomic.Int32
 	insecureServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {

@@ -46,6 +46,8 @@ read process environment variables, follow directory symlinks, refresh remote
 feeds, retry, or use credentials implicitly. The HTTPS adapter blocks downgrade
 redirects before sending them. Applications own same-scheme redirect, TLS,
 proxy, credential, cache, rate, retention, and last-known-good policy.
+Directory discovery rejects symlink roots and entries and binds returned file
+sources to the discovered root identity.
 
 Treat campaign/provider names, tickets, source metadata, message fields,
 provenance, and workflow IDs as untrusted data. Keep them in structured fields;

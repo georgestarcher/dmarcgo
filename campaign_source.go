@@ -658,10 +658,17 @@ func NewCampaignBytesSource(data []byte, metadata CampaignConfigurationMetadata)
 	return campaignBytesSource{data: append([]byte(nil), data...), metadata: cloneCampaignConfigurationMetadata(metadata)}
 }
 
-type campaignFileSource struct{ path string }
+type campaignFileSource struct {
+	path          string
+	directoryPath string
+	directoryInfo os.FileInfo
+}
 
 func (source campaignFileSource) Load(ctx context.Context) ([]byte, CampaignConfigurationMetadata, error) {
 	if err := ctx.Err(); err != nil {
+		return nil, CampaignConfigurationMetadata{}, err
+	}
+	if err := source.validateDirectory(); err != nil {
 		return nil, CampaignConfigurationMetadata{}, err
 	}
 	discovered, err := os.Lstat(source.path)
@@ -674,6 +681,9 @@ func (source campaignFileSource) Load(ctx context.Context) ([]byte, CampaignConf
 	file, err := os.Open(source.path)
 	if err != nil {
 		return nil, CampaignConfigurationMetadata{}, err
+	}
+	if directoryErr := source.validateDirectory(); directoryErr != nil {
+		return nil, CampaignConfigurationMetadata{}, errors.Join(directoryErr, file.Close())
 	}
 	opened, statErr := file.Stat()
 	if statErr != nil {
@@ -695,6 +705,20 @@ func (source campaignFileSource) Load(ctx context.Context) ([]byte, CampaignConf
 	return data, metadata, nil
 }
 
+func (source campaignFileSource) validateDirectory() error {
+	if source.directoryInfo == nil {
+		return nil
+	}
+	current, err := os.Lstat(source.directoryPath)
+	if err != nil {
+		return errors.Join(ErrCampaignSourceFailed, err)
+	}
+	if current.Mode()&os.ModeSymlink != 0 || !current.IsDir() || !os.SameFile(source.directoryInfo, current) {
+		return ErrCampaignSourceFailed
+	}
+	return nil
+}
+
 // NewCampaignFileSource creates an explicit bounded regular-file adapter. It
 // rejects symlinks and a file replaced between discovery and opening.
 func NewCampaignFileSource(path string) (CampaignConfigurationSource, error) {
@@ -713,7 +737,8 @@ type CampaignDirectoryOptions struct {
 }
 
 // CampaignConfigurationSourcesFromDirectory returns stable file source specs
-// for regular .yaml, .yml, and .json files. It does not follow symlinks.
+// for regular .yaml, .yml, and .json files. It rejects symlink roots and
+// entries, and returned sources reject later root replacement.
 func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string, options CampaignDirectoryOptions) ([]CampaignConfigurationSourceSpec, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -731,9 +756,40 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 	if options.MaximumFiles < 1 || options.MaximumFiles > defaultCampaignMaximumSources {
 		return nil, ErrInvalidCampaignSourceOptions
 	}
-	entries, err := os.ReadDir(path)
+	if strings.TrimSpace(path) == "" {
+		return nil, ErrInvalidCampaignSourceOptions
+	}
+	directoryPath, err := filepath.Abs(filepath.Clean(path))
 	if err != nil {
 		return nil, err
+	}
+	discovered, err := os.Lstat(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+	if discovered.Mode()&os.ModeSymlink != 0 || !discovered.IsDir() {
+		return nil, ErrCampaignSourceFailed
+	}
+	directory, err := os.Open(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+	opened, statErr := directory.Stat()
+	if statErr != nil {
+		return nil, errors.Join(statErr, directory.Close())
+	}
+	current, currentErr := os.Lstat(directoryPath)
+	if currentErr != nil || current.Mode()&os.ModeSymlink != 0 || !current.IsDir() || !os.SameFile(discovered, opened) || !os.SameFile(opened, current) {
+		return nil, errors.Join(ErrCampaignSourceFailed, currentErr, directory.Close())
+	}
+	entries, readErr := directory.ReadDir(-1)
+	current, currentErr = os.Lstat(directoryPath)
+	if currentErr != nil || current.Mode()&os.ModeSymlink != 0 || !current.IsDir() || !os.SameFile(opened, current) {
+		return nil, errors.Join(ErrCampaignSourceFailed, readErr, currentErr, directory.Close())
+	}
+	closeErr := directory.Close()
+	if readErr != nil || closeErr != nil {
+		return nil, errors.Join(readErr, closeErr)
 	}
 	result := make([]CampaignConfigurationSourceSpec, 0)
 	for _, entry := range entries {
@@ -759,10 +815,7 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 		if !valid {
 			return nil, ErrInvalidCampaignSourceOptions
 		}
-		source, sourceErr := NewCampaignFileSource(filepath.Join(path, entry.Name()))
-		if sourceErr != nil {
-			return nil, sourceErr
-		}
+		source := campaignFileSource{path: filepath.Join(directoryPath, entry.Name()), directoryPath: directoryPath, directoryInfo: opened}
 		result = append(result, CampaignConfigurationSourceSpec{ID: prefix + "-" + fragment, Source: source, Required: options.Required, Priority: options.Priority})
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })

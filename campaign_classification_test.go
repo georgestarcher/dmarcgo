@@ -591,6 +591,19 @@ func TestCorrelateCampaignReportEvidenceNeverProvesIndividualMessage(t *testing.
 	if !hasCampaignReportDiagnostic(result.Diagnostics(), "campaign.report.declared_not_observed") {
 		t.Fatalf("caller-confirmed complete coverage omitted declared-not-observed diagnostic: %+v", result.Diagnostics())
 	}
+	for _, test := range []struct {
+		name    string
+		options CampaignReportCorrelationOptions
+	}{
+		{name: "backdated", options: CampaignReportCorrelationOptions{Organization: "primary", GeneratedAt: snapshot.ResultMetadata().GeneratedAt.Add(-time.Nanosecond)}},
+		{name: "invalid work limits", options: CampaignReportCorrelationOptions{Organization: "primary", MaximumCampaignsEvaluated: 1, MaximumRelevantRecords: 2}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := CorrelateCampaignReportEvidence(snapshot, reportEvidence, test.options); !errors.Is(err, ErrInvalidCampaignClassificationOptions) {
+				t.Fatalf("aggregate option error = %v", err)
+			}
+		})
+	}
 }
 
 func hasCampaignReportDiagnostic(values []CampaignReportCorrelationDiagnostic, code DiagnosticCode) bool {

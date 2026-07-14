@@ -97,8 +97,11 @@ func (result CampaignReportCorrelationResult) Summary() CampaignReportCorrelatio
 // report-period evidence separately. Overlapping report periods remain
 // unverifiable message-time evidence, so this API can never return
 // authorized_simulation_high_confidence or automatic disposition eligibility.
+// Invalid evaluation times and classifier work limits fail before observations
+// are processed.
 func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evidence ReportEvidenceResult, options CampaignReportCorrelationOptions) (CampaignReportCorrelationResult, error) {
-	if snapshot.digest == "" || evidence.digest == "" || evidence.metadata.Mode != AnalysisModeReportEvidence {
+	if snapshot.digest == "" || snapshot.metadata.ContractVersion != AnalysisContractVersion || snapshot.metadata.Mode != AnalysisModeCampaignValidation ||
+		evidence.digest == "" || evidence.metadata.ContractVersion != AnalysisContractVersion || evidence.metadata.Mode != AnalysisModeReportEvidence {
 		return CampaignReportCorrelationResult{}, ErrInvalidCampaignClassificationOptions
 	}
 	organization, err := normalizeCampaignEvidenceID(options.Organization, true)
@@ -116,7 +119,15 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 	if options.GeneratedAt.IsZero() {
 		options.GeneratedAt = snapshot.metadata.GeneratedAt
 	}
-	options.GeneratedAt = options.GeneratedAt.UTC()
+	classificationOptions, err := normalizeCampaignClassificationOptions(snapshot, CampaignClassificationOptions{
+		GeneratedAt:               options.GeneratedAt,
+		MaximumCampaignsEvaluated: options.MaximumCampaignsEvaluated,
+		MaximumRelevantRecords:    options.MaximumRelevantRecords,
+	})
+	if err != nil {
+		return CampaignReportCorrelationResult{}, err
+	}
+	options.GeneratedAt = classificationOptions.GeneratedAt
 	if options.MaximumObservations == 0 {
 		options.MaximumObservations = defaultCampaignMaximumReportObservations
 	}
@@ -158,12 +169,9 @@ func CorrelateCampaignReportEvidence(snapshot CampaignConfigurationSnapshot, evi
 			result.diagnostics = append(result.diagnostics, campaignReportDiagnostic(observation.ID, "campaign.report.evidence_unavailable", "A report observation could not be normalized for campaign correlation."))
 			continue
 		}
-		classification, classifyErr := ClassifyReportedMessage(snapshot, normalized, CampaignClassificationOptions{
-			GeneratedAt: options.GeneratedAt, MaximumCampaignsEvaluated: options.MaximumCampaignsEvaluated,
-			MaximumRelevantRecords: options.MaximumRelevantRecords,
-		})
+		classification, classifyErr := ClassifyReportedMessage(snapshot, normalized, classificationOptions)
 		if classifyErr != nil {
-			if errors.Is(classifyErr, ErrCampaignClassificationWorkLimit) {
+			if errors.Is(classifyErr, ErrCampaignClassificationWorkLimit) || errors.Is(classifyErr, ErrInvalidCampaignClassificationOptions) {
 				return CampaignReportCorrelationResult{}, classifyErr
 			}
 			result.diagnostics = append(result.diagnostics, campaignReportDiagnostic(observation.ID, "campaign.report.classification_unavailable", "A report observation could not be classified."))

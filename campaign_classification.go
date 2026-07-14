@@ -169,27 +169,13 @@ func ClassifyReportedMessage(snapshot CampaignConfigurationSnapshot, evidence Re
 		evidence.digest == "" || evidence.value.ID == "" {
 		return CampaignClassificationResult{}, ErrInvalidCampaignClassificationOptions
 	}
-	if options.GeneratedAt.IsZero() {
-		options.GeneratedAt = snapshot.metadata.GeneratedAt
-	}
-	options.GeneratedAt = options.GeneratedAt.UTC()
-	if options.GeneratedAt.Before(snapshot.metadata.GeneratedAt) {
-		return CampaignClassificationResult{}, ErrInvalidCampaignClassificationOptions
+	var err error
+	options, err = normalizeCampaignClassificationOptions(snapshot, options)
+	if err != nil {
+		return CampaignClassificationResult{}, err
 	}
 	evaluationSnapshot := snapshot
 	evaluationSnapshot.authorizationAvailable = campaignSnapshotAuthorizationAvailable(snapshot, options.GeneratedAt)
-	if options.MaximumCampaignsEvaluated == 0 {
-		options.MaximumCampaignsEvaluated = defaultCampaignMaximumEvaluated
-	}
-	if options.MaximumCampaignsEvaluated < 1 || options.MaximumCampaignsEvaluated > maxCampaignDefinitions {
-		return CampaignClassificationResult{}, ErrInvalidCampaignClassificationOptions
-	}
-	if options.MaximumRelevantRecords == 0 {
-		options.MaximumRelevantRecords = defaultCampaignMaximumRelevant
-	}
-	if options.MaximumRelevantRecords < 1 || options.MaximumRelevantRecords > options.MaximumCampaignsEvaluated {
-		return CampaignClassificationResult{}, ErrInvalidCampaignClassificationOptions
-	}
 	value := evidence.value
 	inScope := make([]SecuritySimulationCampaign, 0)
 	for _, campaign := range snapshot.campaigns {
@@ -261,6 +247,29 @@ func ClassifyReportedMessage(snapshot CampaignConfigurationSnapshot, evidence Re
 	}{result.metadata, result.version, result.snapshotDigest, result.evidenceDigest, result.records, result.findings, result.summary})
 	result.digest = StableAnalysisID("campaign_classification", string(canonical))
 	return result, nil
+}
+
+func normalizeCampaignClassificationOptions(snapshot CampaignConfigurationSnapshot, options CampaignClassificationOptions) (CampaignClassificationOptions, error) {
+	if options.GeneratedAt.IsZero() {
+		options.GeneratedAt = snapshot.metadata.GeneratedAt
+	}
+	options.GeneratedAt = options.GeneratedAt.UTC()
+	if options.GeneratedAt.Before(snapshot.metadata.GeneratedAt) {
+		return CampaignClassificationOptions{}, ErrInvalidCampaignClassificationOptions
+	}
+	if options.MaximumCampaignsEvaluated == 0 {
+		options.MaximumCampaignsEvaluated = defaultCampaignMaximumEvaluated
+	}
+	if options.MaximumCampaignsEvaluated < 1 || options.MaximumCampaignsEvaluated > maxCampaignDefinitions {
+		return CampaignClassificationOptions{}, ErrInvalidCampaignClassificationOptions
+	}
+	if options.MaximumRelevantRecords == 0 {
+		options.MaximumRelevantRecords = defaultCampaignMaximumRelevant
+	}
+	if options.MaximumRelevantRecords < 1 || options.MaximumRelevantRecords > options.MaximumCampaignsEvaluated {
+		return CampaignClassificationOptions{}, ErrInvalidCampaignClassificationOptions
+	}
+	return options, nil
 }
 
 func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedMessageEvidence, campaign SecuritySimulationCampaign, options CampaignClassificationOptions) CampaignClassificationRecord {

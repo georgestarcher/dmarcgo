@@ -117,8 +117,10 @@ The module never reads process environment variables by itself. The HTTPS
 adapter copies the supplied `http.Client` and rejects any redirect target that
 would leave HTTPS before that request is sent; same-scheme redirect, proxy,
 credential, caching, retry, TLS, and rate policy otherwise remain caller-owned.
-Directory discovery does not follow symlinks. File and HTTP read/close errors
-that could mean incomplete input are returned.
+Directory discovery rejects a symlink root and symlink entries. Discovered file
+sources retain the root directory identity and reject a replaced root before
+loading. File and HTTP read/close errors that could mean incomplete input are
+returned.
 
 `ResolveCampaignConfiguration` loads only the supplied source specifications
 and import IDs. Imports never discover a location. Resolution is deterministic,
@@ -289,6 +291,9 @@ aggregate evidence. Aggregate report periods are receiver-defined windows, not
 exact per-message timestamps. Therefore aggregate results can never be
 high-confidence individual-message authorization and can never be eligible for
 automatic disposition.
+The explicit evaluation time and classifier work limits are validated before
+the observation loop; a backdated time or invalid limit fails the aggregate
+operation instead of becoming an observation-level availability diagnostic.
 
 The caller may set `CoverageSufficient` only when it knows the supplied corpus
 is complete enough for a declared-not-observed diagnostic. The library never

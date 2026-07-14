@@ -190,12 +190,15 @@ tests used by the Phase 13 integration gate.
   never treats a failed signature as a campaign-specific signal.
 - `NewCampaignHTTPSSource` copies the supplied `http.Client` and blocks an
   HTTPS-to-HTTP redirect before the downgraded request is sent.
+- Directory discovery rejects a symlink root and entries. Its returned file
+  sources retain root identity and reject replacement before loading.
 - Recheck snapshot effective and expiry bounds at the explicit classification
   generation time. A reused expired snapshot must remain expired and can never
   recover authorization or automatic-disposition eligibility.
 - `CorrelateCampaignReportEvidence` keeps aggregate report evidence lower
   confidence. Report periods are not exact message times and cannot prove that
-  an individual message belonged to a campaign.
+  an individual message belonged to a campaign. Invalid evaluation times and
+  classifier work limits fail the aggregate operation before observation work.
 - `WriteCampaignClassificationOutput` requires a privacy view and defaults to
   disclosure-safe. Never copy restricted routing metadata or campaign state
   into employee-facing text; use only the fixed neutral response template ID.

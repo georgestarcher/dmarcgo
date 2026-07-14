@@ -849,6 +849,9 @@ func normalizeThreatStreamTags(values []string, capabilities ThreatStreamTenantC
 				return nil, ErrInvalidThreatStreamExportOptions
 			}
 		}
+		if len(strings.Join(result, ",")) > capabilities.MaximumStringBytes {
+			return nil, ErrInvalidThreatStreamExportOptions
+		}
 	}
 	return result, nil
 }

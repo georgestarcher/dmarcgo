@@ -172,6 +172,40 @@ func TestThreatStreamExplicitMappingAndBoundaries(t *testing.T) {
 	}
 }
 
+func TestThreatStreamCommaSeparatedTagsRespectStringLimit(t *testing.T) {
+	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
+	candidate := candidates.Candidates()[0]
+	capabilities := threatStreamFixtureCapabilities(ThreatStreamDirectObservable)
+	capabilities.TagEncoding = ThreatStreamTagsCommaSeparated
+	capabilities.TimestampEncoding = ThreatStreamTimestampUnixSeconds
+	capabilities.ReviewDefaults.Tags = nil
+	capabilities.MaximumStringBytes = len("abcdefghij,klmnopqrst")
+	selection := ThreatStreamCandidateSelection{
+		CandidateID: candidate.ID,
+		IType:       "review_ip",
+		Settings:    ThreatStreamObservableSettings{Tags: []string{"klmnopqrst", "abcdefghij"}},
+	}
+
+	payloads, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+		Capabilities: capabilities,
+		Selections:   []ThreatStreamCandidateSelection{selection},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tags := threatStreamDecodeDirect(t, payloads[0]).TagsCSV; tags != "abcdefghij,klmnopqrst" {
+		t.Fatalf("comma-separated tags=%q", tags)
+	}
+
+	capabilities.MaximumStringBytes--
+	if _, err := BuildThreatStreamPayloads(candidates, ThreatStreamExportOptions{
+		Capabilities: capabilities,
+		Selections:   []ThreatStreamCandidateSelection{selection},
+	}); !errors.Is(err, ErrInvalidThreatStreamExportOptions) {
+		t.Fatalf("combined tag string limit error=%v", err)
+	}
+}
+
 func TestThreatStreamUnsupportedValuesFailClosed(t *testing.T) {
 	candidates := sourceEnrichmentTestCandidates(t, "198.51.100.20")
 	candidate := candidates.Candidates()[0]

@@ -92,6 +92,12 @@ and this project uses semantic versioning for public API changes.
   Rating, deterministic tenant metadata, defensive source references,
   owner-scoped duplicate/update documentation, and no credentials, HTTP, or
   submission side effects.
+- Pure MISP 2.5 Attribute encoding for explicitly selected review candidates
+  and complete offline Event encoding with caller-owned lifecycle context,
+  exact target-instance type/category capabilities, `to_ids: false` and
+  correlation-disabled review defaults, deterministic UUIDs and timestamps,
+  defensive evidence references, strict native-payload validation, and no
+  discovery, credentials, HTTP, publication, or submission side effects.
 
 ### Changed
 

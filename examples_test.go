@@ -238,6 +238,74 @@ func ExampleBuildThreatConnectIndicatorPayloads() {
 	// Output: type=Address active=false private=true owner=Example Community valid=true
 }
 
+// ExampleBuildMISPAttributePayloads demonstrates a review-only native
+// Attribute request for an explicitly identified existing Event.
+func ExampleBuildMISPAttributePayloads() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	mapping := MISPAttributeMapping{Type: MISPAttributeTypeIPSource, Category: "Network activity"}
+	payloads, err := BuildMISPAttributePayloads(candidates, MISPAttributeExportOptions{
+		Event: MISPEventReference{Identifier: "42"},
+		Capabilities: MISPInstanceCapabilities{
+			ContractVersion:   "2.5",
+			AttributeMappings: []MISPAttributeMapping{mapping},
+		},
+		Selections: []MISPAttributeSelection{{CandidateID: candidate.ID, Mapping: mapping}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	request := struct {
+		ToIDS              bool `json:"to_ids"`
+		DisableCorrelation bool `json:"disable_correlation"`
+	}{}
+	encoded, err := json.Marshal(payloads[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := json.Unmarshal(encoded, &request); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("endpoint=%s to_ids=%t correlation_disabled=%t valid=%t\n",
+		payloads[0].Endpoint(), request.ToIDS, request.DisableCorrelation,
+		ValidateMISPAttributePayload(payloads[0]) == nil)
+	// Output: endpoint=/attributes/add/42 to_ids=false correlation_disabled=true valid=true
+}
+
+// ExampleBuildMISPEventPayload demonstrates a complete offline Event body.
+// The caller still owns review, credentials, HTTP, and submission.
+func ExampleBuildMISPEventPayload() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	mapping := MISPAttributeMapping{Type: MISPAttributeTypeIPSource, Category: "Network activity"}
+	published, disableCorrelation := false, true
+	payload, err := BuildMISPEventPayload(candidates, MISPEventExportOptions{
+		Capabilities: MISPInstanceCapabilities{
+			ContractVersion:   "2.5",
+			AttributeMappings: []MISPAttributeMapping{mapping},
+		},
+		Event: MISPEventDefinition{
+			UUID: "11111111-2222-4333-8444-555555555555", Info: "DMARC source review",
+			Date: candidates.ResultMetadata().GeneratedAt, Distribution: MISPDistributionOrganizationOnly,
+			ThreatLevel: MISPThreatLevelUndefined, Analysis: MISPAnalysisInitial,
+			Published: &published, DisableCorrelation: &disableCorrelation,
+		},
+		Selections: []MISPAttributeSelection{{CandidateID: candidate.ID, Mapping: mapping}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("endpoint=%s uuid=%s attributes=%d valid=%t\n",
+		payload.Endpoint(), payload.UUID(), len(payload.Source().Attributes), ValidateMISPEventPayload(payload) == nil)
+	// Output: endpoint=/events/add uuid=11111111-2222-4333-8444-555555555555 attributes=1 valid=true
+}
+
 // ExampleEnrichThreatCandidates demonstrates explicit, offline source
 // enrichment after candidate scoring. Applications may instead supply their
 // own context-aware third-party service adapter.

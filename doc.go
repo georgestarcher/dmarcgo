@@ -99,6 +99,19 @@
 // and retain each payload's defensive Source metadata before caller-owned
 // submission.
 //
+// BuildMISPAttributePayloads and BuildMISPEventPayload perform separate pure
+// transformations into native MISP 2.5 Attribute and complete Event request
+// bodies. Every Attribute selection requires explicit ip-src or ip-dst
+// semantics and an exact caller-supplied target-instance type/category mapping.
+// Existing-Event Attributes default to to_ids false, correlation disabled, and
+// organization-only distribution; complete Events require caller-owned UUID,
+// information, date, distribution, threat level, analysis level, publication,
+// and correlation context. Native bodies retain no hidden agent wrapper, while
+// defensive Source metadata preserves evidence references separately. The
+// encoder performs no discovery, Event lookup or creation, credential access,
+// HTTP, submission, publication, warning-list lookup, retry, clock access, or
+// direct source-IP activity.
+//
 // PortfolioConfig and LoadPortfolioYAML define organization-owned domains,
 // explicit monitored record names, expected senders, reusable policies,
 // ownership, inheritance, and scoped exclusions. Portfolio loading is strict,

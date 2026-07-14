@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/campaign/configuration/v1.json",
+  "title": "dmarcgo security simulation campaign configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "expires_at", "security_simulations"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "$ref": "#/$defs/timestamp" },
+    "effective_at": { "$ref": "#/$defs/timestamp" },
+    "expires_at": { "$ref": "#/$defs/timestamp" },
+    "imports": {
+      "type": "array",
+      "maxItems": 512,
+      "items": { "$ref": "#/$defs/import" }
+    },
+    "security_simulations": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": { "$ref": "#/$defs/campaign" }
+    }
+  },
+  "$defs": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "id": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]*$", "maxLength": 128 },
+    "opaque": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "domain": { "type": "string", "minLength": 1, "maxLength": 253 },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "id_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/id" } },
+    "domain_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/domain" } },
+    "digest_list": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/digest" } },
+    "import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "required": { "type": "boolean" }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "enum": ["catalog", "self_hosted"] },
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/opaque" }
+      }
+    },
+    "dkim_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "selectors"],
+      "properties": {
+        "domain": { "$ref": "#/$defs/domain" },
+        "selectors": { "$ref": "#/$defs/id_list" }
+      }
+    },
+    "expected_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "header_from_domains": { "$ref": "#/$defs/domain_list" },
+        "envelope_from_domains": { "$ref": "#/$defs/domain_list" },
+        "dkim": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/dkim_identity" } },
+        "message_id_domains": { "$ref": "#/$defs/domain_list" }
+      }
+    },
+    "expected_sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cidrs": { "type": "array", "maxItems": 512, "items": { "type": "string" } },
+        "hostnames": { "$ref": "#/$defs/domain_list" },
+        "infrastructure_ids": { "$ref": "#/$defs/id_list" }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dmarc": { "$ref": "#/$defs/auth_expectation" },
+        "spf": { "$ref": "#/$defs/auth_expectation" },
+        "dkim": { "$ref": "#/$defs/auth_expectation" }
+      }
+    },
+    "auth_expectation": { "enum": ["required", "optional", "not_expected"] },
+    "response_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "employee_disclosure": { "enum": ["prohibited", "permitted"] },
+        "employee_template_id": { "$ref": "#/$defs/id" },
+        "analyst_visibility": { "enum": ["full", "redacted"] },
+        "campaign_owner_visibility": { "enum": ["full", "redacted"] }
+      }
+    },
+    "handling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workflow_id": { "$ref": "#/$defs/id" },
+        "retain_authentication_findings": { "const": true },
+        "automatic_disposition_eligible": { "type": "boolean" }
+      }
+    },
+    "factor": {
+      "enum": [
+        "campaign_window", "organization_scope", "recipient_scope", "header_from_domain",
+        "envelope_from_domain", "dkim_identity", "source_address", "source_hostname",
+        "message_id_domain", "infrastructure_id", "campaign_token_digest", "url_domain",
+        "content_fingerprint", "authentication", "delivery_exception", "evidence_confidence"
+      ]
+    },
+    "match_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_factors": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/factor" } },
+        "minimum_matched_factors": { "type": "integer", "minimum": 1, "maximum": 16 }
+      }
+    },
+    "campaign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "provider", "organization", "owner", "approval_reference", "status", "created_at",
+        "valid_from", "valid_until", "expected_identity"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "external_campaign_id": { "$ref": "#/$defs/opaque" },
+        "provider": { "$ref": "#/$defs/provider" },
+        "organization": { "$ref": "#/$defs/id" },
+        "entity": { "$ref": "#/$defs/id" },
+        "business_unit": { "$ref": "#/$defs/id" },
+        "owner": { "$ref": "#/$defs/id" },
+        "approval_reference": { "$ref": "#/$defs/opaque" },
+        "status": { "enum": ["scheduled", "active", "completed", "canceled"] },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "valid_from": { "$ref": "#/$defs/timestamp" },
+        "valid_until": { "$ref": "#/$defs/timestamp" },
+        "recipient_domains": { "$ref": "#/$defs/domain_list" },
+        "recipient_scope_ids": { "$ref": "#/$defs/id_list" },
+        "expected_identity": { "$ref": "#/$defs/expected_identity" },
+        "expected_sources": { "$ref": "#/$defs/expected_sources" },
+        "campaign_token_digests": { "$ref": "#/$defs/digest_list" },
+        "url_domains": { "$ref": "#/$defs/domain_list" },
+        "content_fingerprints": { "$ref": "#/$defs/digest_list" },
+        "authentication": { "$ref": "#/$defs/authentication" },
+        "delivery_exception_ids": { "$ref": "#/$defs/id_list" },
+        "response_policy": { "$ref": "#/$defs/response_policy" },
+        "handling": { "$ref": "#/$defs/handling" },
+        "match_policy": { "$ref": "#/$defs/match_policy" }
+      }
+    }
+  }
+}

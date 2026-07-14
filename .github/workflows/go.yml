@@ -163,6 +163,9 @@ jobs:
       - name: Validate independent analysis workflows
         run: make workflow-check
 
+      - name: Validate security-simulation campaign correlation
+        run: make campaign-check
+
       - name: Validate provider catalog and review dates
         run: make provider-catalog-check
 

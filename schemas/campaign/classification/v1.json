@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/campaign/classification/v1.json",
+  "title": "dmarcgo campaign classification output v1",
+  "oneOf": [
+    { "$ref": "#/$defs/privileged_document" },
+    { "$ref": "#/$defs/disclosure_document" }
+  ],
+  "$defs": {
+    "analysis_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["evaluated", "not_evaluated", "unknown", "not_applicable"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "mode", "generated_at", "evaluation"],
+      "properties": {
+        "contract_version": { "const": "1" },
+        "mode": { "const": "campaign_classification" },
+        "generated_at": { "$ref": "#/$defs/timestamp" },
+        "evaluation": { "$ref": "#/$defs/evaluation" }
+      }
+    },
+    "classification": {
+      "enum": [
+        "authorized_simulation_high_confidence",
+        "possible_authorized_simulation",
+        "simulation_configuration_mismatch",
+        "simulation_outside_campaign_window",
+        "simulation_authorization_expired",
+        "simulation_authorization_unavailable",
+        "unknown_suspicious_message"
+      ]
+    },
+    "confidence": { "enum": ["low", "medium", "high"] },
+    "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+    "sensitivity": { "enum": ["public", "operational", "restricted"] },
+    "factor_name": {
+      "enum": [
+        "campaign_window", "organization_scope", "recipient_scope", "header_from_domain",
+        "envelope_from_domain", "dkim_identity", "source_address", "source_hostname",
+        "message_id_domain", "infrastructure_id", "campaign_token_digest", "url_domain",
+        "content_fingerprint", "authentication", "delivery_exception", "evidence_confidence"
+      ]
+    },
+    "factor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factor", "state", "required", "evidence_ids", "sensitivity"],
+      "properties": {
+        "factor": { "$ref": "#/$defs/factor_name" },
+        "state": { "enum": ["matched", "mismatched", "missing", "unverifiable"] },
+        "required": { "type": "boolean" },
+        "evidence_ids": { "type": "array", "items": { "$ref": "#/$defs/analysis_id" } },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" }
+      }
+    },
+    "privileged_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "evidence_id", "campaign_id", "campaign_digest", "authorization_source",
+        "classification", "confidence", "factors", "matched", "mismatched", "missing",
+        "unverifiable", "employee_disclosure", "automatic_disposition_eligible",
+        "aggregate_evidence_only", "authentication_findings_retained", "sensitivity"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/analysis_id" },
+        "evidence_id": { "$ref": "#/$defs/analysis_id" },
+        "campaign_id": { "type": "string", "minLength": 1 },
+        "campaign_digest": { "$ref": "#/$defs/analysis_id" },
+        "authorization_source": { "type": "string", "minLength": 1 },
+        "classification": { "$ref": "#/$defs/classification" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "factors": { "type": "array", "items": { "$ref": "#/$defs/factor" } },
+        "matched": { "type": "array", "items": { "$ref": "#/$defs/factor_name" } },
+        "mismatched": { "type": "array", "items": { "$ref": "#/$defs/factor_name" } },
+        "missing": { "type": "array", "items": { "$ref": "#/$defs/factor_name" } },
+        "unverifiable": { "type": "array", "items": { "$ref": "#/$defs/factor_name" } },
+        "employee_disclosure": { "enum": ["prohibited", "permitted"] },
+        "privileged_workflow_id": { "type": "string" },
+        "privileged_employee_template_id": { "type": "string" },
+        "automatic_disposition_eligible": { "type": "boolean" },
+        "aggregate_evidence_only": { "type": "boolean" },
+        "authentication_findings_retained": { "type": "boolean" },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" }
+      }
+    },
+    "privileged_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "code", "severity", "confidence", "classification", "record_ids", "evidence_ids",
+        "summary", "recommendation", "automatic_action", "sensitivity"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/analysis_id" },
+        "code": { "type": "string", "minLength": 1 },
+        "severity": { "$ref": "#/$defs/severity" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "record_ids": { "type": "array", "items": { "$ref": "#/$defs/analysis_id" } },
+        "evidence_ids": { "type": "array", "items": { "$ref": "#/$defs/analysis_id" } },
+        "summary": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "automatic_action": { "const": false },
+        "sensitivity": { "$ref": "#/$defs/sensitivity" }
+      }
+    },
+    "classification_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "records"],
+      "properties": {
+        "classification": { "$ref": "#/$defs/classification" },
+        "records": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_classification", "campaigns_available", "campaigns_evaluated", "relevant_records", "high_confidence_records",
+        "possible_records", "automatic_disposition_ready", "aggregate_evidence_only", "classifications"
+      ],
+      "properties": {
+        "overall_classification": { "$ref": "#/$defs/classification" },
+        "campaigns_available": { "type": "integer", "minimum": 0 },
+        "campaigns_evaluated": { "type": "integer", "minimum": 0 },
+        "relevant_records": { "type": "integer", "minimum": 0 },
+        "high_confidence_records": { "type": "integer", "minimum": 0 },
+        "possible_records": { "type": "integer", "minimum": 0 },
+        "automatic_disposition_ready": { "type": "integer", "minimum": 0 },
+        "aggregate_evidence_only": { "type": "boolean" },
+        "classifications": { "type": "array", "items": { "$ref": "#/$defs/classification_count" } }
+      }
+    },
+    "routing_count": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routing", "records"],
+      "properties": {
+        "routing": { "enum": ["restricted_policy_review", "security_review", "ordinary_report_review"] },
+        "records": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "safe_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relevant_records", "automatic_disposition_ready", "aggregate_evidence_only", "routes"],
+      "properties": {
+        "relevant_records": { "type": "integer", "minimum": 0 },
+        "automatic_disposition_ready": { "type": "integer", "minimum": 0 },
+        "aggregate_evidence_only": { "type": "boolean" },
+        "routes": { "type": "array", "items": { "$ref": "#/$defs/routing_count" } }
+      }
+    },
+    "safe_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "routing", "confidence", "neutral_employee_template_id", "matched_factor_count",
+        "contradictory_factor_count", "missing_factor_count", "unverifiable_factor_count",
+        "automatic_disposition_eligible", "aggregate_evidence_only", "sensitivity"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/analysis_id" },
+        "routing": { "enum": ["restricted_policy_review", "security_review", "ordinary_report_review"] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "neutral_employee_template_id": { "const": "suspicious-message-received" },
+        "matched_factor_count": { "type": "integer", "minimum": 0 },
+        "contradictory_factor_count": { "type": "integer", "minimum": 0 },
+        "missing_factor_count": { "type": "integer", "minimum": 0 },
+        "unverifiable_factor_count": { "type": "integer", "minimum": 0 },
+        "automatic_disposition_eligible": { "type": "boolean" },
+        "aggregate_evidence_only": { "type": "boolean" },
+        "sensitivity": { "const": "operational" }
+      }
+    },
+    "safe_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "code", "severity", "confidence", "routing", "summary", "recommendation", "automatic_action", "sensitivity"],
+      "properties": {
+        "id": { "$ref": "#/$defs/analysis_id" },
+        "code": { "enum": ["reported_message.restricted_policy_review", "reported_message.security_review", "reported_message.ordinary_review"] },
+        "severity": { "$ref": "#/$defs/severity" },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "routing": { "enum": ["restricted_policy_review", "security_review", "ordinary_report_review"] },
+        "summary": { "type": "string" },
+        "recommendation": { "type": "string" },
+        "automatic_action": { "const": false },
+        "sensitivity": { "const": "operational" }
+      }
+    },
+    "privileged_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "schema_version", "view", "metadata", "version", "campaign_snapshot_digest", "message_evidence_digest", "result_digest", "records", "findings", "summary"],
+      "properties": {
+        "schema": { "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/campaign/classification/v1.json" },
+        "schema_version": { "const": "1" },
+        "view": { "const": "privileged" },
+        "metadata": { "$ref": "#/$defs/metadata" },
+        "version": { "const": "1" },
+        "campaign_snapshot_digest": { "$ref": "#/$defs/analysis_id" },
+        "message_evidence_digest": { "$ref": "#/$defs/analysis_id" },
+        "result_digest": { "$ref": "#/$defs/analysis_id" },
+        "records": { "type": "array", "items": { "$ref": "#/$defs/privileged_record" } },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/privileged_finding" } },
+        "summary": { "$ref": "#/$defs/summary" }
+      }
+    },
+    "disclosure_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "schema_version", "view", "metadata", "version", "result_digest", "records", "findings", "summary"],
+      "properties": {
+        "schema": { "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/campaign/classification/v1.json" },
+        "schema_version": { "const": "1" },
+        "view": { "const": "disclosure_safe" },
+        "metadata": { "$ref": "#/$defs/metadata" },
+        "version": { "const": "1" },
+        "result_digest": { "$ref": "#/$defs/analysis_id" },
+        "records": { "type": "array", "items": { "$ref": "#/$defs/safe_record" } },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/safe_finding" } },
+        "summary": { "$ref": "#/$defs/safe_summary" }
+      }
+    },
+    "jsonl_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "schema_version", "view", "mode", "result_digest", "record_type", "record_id", "data"],
+      "properties": {
+        "schema": { "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/campaign/classification/v1.json#/$defs/jsonl_record" },
+        "schema_version": { "const": "1" },
+        "view": { "enum": ["privileged", "disclosure_safe"] },
+        "mode": { "const": "campaign_classification" },
+        "result_digest": { "$ref": "#/$defs/analysis_id" },
+        "record_type": { "enum": ["metadata", "classification", "finding"] },
+        "record_id": { "type": "string", "minLength": 1 },
+        "data": {
+          "oneOf": [
+            { "$ref": "#/$defs/privileged_record" },
+            { "$ref": "#/$defs/privileged_finding" },
+            { "$ref": "#/$defs/safe_record" },
+            { "$ref": "#/$defs/safe_finding" },
+            {
+              "type": "object",
+              "required": ["metadata", "version", "summary"],
+              "properties": {
+                "metadata": { "$ref": "#/$defs/metadata" },
+                "version": { "const": "1" },
+                "campaign_snapshot_digest": { "$ref": "#/$defs/analysis_id" },
+                "message_evidence_digest": { "$ref": "#/$defs/analysis_id" },
+                "summary": { "oneOf": [{ "$ref": "#/$defs/summary" }, { "$ref": "#/$defs/safe_summary" }] }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    }
+  }
+}

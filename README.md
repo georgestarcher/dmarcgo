@@ -85,6 +85,13 @@ sender intent, current DNS health, and historical report evidence while keeping
 their observation times separate. See
 [DNS and report correlation](docs/dns-report-correlation.md).
 
+Security-simulation campaign correlation is a separate path. It resolves an
+explicit, externally maintained campaign inventory, compares it with
+caller-normalized reported-message evidence, and provides privileged and
+disclosure-safe SOC views without treating a provider, domain, or source IP as
+an allowlist. See
+[Security-simulation campaign correlation](docs/campaign-correlation.md).
+
 Suspicious-source candidate scoring is the next pure stage. It produces
 explainable, review-only source candidates from normalized observations and
 prepared correlation without malicious attribution, enrichment, or automatic
@@ -153,6 +160,11 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want counts across many reports | `dmarcgo.SummarizeReports(reports)` or `dmarcgo.MergeSummaries(summaries)` | Combines report summaries without adding storage or ingest behavior. |
 | You want reusable normalized report evidence | `dmarcgo.AnalyzeReportEvidence(reports, options)` | Produces deterministic, persistable report-only evidence with filtering and aggregation; it performs no DNS, enrichment, or sender-inventory interpretation. |
 | You want expected-sender and DNS/report variance | `dmarcgo.CorrelateReportEvidence(portfolio, dnsHealth, reportEvidence, options)` | Correlates already completed values without DNS, parsing, enrichment, storage, or malicious attribution. |
+| You have versioned campaign YAML or JSON | `dmarcgo.LoadCampaignConfiguration(data)` or `dmarcgo.NormalizeCampaignConfiguration(config)` | Strictly validates one offline document and returns an immutable normalized inventory. |
+| You want to resolve testing-team campaign feeds | `dmarcgo.ResolveCampaignConfiguration(ctx, sources, options)` | Explicitly loads only caller-supplied bytes, files, directory fragments, environment lookup, HTTPS, or custom sources; stale required data never authorizes. |
+| You want to classify one reported message | `dmarcgo.NormalizeReportedMessageEvidence(input)`, then `dmarcgo.ClassifyReportedMessage(snapshot, evidence, options)` | Purely compares bounded message/header evidence with a completed campaign snapshot; no body, DNS, source retrieval, or automatic action is required. |
+| You want aggregate campaign review | `dmarcgo.CorrelateCampaignReportEvidence(snapshot, reportEvidence, options)` | Uses completed aggregate evidence for lower-confidence review only; it can never prove an individual message or enable automatic disposition. |
+| You want privileged or disclosure-safe campaign output | `dmarcgo.WriteCampaignClassificationOutput(writer, result, format, options)` | Requires an explicit privacy view, defaults to disclosure-safe, and never reruns matching or retrieves a source. |
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
@@ -193,6 +205,9 @@ runs another stage.
 | Current SPF, DKIM, and DMARC posture | portfolio -> DNS snapshot -> authentication parsing -> DNS health | Reports or enrichment |
 | Historical receiver observations | parsed reports -> report evidence | DNS, portfolio, or enrichment |
 | Sender onboarding and drift review | portfolio + completed DNS health + report evidence -> correlation | New lookups or reparsing |
+| Review a reported message against authorized simulations | explicit campaign sources -> immutable snapshot; normalized message evidence + snapshot -> campaign classification | DNS, report parsing, body storage, or implicit source refresh |
+| Review campaign signals in aggregate reports | completed campaign snapshot + report evidence -> aggregate campaign correlation | Individual-message proof or automatic disposition |
+| Route a neutral response | completed campaign classification -> disclosure-safe output | Campaign disclosure, response sending, or action execution |
 | Review unexplained sources | portfolio + report evidence + correlation -> threat candidates | Enrichment or malicious attribution |
 | Add optional ASN/country context | threat candidates + explicit caller enricher -> enrichment -> optional jurisdiction policy | Built-in providers, PTR, or source-IP contact |
 | Serialize one result | completed result -> its native JSON, JSONL, or CSV writer | Any upstream computation |
@@ -931,6 +946,37 @@ See [`docs/dns-report-correlation.md`](docs/dns-report-correlation.md) for the
 finding taxonomy, prior-result comparisons, temporal semantics, and safe sender
 onboarding sequence.
 
+## Security-simulation campaign correlation
+
+Use `LoadCampaignConfiguration` for one strict YAML/JSON document or
+`ResolveCampaignConfiguration` for an explicit set of independently maintained
+sources. The resolver records freshness, integrity, source precedence, imports,
+conflicts, and exact snapshot digests. Missing, future, stale, expired, or
+unavailable required authorization does not downgrade suspicious traffic.
+
+Normalize caller-parsed headers and other safe observations with
+`NormalizeReportedMessageEvidence`; raw bodies and raw campaign tokens are not
+accepted. `ClassifyReportedMessage` evaluates time, organization, identity,
+authentication, infrastructure, recipient, delivery-exception, and
+campaign-specific evidence independently. High confidence always requires
+current authorization, time, scope, identity, a campaign-specific signal, and
+high-confidence provenance appropriate to the identity and signal.
+Automatic disposition requires dual caller/configuration opt-in and exactly one
+high-confidence match, but the library still performs no action.
+
+Use `CampaignOutputPrivileged` only inside the restricted campaign/SOC boundary.
+The default `CampaignOutputDisclosureSafe` view omits campaign identities,
+dates, infrastructure, factors, digests, and exact classification labels while
+providing neutral routing and the fixed `suspicious-message-received` employee
+template ID. Aggregate DMARC evidence is available through
+`CorrelateCampaignReportEvidence`, but report-period overlap can never prove an
+individual message belonged to a campaign.
+
+See [`docs/campaign-correlation.md`](docs/campaign-correlation.md) for schema,
+source adapters, merge and last-known-good behavior, parent/subsidiary examples,
+work limits, output contracts, and the complete disclosure-safe application
+flow.
+
 ## Suspicious-source candidate scoring
 
 Use `ScoreThreatCandidates` only after report evidence and correlation are
@@ -1463,6 +1509,7 @@ go test -race ./...
 go vet ./...
 python3 scripts/check_readme_examples.py
 make workflow-check
+make campaign-check
 ```
 
 The module targets supported Go toolchains starting at Go 1.25. CI currently runs on Go 1.25 and Go 1.26.

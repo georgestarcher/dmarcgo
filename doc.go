@@ -60,6 +60,27 @@
 // context never becomes authorization, and correlation performs no collection,
 // parsing, enrichment, storage, or clock access.
 //
+// LoadCampaignConfiguration and NormalizeCampaignConfiguration create strict,
+// immutable security-simulation campaign documents. ResolveCampaignConfiguration
+// is the explicit context-aware source stage: it loads only caller-selected
+// sources, enforces freshness, integrity, import, precedence, conflict, and work
+// limits, and returns a provenance-rich snapshot. Required-source failure never
+// authorizes traffic; caller-supplied complete unexpired last-known-good reuse is
+// explicit. The library never discovers a source, reads environment variables,
+// or refreshes configuration implicitly.
+//
+// NormalizeReportedMessageEvidence creates body-free, token-digest-only message
+// evidence. ClassifyReportedMessage is the subsequent pure bounded comparison
+// with an immutable campaign snapshot. High confidence requires current
+// authorization, campaign time, organization scope, message identity, and a
+// campaign-specific signal with appropriate high-confidence provenance;
+// provider, domain, URL, or source-IP matches alone never authorize.
+// CorrelateCampaignReportEvidence keeps aggregate report
+// evidence lower confidence and can never prove an individual message or enable
+// automatic disposition. WriteCampaignClassificationOutput requires a
+// privileged or disclosure-safe view and never reruns classification or source
+// retrieval.
+//
 // ScoreThreatCandidates performs the following pure source-review stage over a
 // normalized Portfolio, completed ReportEvidenceResult, and completed
 // DNSReportCorrelationResult. Versioned profiles preserve supporting evidence,

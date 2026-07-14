@@ -106,6 +106,13 @@ inactive, private native Indicator request bodies without credentials, HTTP,
 submission, or automatic action. See
 [ThreatConnect v3 indicator payload export](docs/threatconnect-export.md).
 
+MISP export is another separate pure final transformation. It converts
+explicitly selected candidates into review-only native Attribute requests for
+an identified Event, or into one complete offline Event body when the caller
+supplies all lifecycle context. It performs no capability discovery, HTTP,
+event creation, publication, or submission. See
+[MISP event and attribute export](docs/misp-export.md).
+
 ## Supported report inputs
 
 `dmarcgo` reads DMARC aggregate reports delivered as:
@@ -142,6 +149,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
 | You want reviewed ThreatConnect v3 request bodies | `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)` | Purely encodes explicitly selected Address and enriched ASN requests; defaults are inactive/private, confidence and rating are opt-in, and the application owns submission. |
+| You want reviewed MISP Attribute or complete offline Event bodies | `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)` or `dmarcgo.BuildMISPEventPayload(threatCandidates, options)` | Requires explicit event context and target-instance type/category capabilities; Attributes default to `to_ids: false` with correlation disabled, and the application owns discovery, review, HTTP, and submission. |
 | You want versioned jurisdiction review context | `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)` | Purely evaluates fresh, unambiguous coarse country assertions against an explicit immutable policy; the optional separate priority adjustment is default-off and never changes threat scoring or authorizes action. |
 | You want unauthenticated-source summaries | `report.UnauthenticatedSources(domain)` | Finds rows where `header_from` matches and both DKIM/SPF alignment failed. |
 | You want to suppress known source IPs | `dmarcgo.ExcludeUnauthenticatedSources(sources, exclusions)` | Applies caller-owned exact-IP or CIDR exclusions without storing policy state. |
@@ -958,6 +966,37 @@ defensive `Source()` metadata with the submission record. See
 [`docs/threatconnect-export.md`](docs/threatconnect-export.md) for the exact
 mapping, duplicate semantics, official references, privacy boundary, and safe
 caller-owned submission sequence.
+
+## MISP event and attribute export
+
+Use `BuildMISPAttributePayloads` only after the application has selected
+review-eligible, non-excluded candidate IDs, identified an existing Event by
+numeric ID or UUID, and supplied exact `ip-src` or `ip-dst` type/category
+capabilities from the target instance. The encoder performs exact membership
+validation and never runs `describeTypes`, searches for an Event, or guesses IP
+direction.
+
+Native Attributes default to `to_ids: false`,
+`disable_correlation: true`, organization-only distribution, the candidate's
+report-period bounds, a deterministic UUID and timestamp, and fixed
+review-limitation text. Tags are never invented. Distribution, sharing group,
+tags, comments, observation times, IDS behavior, and correlation behavior can
+be changed only through explicit caller settings.
+
+`BuildMISPEventPayload` additionally requires a complete caller-owned Event
+definition: UUID, information, date, distribution, threat and analysis levels,
+publication state, and correlation behavior. Embedded Attributes inherit the
+Event distribution by default. Candidate score, severity, confidence,
+enrichment, and jurisdiction context are not converted into MISP threat
+levels, classifications, tags, or IDS decisions.
+
+Both builders emit operational, unredacted native JSON and retain candidate
+and evidence references separately through defensive `Source()` metadata.
+They perform no credentials, HTTP, duplicate checking, warning-list lookup,
+submission, publication, retry, or response handling. See
+[`docs/misp-export.md`](docs/misp-export.md) for the reviewed upstream
+contract, capability model, exact mappings, deterministic identity, privacy
+boundary, and safe caller-owned submission sequence.
 
 ## Versioned jurisdiction context
 

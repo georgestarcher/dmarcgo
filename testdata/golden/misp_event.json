@@ -1,0 +1,31 @@
+{
+  "uuid": "11111111-2222-4333-8444-555555555555",
+  "info": "DMARC source review",
+  "date": "1970-01-02",
+  "published": false,
+  "analysis": "0",
+  "distribution": "0",
+  "threat_level_id": "4",
+  "timestamp": "100000",
+  "disable_correlation": true,
+  "Tag": [
+    {
+      "name": "dmarc-review"
+    }
+  ],
+  "Attribute": [
+    {
+      "type": "ip-src",
+      "category": "Network activity",
+      "value": "198.51.100.20",
+      "to_ids": false,
+      "uuid": "c8d95e3c-42d8-54ff-8d38-bb18e548645a",
+      "timestamp": "100000",
+      "distribution": "5",
+      "comment": "DMARC aggregate authentication-failure source selected for human review. This attribute does not assert malicious activity or authorize blocking.",
+      "disable_correlation": true,
+      "first_seen": "1970-01-01T00:01:40Z",
+      "last_seen": "1970-01-02T03:46:40Z"
+    }
+  ]
+}

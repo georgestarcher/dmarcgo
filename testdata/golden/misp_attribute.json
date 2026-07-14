@@ -1,0 +1,13 @@
+{
+  "type": "ip-src",
+  "category": "Network activity",
+  "value": "198.51.100.20",
+  "to_ids": false,
+  "uuid": "b51fb403-315b-53cd-aadb-5a19b038d339",
+  "timestamp": "100000",
+  "distribution": "0",
+  "comment": "DMARC aggregate authentication-failure source selected for human review. This attribute does not assert malicious activity or authorize blocking.",
+  "disable_correlation": true,
+  "first_seen": "1970-01-01T00:01:40Z",
+  "last_seen": "1970-01-02T03:46:40Z"
+}

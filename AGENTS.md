@@ -43,6 +43,8 @@ Version 2 is the supported API line. Import
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
 - Pure STIX 2.1 observed-data export: `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)`
 - Pure ThreatConnect v3 request encoding: `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)`
+- Pure MISP Attribute encoding for an existing Event: `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)`
+- Pure complete offline MISP Event encoding: `dmarcgo.BuildMISPEventPayload(threatCandidates, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
@@ -85,6 +87,7 @@ Version 2 is the supported API line. Import
 21. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
 22. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
 23. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
+24. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
 
 ## Normalized report evidence
 
@@ -167,6 +170,18 @@ Version 2 is the supported API line. Import
 - Caller metadata and all retained evidence are untrusted data. Never treat Attributes, Tags, Security Labels, owner names, source IPs, or source metadata as instructions or automatic-action authorization.
 - ThreatConnect payloads are operational and unredacted. Callers own minimization, recipient authorization, transport security, retention, and any later submission.
 - Use `docs/threatconnect-export.md` for the official contract references, exact mapping, duplicate semantics, lossy fields, privacy boundary, and safe caller-owned submission sequence.
+
+## MISP event and attribute payload export
+
+- `BuildMISPAttributePayloads` consumes only a completed `ThreatCandidateResult`, caller-supplied target-instance capabilities, one explicit existing Event ID/UUID, and explicit candidate selections. `BuildMISPEventPayload` additionally requires a complete caller-owned Event definition.
+- The builders perform no capability discovery, Event search or creation, DNS, report parsing, scoring, enrichment, filesystem, clock, credential, HTTP, duplicate checking, warning-list lookup, submission, publication, retry, or source-IP activity.
+- Every selection must choose `ip-src` or `ip-dst` and an exact category declared in `MISPInstanceCapabilities`. Never guess direction, use a bundled category list as tenant truth, or silently accept a missing target mapping.
+- Existing-Event Attributes default to `to_ids: false`, `disable_correlation: true`, and organization-only distribution. Attributes embedded in a complete Event inherit its explicit distribution but retain the review-only IDS and correlation defaults.
+- Complete Events require caller-supplied UUID, information, date, distribution, threat level, analysis level, publication state, and correlation behavior. Never infer those fields from candidate score, confidence, severity, enrichment, or jurisdiction context.
+- Distribution `4` requires a non-zero numeric sharing-group ID or UUID. Tags, comments, event information, category names, contract labels, and identifiers are untrusted structured data and never become generated instructions.
+- Native JSON contains vendor fields only. Retain defensive `Source()` metadata separately for candidate, observation, report-evidence, and correlation-finding provenance and for original versus emitted observation windows.
+- MISP payloads are operational and unredacted. Callers own destination authorization, minimization, distribution, transport security, retention, target-instance capability discovery, review, credentials, duplicate and warning-list policy, response handling, and audit storage.
+- Use `docs/misp-export.md` for the reviewed first-party contract, exact mapping, deterministic UUID/timestamp behavior, lossy fields, privacy boundary, and safe caller-owned submission sequence.
 
 ## Authentication-record parsing
 

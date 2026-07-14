@@ -185,6 +185,11 @@ tests used by the Phase 13 integration gate.
   a campaign-specific exact signal, and high-confidence provenance appropriate
   to both identity and signal. Automatic disposition is dual-opt-in,
   unique-match-only, and still never executed by the library.
+- Exact campaign DKIM identities match only a passing signature unless the
+  campaign explicitly sets `authentication.dkim: not_expected`; optional DKIM
+  never treats a failed signature as a campaign-specific signal.
+- `NewCampaignHTTPSSource` copies the supplied `http.Client` and blocks an
+  HTTPS-to-HTTP redirect before the downgraded request is sent.
 - Recheck snapshot effective and expiry bounds at the explicit classification
   generation time. A reused expired snapshot must remain expired and can never
   recover authorization or automatic-disposition eligibility.

@@ -74,6 +74,8 @@
 // with an immutable campaign snapshot. High confidence requires current
 // authorization, campaign time, organization scope, message identity, and a
 // campaign-specific signal with appropriate high-confidence provenance;
+// an exact DKIM identity requires a passing signature unless the campaign
+// explicitly declares that DKIM is not expected;
 // provider, domain, URL, or source-IP matches alone never authorize.
 // CorrelateCampaignReportEvidence keeps aggregate report
 // evidence lower confidence and can never prove an individual message or enable

@@ -43,7 +43,8 @@ high-confidence match.
 
 Source resolution is explicit. The library does not discover configuration,
 read process environment variables, follow directory symlinks, refresh remote
-feeds, retry, or use credentials implicitly. Applications own TLS, redirect,
+feeds, retry, or use credentials implicitly. The HTTPS adapter blocks downgrade
+redirects before sending them. Applications own same-scheme redirect, TLS,
 proxy, credential, cache, rate, retention, and last-known-good policy.
 
 Treat campaign/provider names, tickets, source metadata, message fields,

@@ -769,15 +769,9 @@ func CampaignConfigurationSourcesFromDirectory(ctx context.Context, path string,
 	return result, nil
 }
 
-// CampaignHTTPClient is the caller-controlled HTTP dependency for an explicit
-// HTTPS source.
-type CampaignHTTPClient interface {
-	Do(*http.Request) (*http.Response, error)
-}
-
 type campaignHTTPSSource struct {
 	url    string
-	client CampaignHTTPClient
+	client *http.Client
 }
 
 func (source campaignHTTPSSource) Load(ctx context.Context) ([]byte, CampaignConfigurationMetadata, error) {
@@ -793,7 +787,7 @@ func (source campaignHTTPSSource) Load(ctx context.Context) ([]byte, CampaignCon
 	if response == nil || response.Body == nil {
 		return nil, CampaignConfigurationMetadata{}, ErrCampaignSourceFailed
 	}
-	if response.Request == nil || response.Request.URL == nil || response.Request.URL.Scheme != "https" {
+	if response.Request == nil || response.Request.URL == nil || !strings.EqualFold(response.Request.URL.Scheme, "https") || response.Request.URL.Host == "" || response.Request.URL.User != nil {
 		_ = response.Body.Close() // Cleanup-only after rejecting the response.
 		return nil, CampaignConfigurationMetadata{}, ErrCampaignSourceFailed
 	}
@@ -821,14 +815,28 @@ func (source campaignHTTPSSource) Load(ctx context.Context) ([]byte, CampaignCon
 }
 
 // NewCampaignHTTPSSource creates an explicit HTTPS-only adapter using a
-// caller-controlled client. Redirect, proxy, credentials, retry, and caching
-// policy remain with that client.
-func NewCampaignHTTPSSource(rawURL string, client CampaignHTTPClient) (CampaignConfigurationSource, error) {
+// caller-controlled client. The adapter copies the client and blocks redirect
+// targets that would leave HTTPS before any downgraded request is sent.
+func NewCampaignHTTPSSource(rawURL string, client *http.Client) (CampaignConfigurationSource, error) {
 	parsed, err := url.Parse(rawURL)
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || client == nil || parsed.User != nil {
+	if err != nil || !strings.EqualFold(parsed.Scheme, "https") || parsed.Host == "" || client == nil || parsed.User != nil {
 		return nil, ErrInvalidCampaignSourceOptions
 	}
-	return campaignHTTPSSource{url: parsed.String(), client: client}, nil
+	clientCopy := *client
+	callerCheckRedirect := clientCopy.CheckRedirect
+	clientCopy.CheckRedirect = func(request *http.Request, via []*http.Request) error {
+		if request == nil || request.URL == nil || !strings.EqualFold(request.URL.Scheme, "https") || request.URL.Host == "" || request.URL.User != nil {
+			return ErrCampaignSourceFailed
+		}
+		if callerCheckRedirect != nil {
+			return callerCheckRedirect(request, via)
+		}
+		if len(via) >= 10 {
+			return ErrCampaignSourceFailed
+		}
+		return nil
+	}
+	return campaignHTTPSSource{url: parsed.String(), client: &clientCopy}, nil
 }
 
 // CampaignEnvironmentLookup resolves one explicitly requested value without
@@ -849,7 +857,7 @@ type campaignEnvironmentSource struct {
 	name   string
 	kind   CampaignEnvironmentValueKind
 	lookup CampaignEnvironmentLookup
-	client CampaignHTTPClient
+	client *http.Client
 }
 
 func (source campaignEnvironmentSource) Load(ctx context.Context) ([]byte, CampaignConfigurationMetadata, error) {
@@ -883,7 +891,7 @@ func (source campaignEnvironmentSource) Load(ctx context.Context) ([]byte, Campa
 // NewCampaignEnvironmentSource creates an opt-in environment adapter. The
 // caller supplies both lookup and interpretation; the library never calls
 // os.Getenv and never auto-detects a path or URL.
-func NewCampaignEnvironmentSource(name string, kind CampaignEnvironmentValueKind, lookup CampaignEnvironmentLookup, client CampaignHTTPClient) (CampaignConfigurationSource, error) {
+func NewCampaignEnvironmentSource(name string, kind CampaignEnvironmentValueKind, lookup CampaignEnvironmentLookup, client *http.Client) (CampaignConfigurationSource, error) {
 	if strings.TrimSpace(name) == "" || lookup == nil || kind != CampaignEnvironmentInline && kind != CampaignEnvironmentFile && kind != CampaignEnvironmentHTTPS || kind == CampaignEnvironmentHTTPS && client == nil {
 		return nil, ErrInvalidCampaignSourceOptions
 	}

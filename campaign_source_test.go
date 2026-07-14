@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -322,12 +321,16 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 		if request.Header.Get("Accept") == "" {
 			t.Error("HTTPS source omitted Accept header")
 		}
+		if request.URL.Path == "/redirect" {
+			http.Redirect(writer, request, "/campaigns", http.StatusFound)
+			return
+		}
 		writer.Header().Set("ETag", "fixture-etag")
 		writer.Header().Set("Last-Modified", "Tue, 14 Jul 2026 12:00:00 GMT")
 		_, _ = writer.Write(data)
 	}))
 	t.Cleanup(server.Close)
-	httpsSource, err := NewCampaignHTTPSSource(server.URL, server.Client())
+	httpsSource, err := NewCampaignHTTPSSource(server.URL+"/redirect", server.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,13 +348,37 @@ func TestCampaignConfigurationSourceAdaptersAreExplicitAndBounded(t *testing.T) 
 	}
 }
 
+func TestCampaignHTTPSourceBlocksDowngradeRedirectBeforeRequest(t *testing.T) {
+	var insecureRequests atomic.Int32
+	insecureServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		insecureRequests.Add(1)
+	}))
+	t.Cleanup(insecureServer.Close)
+	secureServer := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		http.Redirect(writer, request, insecureServer.URL+"/campaigns", http.StatusFound)
+	}))
+	t.Cleanup(secureServer.Close)
+	source, err := NewCampaignHTTPSSource(secureServer.URL, secureServer.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := source.Load(context.Background()); !errors.Is(err, ErrCampaignSourceFailed) {
+		t.Fatalf("downgrade redirect error = %v", err)
+	}
+	if insecureRequests.Load() != 0 {
+		t.Fatalf("HTTPS adapter sent %d downgraded requests", insecureRequests.Load())
+	}
+}
+
 func TestCampaignHTTPSourceReportsUnexpectedCloseFailure(t *testing.T) {
-	client := campaignStaticHTTPClient{response: &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     make(http.Header),
-		Body:       &campaignCloseErrorBody{Reader: strings.NewReader(campaignTestYAML("close-error", "training.example.test"))},
-		Request:    &http.Request{URL: mustCampaignURL(t, "https://config.example.test/campaigns")},
-	}}
+	client := &http.Client{Transport: campaignRoundTripperFunc(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       &campaignCloseErrorBody{Reader: strings.NewReader(campaignTestYAML("close-error", "training.example.test"))},
+			Request:    request,
+		}, nil
+	})}
 	source, err := NewCampaignHTTPSSource("https://config.example.test/campaigns", client)
 	if err != nil {
 		t.Fatal(err)
@@ -393,10 +420,10 @@ func (campaignCanceledSource) Load(context.Context) ([]byte, CampaignConfigurati
 	return nil, CampaignConfigurationMetadata{}, context.Canceled
 }
 
-type campaignStaticHTTPClient struct{ response *http.Response }
+type campaignRoundTripperFunc func(*http.Request) (*http.Response, error)
 
-func (client campaignStaticHTTPClient) Do(*http.Request) (*http.Response, error) {
-	return client.response, nil
+func (roundTrip campaignRoundTripperFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return roundTrip(request)
 }
 
 type campaignCloseErrorBody struct{ *strings.Reader }
@@ -407,15 +434,6 @@ type campaignTypedNilSource struct{}
 
 func (*campaignTypedNilSource) Load(context.Context) ([]byte, CampaignConfigurationMetadata, error) {
 	return nil, CampaignConfigurationMetadata{}, nil
-}
-
-func mustCampaignURL(t *testing.T, value string) *url.URL {
-	t.Helper()
-	parsed, err := url.Parse(value)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return parsed
 }
 
 type campaignTestVerifier struct {

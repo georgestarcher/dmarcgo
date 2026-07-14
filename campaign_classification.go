@@ -275,7 +275,7 @@ func evaluateCampaign(snapshot CampaignConfigurationSnapshot, evidence ReportedM
 		campaignFactor(evidence, CampaignFactorRecipientScope, campaignListFactor(campaign.RecipientDomains, value.RecipientDomains, campaign.RecipientScopeIDs, value.RecipientScopeIDs), required),
 		campaignFactor(evidence, CampaignFactorHeaderFrom, campaignSingleDomainFactor(campaign.ExpectedIdentity.HeaderFromDomains, value.HeaderFromDomain), required),
 		campaignFactor(evidence, CampaignFactorEnvelopeFrom, campaignSingleDomainFactor(campaign.ExpectedIdentity.EnvelopeFromDomains, value.EnvelopeFromDomain), required),
-		campaignFactor(evidence, CampaignFactorDKIM, campaignDKIMFactor(campaign.ExpectedIdentity.DKIM, value.DKIM), required),
+		campaignFactor(evidence, CampaignFactorDKIM, campaignDKIMFactor(campaign.ExpectedIdentity.DKIM, value.DKIM, campaign.Authentication.DKIM), required),
 		campaignFactor(evidence, CampaignFactorSourceAddress, campaignSourceAddressFactor(campaign.ExpectedSources.CIDRs, value.SourceAddresses), required),
 		campaignFactor(evidence, CampaignFactorSourceHostname, campaignListFactor(campaign.ExpectedSources.Hostnames, value.SourceHostnames, nil, nil), required),
 		campaignFactor(evidence, CampaignFactorMessageID, campaignSingleDomainFactor(campaign.ExpectedIdentity.MessageIDDomains, value.MessageIDDomain), required),
@@ -478,31 +478,37 @@ func campaignListFactor(expected, observed, alternateExpected, alternateObserved
 	return CampaignFactorMismatched
 }
 
-func campaignDKIMFactor(expected []CampaignDKIMIdentity, observed []CampaignDKIMEvidence) CampaignFactorState {
+func campaignDKIMFactor(expected []CampaignDKIMIdentity, observed []CampaignDKIMEvidence, authentication CampaignAuthenticationExpectation) CampaignFactorState {
 	if len(expected) == 0 {
 		return CampaignFactorUnverifiable
 	}
 	if len(observed) == 0 {
 		return CampaignFactorMissing
 	}
-	for expectedIndex, observedIndex := 0, 0; expectedIndex < len(expected) && observedIndex < len(observed); {
-		want := expected[expectedIndex]
-		got := observed[observedIndex]
-		switch {
-		case want.Domain < got.Domain:
-			expectedIndex++
-		case want.Domain > got.Domain:
-			observedIndex++
-		default:
-			domain := got.Domain
-			for observedIndex < len(observed) && observed[observedIndex].Domain == domain {
-				if campaignContainsString(want.Selectors, observed[observedIndex].Selector) {
-					return CampaignFactorMatched
-				}
-				observedIndex++
+	identityUnknown := false
+	identityContradicted := false
+	for _, want := range expected {
+		for _, got := range observed {
+			if want.Domain != got.Domain || !campaignContainsString(want.Selectors, got.Selector) {
+				continue
 			}
-			expectedIndex++
+			switch {
+			case got.Outcome == ReportAuthenticationUnknown:
+				identityUnknown = true
+			case authentication == CampaignAuthenticationNotExpected && got.Outcome == ReportAuthenticationFail:
+				return CampaignFactorMatched
+			case authentication != CampaignAuthenticationNotExpected && got.Outcome == ReportAuthenticationPass:
+				return CampaignFactorMatched
+			default:
+				identityContradicted = true
+			}
 		}
+	}
+	if identityContradicted {
+		return CampaignFactorMismatched
+	}
+	if identityUnknown {
+		return CampaignFactorMissing
 	}
 	return CampaignFactorMismatched
 }

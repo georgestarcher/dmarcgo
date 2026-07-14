@@ -197,6 +197,51 @@ func TestClassifyReportedMessageDoesNotMaskExpectedAuthenticationIdentityFailure
 	}
 }
 
+func TestClassifyReportedMessageRequiresExpectedDKIMIdentityOutcome(t *testing.T) {
+	config := campaignTestConfig("quarterly-awareness", "training.example.test")
+	campaign := &config.SecuritySimulations[0]
+	campaign.Authentication = CampaignAuthenticationConfig{}
+	campaign.MatchPolicy.RequiredFactors = []CampaignMatchFactor{
+		CampaignFactorWindow,
+		CampaignFactorOrganizationScope,
+		CampaignFactorHeaderFrom,
+		CampaignFactorDKIM,
+		CampaignFactorTokenDigest,
+	}
+	input := campaignTestEvidenceInput()
+	input.DKIM[0].Outcome = ReportAuthenticationFail
+	input.DKIMOutcome = ReportAuthenticationFail
+	input.DMARCOutcome = ReportAuthenticationFail
+	result, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, input),
+		CampaignClassificationOptions{AllowAutomaticDisposition: true},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Summary().OverallClassification == CampaignAuthorizedHighConfidence ||
+		result.Summary().OverallClassification == CampaignPossibleAuthorized ||
+		result.Summary().AutomaticDispositionReady != 0 ||
+		!campaignAnyFactor(result.Records()[0].Mismatched, CampaignFactorDKIM) {
+		t.Fatalf("failed DKIM identity authorized a default campaign: records=%+v summary=%+v", result.Records(), result.Summary())
+	}
+
+	config.SecuritySimulations[0].Authentication.DKIM = CampaignAuthenticationNotExpected
+	allowed, err := ClassifyReportedMessage(
+		campaignTestSnapshot(t, config),
+		campaignTestEvidence(t, input),
+		CampaignClassificationOptions{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if allowed.Summary().OverallClassification != CampaignAuthorizedHighConfidence ||
+		!campaignAnyFactor(allowed.Records()[0].Matched, CampaignFactorDKIM, CampaignFactorAuthentication) {
+		t.Fatalf("explicit not-expected DKIM outcome did not match: records=%+v summary=%+v", allowed.Records(), allowed.Summary())
+	}
+}
+
 func TestClassifyReportedMessageRequiredInventoryFailureCannotDowngrade(t *testing.T) {
 	config := campaignTestConfig("quarterly-awareness", "training.example.test")
 	config.Imports = []CampaignImportConfig{{SourceID: "unavailable-subsidiary", Required: true}}

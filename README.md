@@ -965,6 +965,9 @@ Snapshot effective and expiry bounds are rechecked at the explicit evaluation
 time, so reusing an expired snapshot cannot authorize a message.
 Canceled campaigns remain ordinary suspicious-message evidence rather than
 possible or high-confidence authorization.
+An exact campaign DKIM identity requires that signature to pass unless the
+campaign explicitly declares `authentication.dkim: not_expected`; the optional
+default never turns a failed signature into positive campaign evidence.
 Automatic disposition requires dual caller/configuration opt-in and exactly one
 high-confidence match, but the library still performs no action.
 

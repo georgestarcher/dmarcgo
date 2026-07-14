@@ -113,11 +113,12 @@ to this module. The library supplies optional adapters for:
 - explicit HTTPS using a caller-controlled client with
   `NewCampaignHTTPSSource`.
 
-The module never reads process environment variables by itself. HTTPS redirect,
-proxy, credential, caching, retry, TLS, and rate policy belong to the supplied
-client. A final redirected response must still be HTTPS. Directory discovery
-does not follow symlinks. File and HTTP read/close errors that could mean
-incomplete input are returned.
+The module never reads process environment variables by itself. The HTTPS
+adapter copies the supplied `http.Client` and rejects any redirect target that
+would leave HTTPS before that request is sent; same-scheme redirect, proxy,
+credential, caching, retry, TLS, and rate policy otherwise remain caller-owned.
+Directory discovery does not follow symlinks. File and HTTP read/close errors
+that could mean incomplete input are returned.
 
 `ResolveCampaignConfiguration` loads only the supplied source specifications
 and import IDs. Imports never discover a location. Resolution is deterministic,
@@ -193,6 +194,10 @@ authorization.
 When required authentication has an expected envelope domain or exact DKIM
 domain/selector, a pass from a different SPF or DKIM identity cannot mask that
 expected identity's failure or absence.
+An exact DKIM domain/selector is a matching identity only when that signature
+passes. A campaign can explicitly describe a deliberately failing DKIM path
+with `authentication.dkim: not_expected`; the default `optional` expectation
+does not turn a failed signature into a campaign-specific signal.
 
 Supported result states include:
 

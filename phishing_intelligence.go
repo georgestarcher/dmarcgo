@@ -211,6 +211,7 @@ type PhishingIntelligenceTemporalRelationship string
 const (
 	PhishingIntelligenceTemporalUnknown       PhishingIntelligenceTemporalRelationship = "unknown"
 	PhishingIntelligenceTemporalOverlaps      PhishingIntelligenceTemporalRelationship = "overlaps"
+	PhishingIntelligenceTemporalNoOverlap     PhishingIntelligenceTemporalRelationship = "no_overlap"
 	PhishingIntelligenceTemporalBeforeReports PhishingIntelligenceTemporalRelationship = "before_reports"
 	PhishingIntelligenceTemporalAfterReports  PhishingIntelligenceTemporalRelationship = "after_reports"
 )
@@ -543,6 +544,7 @@ type phishingIntelligenceCandidateIdentifier struct {
 	value          string
 	role           PhishingIntelligenceEvidenceRole
 	observationIDs []EvidenceID
+	periods        []ReportEvidencePeriod
 }
 
 func normalizePhishingIntelligenceLicense(value PhishingIntelligenceLicense) (PhishingIntelligenceLicense, int, error) {
@@ -733,7 +735,7 @@ func phishingIntelligenceIndex(snapshots []PhishingIntelligenceSnapshot, generat
 
 func phishingIntelligenceCandidateIdentifiers(candidate ThreatCandidate, observations map[EvidenceID]ReportEvidenceObservation) ([]phishingIntelligenceCandidateIdentifier, error) {
 	values := map[string]*phishingIntelligenceCandidateIdentifier{}
-	add := func(indicatorType PhishingIntelligenceIndicatorType, value string, role PhishingIntelligenceEvidenceRole, observationID EvidenceID) {
+	add := func(indicatorType PhishingIntelligenceIndicatorType, value string, role PhishingIntelligenceEvidenceRole, observationID EvidenceID, firstSeen, lastSeen ReportEvidenceTimestamp) {
 		if value == "" {
 			return
 		}
@@ -746,9 +748,14 @@ func phishingIntelligenceCandidateIdentifiers(candidate ThreatCandidate, observa
 		if observationID != "" {
 			entry.observationIDs = append(entry.observationIDs, observationID)
 		}
+		if firstSeen.Available && lastSeen.Available {
+			entry.periods = append(entry.periods, ReportEvidencePeriod{
+				Begin: firstSeen, End: lastSeen, Evaluation: Evaluation{State: EvaluationStateEvaluated},
+			})
+		}
 	}
 	for _, observationID := range candidate.ObservationIDs {
-		add(PhishingIntelligenceSourceIP, candidate.SourceIP, PhishingIntelligenceRoleSourceIP, observationID)
+		add(PhishingIntelligenceSourceIP, candidate.SourceIP, PhishingIntelligenceRoleSourceIP, observationID, candidate.FirstSeen, candidate.LastSeen)
 	}
 	for _, observationID := range candidate.ObservationIDs {
 		observation, ok := observations[observationID]
@@ -757,7 +764,11 @@ func phishingIntelligenceCandidateIdentifiers(candidate ThreatCandidate, observa
 		}
 		addEvaluatedPhishingDomain := func(value ReportEvidenceValue, role PhishingIntelligenceEvidenceRole) {
 			if value.Evaluation.State == EvaluationStateEvaluated {
-				add(PhishingIntelligenceDomain, value.Value, role, observationID)
+				firstSeen, lastSeen := ReportEvidenceTimestamp{}, ReportEvidenceTimestamp{}
+				if observation.Period.Evaluation.State == EvaluationStateEvaluated {
+					firstSeen, lastSeen = observation.Period.Begin, observation.Period.End
+				}
+				add(PhishingIntelligenceDomain, value.Value, role, observationID, firstSeen, lastSeen)
 			}
 		}
 		addEvaluatedPhishingDomain(observation.TargetDomain, PhishingIntelligenceRoleTargetDomain)
@@ -789,7 +800,7 @@ func phishingIntelligenceCandidateIdentifiers(candidate ThreatCandidate, observa
 
 func newPhishingIntelligenceMatch(candidate ThreatCandidate, identifier phishingIntelligenceCandidateIdentifier, indexed phishingIntelligenceIndexedIndicator, generatedAt time.Time) PhishingIntelligenceMatch {
 	indicator := indexed.indicator
-	temporal := phishingIntelligenceTemporalRelationship(candidate.FirstSeen, candidate.LastSeen, indicator.FirstSeen, indicator.LastSeen)
+	temporal := phishingIntelligenceTemporalRelationship(identifier.periods, indicator.FirstSeen, indicator.LastSeen)
 	status := phishingIntelligenceMatchStatus(indexed.freshness, indicator, temporal, generatedAt)
 	match := PhishingIntelligenceMatch{
 		CandidateID: candidate.ID, ObservationIDs: append([]EvidenceID(nil), identifier.observationIDs...), SnapshotID: indexed.snapshot.id,
@@ -817,7 +828,7 @@ func phishingIntelligenceMatchStatus(freshness PhishingIntelligenceSnapshotFresh
 	if freshness == PhishingIntelligenceStale {
 		return PhishingIntelligenceMatchStale
 	}
-	if temporal == PhishingIntelligenceTemporalBeforeReports || temporal == PhishingIntelligenceTemporalAfterReports {
+	if temporal == PhishingIntelligenceTemporalNoOverlap || temporal == PhishingIntelligenceTemporalBeforeReports || temporal == PhishingIntelligenceTemporalAfterReports {
 		return PhishingIntelligenceNotOverlapping
 	}
 	if indicator.State == PhishingIntelligenceIndicatorWithdrawn {
@@ -977,17 +988,35 @@ func phishingIntelligenceSnapshotFreshness(snapshot PhishingIntelligenceSnapshot
 	return PhishingIntelligenceFresh
 }
 
-func phishingIntelligenceTemporalRelationship(reportFirst, reportLast ReportEvidenceTimestamp, indicatorFirst, indicatorLast *time.Time) PhishingIntelligenceTemporalRelationship {
-	if !reportFirst.Available || !reportLast.Available || (indicatorFirst == nil && indicatorLast == nil) {
+func phishingIntelligenceTemporalRelationship(reportPeriods []ReportEvidencePeriod, indicatorFirst, indicatorLast *time.Time) PhishingIntelligenceTemporalRelationship {
+	if len(reportPeriods) == 0 || (indicatorFirst == nil && indicatorLast == nil) {
 		return PhishingIntelligenceTemporalUnknown
 	}
-	if indicatorLast != nil && indicatorLast.Before(reportFirst.Value) {
+	beforeReports, afterReports := false, false
+	for _, period := range reportPeriods {
+		if period.Evaluation.State != EvaluationStateEvaluated || !period.Begin.Available || !period.End.Available {
+			continue
+		}
+		if indicatorLast != nil && indicatorLast.Before(period.Begin.Value) {
+			beforeReports = true
+			continue
+		}
+		if indicatorFirst != nil && indicatorFirst.After(period.End.Value) {
+			afterReports = true
+			continue
+		}
+		return PhishingIntelligenceTemporalOverlaps
+	}
+	if beforeReports && afterReports {
+		return PhishingIntelligenceTemporalNoOverlap
+	}
+	if beforeReports {
 		return PhishingIntelligenceTemporalBeforeReports
 	}
-	if indicatorFirst != nil && indicatorFirst.After(reportLast.Value) {
+	if afterReports {
 		return PhishingIntelligenceTemporalAfterReports
 	}
-	return PhishingIntelligenceTemporalOverlaps
+	return PhishingIntelligenceTemporalUnknown
 }
 
 func phishingIndicatorHasFutureTime(indicator PhishingIntelligenceIndicator, generatedAt time.Time) bool {

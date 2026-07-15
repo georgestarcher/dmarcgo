@@ -219,6 +219,79 @@ func TestCorrelatePhishingIntelligenceTemporalFreshnessAndProviderStates(t *test
 	}
 }
 
+func TestCorrelatePhishingIntelligenceTimesDomainRolesAgainstContributingObservations(t *testing.T) {
+	sourceIP := "198.51.100.20"
+	failure := threatTestRecord(sourceIP, "70", "failure.example", "reject")
+	secondFailure := threatTestRecord(sourceIP, "70", "failure.example", "quarantine")
+	passing := threatTestRecord(sourceIP, "10", "passing.example", "none", "pass")
+	reports := []*AggregateReport{
+		correlationTestReport("failure", "receiver-a.example", 100, 200, failure),
+		correlationTestReport("second-failure", "receiver-b.example", 300, 400, secondFailure),
+		correlationTestReport("passing", "receiver-c.example", 1_000, 1_100, passing),
+	}
+	portfolio, health := correlationTestDNSHealth(t, correlationTestConfig(AuthenticationPolicyConfig{}), correlationHealthyDNSValues())
+	evidence := correlationTestEvidence(t, reports, time.Unix(1_100, 0).UTC())
+	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	indicatorFirst, indicatorLast := time.Unix(100, 0).UTC(), time.Unix(200, 0).UTC()
+	snapshot := phishingIntelligenceTestSnapshot(t, "fixture", time.Unix(1_500, 0).UTC(), PhishingIntelligenceIndicatorConfig{
+		Type: PhishingIntelligenceDomain, Value: "passing.example", State: PhishingIntelligenceIndicatorActive,
+		FirstSeen: &indicatorFirst, LastSeen: &indicatorLast,
+	})
+	result, err := CorrelatePhishingIntelligence(candidates, evidence, []PhishingIntelligenceSnapshot{snapshot}, PhishingIntelligenceOptions{GeneratedAt: time.Unix(2_000, 0).UTC()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matches := result.Matches()
+	if len(matches) != 1 || matches[0].Role != PhishingIntelligenceRoleAuthorDomain || len(matches[0].ObservationIDs) != 1 ||
+		matches[0].TemporalRelationship != PhishingIntelligenceTemporalBeforeReports || matches[0].Status != PhishingIntelligenceNotOverlapping {
+		t.Fatalf("matches=%+v", matches)
+	}
+	if result.Candidates()[0].Status != PhishingIntelligenceCandidateNoOverlap {
+		t.Fatalf("candidate=%+v", result.Candidates()[0])
+	}
+}
+
+func TestCorrelatePhishingIntelligenceDoesNotBridgeDomainObservationGaps(t *testing.T) {
+	sourceIP := "198.51.100.20"
+	reports := []*AggregateReport{
+		correlationTestReport("early-passing", "receiver-a.example", 1, 50, threatTestRecord(sourceIP, "10", "passing.example", "none", "pass")),
+		correlationTestReport("failure", "receiver-b.example", 100, 200, threatTestRecord(sourceIP, "70", "failure.example", "reject")),
+		correlationTestReport("second-failure", "receiver-c.example", 300, 400, threatTestRecord(sourceIP, "70", "failure.example", "quarantine")),
+		correlationTestReport("late-passing", "receiver-d.example", 1_000, 1_100, threatTestRecord(sourceIP, "10", "passing.example", "none", "pass")),
+	}
+	portfolio, health := correlationTestDNSHealth(t, correlationTestConfig(AuthenticationPolicyConfig{}), correlationHealthyDNSValues())
+	evidence := correlationTestEvidence(t, reports, time.Unix(1_100, 0).UTC())
+	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidates, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	indicatorFirst, indicatorLast := time.Unix(100, 0).UTC(), time.Unix(200, 0).UTC()
+	snapshot := phishingIntelligenceTestSnapshot(t, "fixture", time.Unix(1_500, 0).UTC(), PhishingIntelligenceIndicatorConfig{
+		Type: PhishingIntelligenceDomain, Value: "passing.example", State: PhishingIntelligenceIndicatorActive,
+		FirstSeen: &indicatorFirst, LastSeen: &indicatorLast,
+	})
+	result, err := CorrelatePhishingIntelligence(candidates, evidence, []PhishingIntelligenceSnapshot{snapshot}, PhishingIntelligenceOptions{GeneratedAt: time.Unix(2_000, 0).UTC()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matches := result.Matches()
+	if len(matches) != 1 || len(matches[0].ObservationIDs) != 2 || matches[0].TemporalRelationship != PhishingIntelligenceTemporalNoOverlap ||
+		matches[0].Status != PhishingIntelligenceNotOverlapping || result.Candidates()[0].Status != PhishingIntelligenceCandidateNoOverlap {
+		t.Fatalf("matches=%+v candidates=%+v", matches, result.Candidates())
+	}
+}
+
 func TestCorrelatePhishingIntelligencePreservesProviderDisagreementAndPromptBoundary(t *testing.T) {
 	candidates, evidence := phishingIntelligenceTestInputs(t, "198.51.100.20")
 	generatedAt := time.Unix(120_000, 0).UTC()

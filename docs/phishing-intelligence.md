@@ -90,9 +90,13 @@ expected-sender safeguards.
 
 ## Time and provider-state semantics
 
-Exact equality alone is not an active match. When indicator times exist, the
-indicator window must overlap the candidate's aggregate report-period bounds.
-Those report bounds are not exact per-message timestamps.
+Exact equality alone is not an active match. When indicator times exist, a
+source-IP relation uses the threat candidate's aggregate dual-failure period,
+while each domain-role relation uses only the aggregate report periods of the
+observations that supplied that exact domain and role. The indicator window
+must overlap at least one of those role-specific periods; disjoint periods are
+not collapsed into an envelope that bridges the gap. Report bounds are not
+exact per-message timestamps.
 
 Each retained relation records one of these states:
 

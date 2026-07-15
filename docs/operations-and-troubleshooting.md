@@ -8,6 +8,13 @@ reviewed result may cause an external action.
 This guide describes safe ownership, freshness, rollout, and symptom-driven
 recovery without turning the library into a scheduler or enforcement system.
 
+New operators should first run the synthetic
+[domain-health journey](getting-started-domain-health.md) or
+[report-directory journey](getting-started-report-directory.md). The complete
+programs under [`examples/go`](../examples/go) make the application-owned input
+and output paths, explicit network boundary, and per-file failures visible
+before private data is introduced.
+
 ## Operational ownership
 
 | Concern | Recommended owner | Library responsibility | Application responsibility |

@@ -9,6 +9,12 @@ Start with one question and one completed result. The library has no hidden
 orchestrator: it does not read a mailbox, schedule work, store history, discover
 credentials, submit exports, or execute a defensive action.
 
+For the shortest copyable path, begin with either
+[portfolio YAML to DNS health](getting-started-domain-health.md) or a
+[report directory to corpus evidence](getting-started-report-directory.md).
+Their complete programs live under [`examples/go`](../examples/go), where both
+new users and coding agents can inspect and execute them.
+
 ## Choose a workflow
 
 | Your first question | Start here | Add later only when needed |
@@ -44,6 +50,9 @@ handoff without requiring every detail up front.
 6. Begin in observation-only mode. Review findings before adding application
    policy, alert routing, or any external submission.
 
+The complete newcomer applications under [`examples/go`](../examples/go)
+cover application-owned paths, strict portfolio loading, explicit DNS,
+mixed-directory report handling, human summaries, and native and agent output.
 The executable functions in [`examples_test.go`](../examples_test.go) cover
 report loading, portfolio normalization, explicit DNS collection, DNS health,
 report evidence, correlation, candidate scoring, campaign classification,

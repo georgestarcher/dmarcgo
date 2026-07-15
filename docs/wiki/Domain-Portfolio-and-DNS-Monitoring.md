@@ -69,12 +69,16 @@ be synthetic.
 
 ## Safe next steps
 
-Review low-coverage and unhealthy mechanisms, correct the declared inventory or
-DNS through a caller-owned change process, then collect a new snapshot. Add
+Begin with the runnable
+[portfolio-to-health journey](https://github.com/georgestarcher/dmarcgo/blob/main/docs/getting-started-domain-health.md).
+Review low-coverage and unhealthy mechanisms, correct the declared inventory
+or DNS through a caller-owned change process, then collect a new snapshot. Add
 historical report evidence only when the question requires observed mail flows.
 
 ## Authoritative references
 
+- [Runnable portfolio-to-health journey](https://github.com/georgestarcher/dmarcgo/blob/main/docs/getting-started-domain-health.md)
+- [Complete Go example](https://github.com/georgestarcher/dmarcgo/tree/main/examples/go/domain-health)
 - [Portfolio configuration](https://github.com/georgestarcher/dmarcgo/blob/main/docs/portfolio-configuration.md)
 - [DNS snapshot collection](https://github.com/georgestarcher/dmarcgo/blob/main/docs/dns-snapshots.md)
 - [Optional DNS perspective collection](https://github.com/georgestarcher/dmarcgo/blob/main/docs/dns-perspectives.md)

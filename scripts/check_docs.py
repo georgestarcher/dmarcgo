@@ -23,6 +23,11 @@ MARKDOWN_FILES = (
 )
 PUBLIC_SAMPLE_FILES = (
     ROOT / "examples_test.go",
+    *(
+        path
+        for path in sorted((ROOT / "examples" / "go").rglob("*"))
+        if path.is_file() and path.suffix in {".go", ".txt", ".xml", ".yaml"}
+    ),
     *(path for path in sorted((ROOT / "testdata" / "portfolio").glob("*.yaml"))),
     *(path for path in sorted((ROOT / "testdata" / "fixtures" / "campaigns").glob("*.yaml"))),
 )
@@ -33,7 +38,7 @@ DOMAIN_RE = re.compile(r"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9_-]+\.)+[A-Za-z]{2,}(?![
 IP_RE = re.compile(r"(?<![0-9A-Fa-f:.])(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9A-Fa-f]*:[0-9A-Fa-f:]+)(?:/\d{1,3})?(?![0-9A-Fa-f:.])")
 RESERVED_DOMAIN_SUFFIXES = (".test", ".example", ".invalid", ".localhost")
 RESERVED_DOMAIN_ROOTS = ("example.com", "example.net", "example.org")
-NON_DNS_SAMPLE_SUFFIXES = (".gz", ".json", ".xmlns")
+NON_DNS_SAMPLE_SUFFIXES = (".csv", ".gz", ".json", ".jsonl", ".txt", ".xml", ".xmlns", ".yaml")
 DOCUMENTATION_NETWORKS = tuple(
     ipaddress.ip_network(value)
     for value in ("192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24", "2001:db8::/32")
@@ -65,6 +70,20 @@ COMMON_MISSPELLINGS = {
     "truely": "truly",
 }
 REQUIRED_ADOPTION_DOCS = {
+    "getting-started-domain-health.md": (
+        "## 1. Create the portfolio",
+        "## 2. Copy and run the program",
+        "## 3. Read the result",
+        "## 4. Choose an output",
+        "## 5. Add context only after the core result",
+    ),
+    "getting-started-report-directory.md": (
+        "## 1. Copy and run the program",
+        "## 2. Read the result",
+        "## 3. Optionally correlate completed results",
+        "## 4. Choose an output",
+        "## 5. Add context only after candidate review",
+    ),
     "optional-context-configuration.md": (
         "## Start here",
         "## Agent-assisted setup",
@@ -350,7 +369,9 @@ def validate_sample_safety(errors: list[str], path: Path, provider_domains: set[
     network_text = go_strings_and_comments(text) if is_go else text
     # Only Go examples may demonstrate exact DNS names already reviewed in the
     # embedded catalog. Portfolio/campaign fixtures remain fully synthetic.
-    allowed_domains = provider_domains if is_go else set()
+    # Go sample imports may contain the repository host. This exact host is not
+    # an organization-domain fixture and does not permit arbitrary subdomains.
+    allowed_domains = provider_domains | {"github.com"} if is_go else set()
     for message in sample_network_errors(network_text, allowed_domains):
         report(errors, path, message)
 

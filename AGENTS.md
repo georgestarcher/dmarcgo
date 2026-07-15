@@ -77,6 +77,20 @@ go get github.com/georgestarcher/dmarcgo/v2@latest
 Version 2 is the supported API line. Import
 `github.com/georgestarcher/dmarcgo/v2`; the historical v1 API is not maintained.
 
+For a first integration, inspect the complete copyable programs under
+`examples/go` before assembling calls from the API catalog:
+
+- `examples/go/domain-health` loads a strict application-owned portfolio,
+  previews its TXT names, collects bounded DNS evidence, evaluates health, and
+  writes human, native, and public-agent output.
+- `examples/go/report-directory` handles a mixed application-owned report
+  directory, validates and deduplicates reports, summarizes the corpus, writes
+  rows and normalized evidence, and demonstrates optional correlation.
+
+Use only synthetic committed fixtures. Private domains, record inventories,
+report corpora, and source IPs may be used for local compatibility testing but
+must not enter these public examples.
+
 ## Choose the right API
 
 - Local report artifact path, including raw XML: `dmarcgo.LoadFile(path)`

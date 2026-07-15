@@ -42,6 +42,10 @@ Wiki text is not a substitute for the contract shipped with a selected module
 version. Vendor exports still require the caller to confirm the current target
 instance contract and lifecycle behavior.
 
+XARF is not a dmarcgo export contract. DMARC aggregate evidence cannot supply
+the current XARF v4.2.0 per-message SMTP fields without invention. See the
+[repository feasibility decision](https://github.com/georgestarcher/dmarcgo/blob/main/docs/xarf-feasibility.md).
+
 ## Sensitive data
 
 Schemas describe shape, not recipient authorization. Operational and restricted
@@ -62,3 +66,4 @@ changes as explicit migrations.
 - [Changelog](https://github.com/georgestarcher/dmarcgo/blob/main/CHANGELOG.md)
 - [RFC 9990 aggregate reporting](https://www.rfc-editor.org/rfc/rfc9990.html)
 - [RFC 9989 DMARC](https://www.rfc-editor.org/rfc/rfc9989.html)
+- [XARF v4 feasibility decision](https://github.com/georgestarcher/dmarcgo/blob/main/docs/xarf-feasibility.md)

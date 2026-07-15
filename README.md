@@ -59,6 +59,10 @@ original API and is retained only for Go module history; it is not maintained.
 
 It does not provide a mailbox ingester, directory watcher, database, CLI,
 dashboard, generic IP-reputation engine, or automatic enforcement system.
+It also does not build or send XARF abuse reports. Current XARF v4.2.0 SMTP
+reports require per-message and connection evidence that DMARC aggregate
+reports do not contain. See the
+[XARF v4 feasibility decision](docs/xarf-feasibility.md).
 
 The planned organizational-analysis features follow independently callable
 stages with explicit side-effect boundaries. See

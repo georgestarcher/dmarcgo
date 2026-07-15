@@ -27,6 +27,7 @@ authoritative, versioned sources for behavior.
 | Build ThreatConnect v3 request payloads | [ThreatConnect export](threatconnect-export.md) |
 | Build MISP Attribute or Event payloads | [MISP export](misp-export.md) |
 | Build tenant-contract ThreatStream payloads | [ThreatStream export](threatstream-export.md) |
+| Understand why aggregate evidence is not exported as XARF | [XARF v4 feasibility decision](xarf-feasibility.md) |
 | Compose independent stages and outputs | [Automation workflows](automation-workflows.md) |
 
 ## Other contracts

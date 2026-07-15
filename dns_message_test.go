@@ -146,20 +146,12 @@ func TestDNSMessageResolverAcceptsValidServerPort(t *testing.T) {
 }
 
 func TestDNSMessageResolverRetriesMalformedTruncatedUDPOverTCP(t *testing.T) {
-	tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.ParseIP("127.0.0.1")})
-	if err != nil {
-		t.Fatal(err)
-	}
+	tcpListener, udpListener := listenSharedDNSFixturePort(t)
 	t.Cleanup(func() {
 		if err := tcpListener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			t.Errorf("close TCP fixture listener: %v", err)
 		}
 	})
-	tcpAddress := tcpListener.Addr().(*net.TCPAddr)
-	udpListener, err := net.ListenUDP("udp4", &net.UDPAddr{IP: tcpAddress.IP, Port: tcpAddress.Port})
-	if err != nil {
-		t.Fatal(err)
-	}
 	t.Cleanup(func() {
 		if err := udpListener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			t.Errorf("close UDP fixture listener: %v", err)
@@ -193,6 +185,32 @@ func TestDNSMessageResolverRetriesMalformedTruncatedUDPOverTCP(t *testing.T) {
 	if result.Status != DNSObservationSuccess || len(result.Records) != 1 || result.Records[0].Joined != "v=spf1 -all" {
 		t.Fatalf("TCP fallback result = %+v", result)
 	}
+}
+
+func listenSharedDNSFixturePort(t *testing.T) (*net.TCPListener, *net.UDPConn) {
+	t.Helper()
+	const maxAttempts = 16
+	var lastErr error
+	for range maxAttempts {
+		// Allocate through UDP first. Windows can choose a TCP ephemeral port
+		// that belongs to a UDP-excluded range, making the second bind fail with
+		// WSAEACCES even though the TCP bind succeeded.
+		udpListener, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP("127.0.0.1")})
+		if err != nil {
+			t.Fatalf("listen UDP fixture: %v", err)
+		}
+		udpAddress := udpListener.LocalAddr().(*net.UDPAddr)
+		tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: udpAddress.IP, Port: udpAddress.Port})
+		if err == nil {
+			return tcpListener, udpListener
+		}
+		lastErr = err
+		if closeErr := udpListener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			t.Fatalf("close UDP fixture after TCP bind failure: %v", closeErr)
+		}
+	}
+	t.Fatalf("listen TCP and UDP fixtures on one port after %d attempts: %v", maxAttempts, lastErr)
+	return nil, nil
 }
 
 func serveMalformedTruncatedUDPFixture(connection *net.UDPConn, result chan<- error) {

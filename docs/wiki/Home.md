@@ -28,6 +28,8 @@ scheduler, dashboard, reputation service, or automatic enforcement system.
   for record names declared in a normalized portfolio.
 - Source enrichment is optional, caller supplied, and must not contact the
   observed source IP.
+- Source-activity context is explicit per candidate, discloses selected IPs to
+  a caller-chosen third party, and never changes scoring or authorizes action.
 - Authentication failure is review evidence, not proof of malicious activity.
 - Export builders create offline payloads; they do not submit, publish, block,
   or enforce.

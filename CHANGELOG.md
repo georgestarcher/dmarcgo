@@ -49,6 +49,13 @@ and this project uses semantic versioning for public API changes.
   no-op, and no DNS-health or maturity effects. Current DShield research and
   the decision not to ship an adapter without usable authentication-owner TXT
   behavior are documented.
+- Explicit optional source-activity collection for caller-selected,
+  review-eligible threat-candidate addresses, with a provider-neutral
+  third-party boundary, one-shot bounded lookups, deterministic time-qualified
+  evidence, partial-failure and rate-limit states, fixed safe guidance, and no
+  score or enforcement effects. Current DShield terms and API research plus the
+  decision not to ship an adapter without a stable IPv6 response contract are
+  documented.
 - Standard-library and DNS-message resolver adapters. The DNS-message adapter
   preserves TTL, authoritative/recursive source, RCODE, CNAME path, SOA, and
   RFC 2308 negative-cache TTL evidence; limited adapters mark unavailable

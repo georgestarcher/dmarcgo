@@ -98,6 +98,15 @@
 // lookup, and never contacts an observed source IP. Enrichment never enables
 // promotion or automatic action.
 //
+// CollectSourceActivity is a separate optional branch for explicitly selected
+// review-eligible candidate addresses. It calls only a caller-supplied
+// SourceActivityProvider, deduplicates addresses, defaults to one outstanding
+// request, bounds normalized evidence, and never retries or sleeps. Empty
+// selection and nil-provider paths perform no lookup or clock access. The
+// result preserves activity windows, freshness, conflicts, partial failures,
+// truncation, and retry metadata without changing any candidate decision. The
+// library ships no DShield adapter and never contacts the subject IP.
+//
 // EvaluateJurisdictionContext is the following pure, offline context stage. It
 // compares completed coarse country assertions with an explicit immutable
 // JurisdictionRiskPolicy, preserves conflicts and provenance, and emits only

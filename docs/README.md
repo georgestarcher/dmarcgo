@@ -20,6 +20,7 @@ authoritative, versioned sources for behavior.
 | Classify approved security simulations | [Campaign correlation](campaign-correlation.md) |
 | Score neutral sources for human review | [Threat candidates](threat-candidates.md) |
 | Add optional source and ASN context | [Source enrichment](source-enrichment.md) |
+| Add selected third-party source-activity context | [Source activity](source-activity.md) |
 | Add coarse, qualified jurisdiction context | [Jurisdiction context](jurisdiction-context.md) |
 | Build STIX 2.1 observations | [STIX export](stix-export.md) |
 | Build ThreatConnect v3 request payloads | [ThreatConnect export](threatconnect-export.md) |

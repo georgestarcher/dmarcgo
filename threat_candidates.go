@@ -215,16 +215,17 @@ type ThreatCandidateSummary struct {
 
 // ThreatCandidateResult is an immutable pure-scoring result.
 type ThreatCandidateResult struct {
-	metadata             ResultMetadata
-	version              string
-	organizationID       string
-	portfolioDigest      AnalysisID
-	reportEvidenceDigest AnalysisID
-	correlationDigest    AnalysisID
-	digest               AnalysisID
-	profile              ThreatCandidateScoringProfile
-	candidates           []ThreatCandidate
-	summary              ThreatCandidateSummary
+	metadata               ResultMetadata
+	version                string
+	organizationID         string
+	includeExpectedSenders bool
+	portfolioDigest        AnalysisID
+	reportEvidenceDigest   AnalysisID
+	correlationDigest      AnalysisID
+	digest                 AnalysisID
+	profile                ThreatCandidateScoringProfile
+	candidates             []ThreatCandidate
+	summary                ThreatCandidateSummary
 }
 
 func (result ThreatCandidateResult) ResultMetadata() ResultMetadata { return result.metadata }
@@ -472,7 +473,8 @@ func ScoreThreatCandidates(portfolio Portfolio, evidence ReportEvidenceResult, c
 	}
 	return ThreatCandidateResult{
 		metadata: metadata, version: ThreatCandidateScoringVersion, organizationID: portfolio.Organization().ID,
-		portfolioDigest: portfolio.Digest(), reportEvidenceDigest: evidence.Digest(), correlationDigest: correlation.Digest(),
+		includeExpectedSenders: options.IncludeExpectedSenders,
+		portfolioDigest:        portfolio.Digest(), reportEvidenceDigest: evidence.Digest(), correlationDigest: correlation.Digest(),
 		digest: StableAnalysisID("threat_candidates", string(canonical)), profile: profile,
 		candidates: cloneThreatCandidates(candidates), summary: cloneThreatCandidateSummary(summary),
 	}, nil

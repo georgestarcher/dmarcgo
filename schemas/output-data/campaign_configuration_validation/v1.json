@@ -1,0 +1,594 @@
+{
+  "$defs": {
+    "CampaignAuthentication": {
+      "additionalProperties": false,
+      "properties": {
+        "dkim": {
+          "type": "string"
+        },
+        "dmarc": {
+          "type": "string"
+        },
+        "spf": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dkim",
+        "dmarc",
+        "spf"
+      ],
+      "type": "object"
+    },
+    "CampaignDKIMIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "selectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "selectors"
+      ],
+      "type": "object"
+    },
+    "CampaignExpectedIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "dkim": {
+          "items": {
+            "$ref": "#/$defs/CampaignDKIMIdentity"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "envelope_from_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "header_from_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "message_id_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "dkim",
+        "envelope_from_domains",
+        "header_from_domains",
+        "message_id_domains"
+      ],
+      "type": "object"
+    },
+    "CampaignExpectedSources": {
+      "additionalProperties": false,
+      "properties": {
+        "cidrs": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "hostnames": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "infrastructure_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "cidrs",
+        "hostnames",
+        "infrastructure_ids"
+      ],
+      "type": "object"
+    },
+    "CampaignHandling": {
+      "additionalProperties": false,
+      "properties": {
+        "automatic_disposition_eligible": {
+          "type": "boolean"
+        },
+        "retain_authentication_findings": {
+          "type": "boolean"
+        },
+        "workflow_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "automatic_disposition_eligible",
+        "retain_authentication_findings"
+      ],
+      "type": "object"
+    },
+    "CampaignProvider": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "CampaignResponsePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "analyst_visibility": {
+          "type": "string"
+        },
+        "campaign_owner_visibility": {
+          "type": "string"
+        },
+        "employee_disclosure": {
+          "type": "string"
+        },
+        "employee_template_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "analyst_visibility",
+        "campaign_owner_visibility",
+        "employee_disclosure"
+      ],
+      "type": "object"
+    },
+    "CampaignSourceDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "id",
+        "message",
+        "sensitivity",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "CampaignSourceProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "content_digest": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "document_digest": {
+          "type": "string"
+        },
+        "effective_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "etag": {
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "integrity_verified": {
+          "type": "boolean"
+        },
+        "last_modified": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "replace_campaign_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "integrity_verified",
+        "priority",
+        "replace_campaign_ids",
+        "required",
+        "sensitivity",
+        "source_id",
+        "state"
+      ],
+      "type": "object"
+    },
+    "SecuritySimulationCampaign": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_reference": {
+          "type": "string"
+        },
+        "authentication": {
+          "$ref": "#/$defs/CampaignAuthentication"
+        },
+        "business_unit": {
+          "type": "string"
+        },
+        "campaign_token_digests": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "content_fingerprints": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "delivery_exception_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "digest": {
+          "type": "string"
+        },
+        "entity": {
+          "type": "string"
+        },
+        "expected_identity": {
+          "$ref": "#/$defs/CampaignExpectedIdentity"
+        },
+        "expected_sources": {
+          "$ref": "#/$defs/CampaignExpectedSources"
+        },
+        "external_campaign_id": {
+          "type": "string"
+        },
+        "handling": {
+          "$ref": "#/$defs/CampaignHandling"
+        },
+        "id": {
+          "type": "string"
+        },
+        "minimum_matched_factors": {
+          "type": "integer"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/CampaignProvider"
+        },
+        "recipient_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "recipient_scope_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "required_factors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "response_policy": {
+          "$ref": "#/$defs/CampaignResponsePolicy"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "source_priority": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "url_domains": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "valid_from": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "valid_until": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "approval_reference",
+        "authentication",
+        "campaign_token_digests",
+        "content_fingerprints",
+        "created_at",
+        "delivery_exception_ids",
+        "digest",
+        "expected_identity",
+        "expected_sources",
+        "handling",
+        "id",
+        "minimum_matched_factors",
+        "organization",
+        "owner",
+        "provider",
+        "recipient_domains",
+        "recipient_scope_ids",
+        "required_factors",
+        "response_policy",
+        "status",
+        "url_domains",
+        "valid_from",
+        "valid_until"
+      ],
+      "type": "object"
+    },
+    "campaignConfigurationDisclosureData": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_available": {
+          "type": "boolean"
+        },
+        "campaign_count": {
+          "type": "integer"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "diagnostic_count": {
+          "type": "integer"
+        },
+        "source_count": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorization_available",
+        "campaign_count",
+        "complete",
+        "diagnostic_count",
+        "source_count",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    },
+    "campaignConfigurationPrivilegedData": {
+      "additionalProperties": false,
+      "properties": {
+        "authorization_available": {
+          "type": "boolean"
+        },
+        "campaigns": {
+          "items": {
+            "$ref": "#/$defs/SecuritySimulationCampaign"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/CampaignSourceDiagnostic"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "effective_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "previous_digest": {
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/CampaignSourceProvenance"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authorization_available",
+        "campaigns",
+        "complete",
+        "diagnostics",
+        "effective_at",
+        "expires_at",
+        "sources",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output-data/campaign_configuration_validation/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignConfigurationPrivilegedData"
+        },
+        {
+          "properties": {
+            "view": {
+              "const": "privileged"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignConfigurationDisclosureData"
+        },
+        {
+          "properties": {
+            "view": {
+              "const": "disclosure_safe"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "title": "dmarcgo campaign_configuration_validation common-envelope data v1"
+}

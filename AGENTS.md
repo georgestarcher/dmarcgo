@@ -85,8 +85,9 @@ Version 2 is the supported API line. Import
 - Pure tenant-native Anomali ThreatStream encoding: `dmarcgo.BuildThreatStreamPayloads(threatCandidates, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
+- Agent/automation output for one completed v2 result: `dmarcgo.BuildAnalysisOutput(result, options)`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
-- Native analysis JSON/JSONL/CSV: the mode-specific `WriteDNSHealthOutput`, `WriteReportEvidenceOutput`, `WriteDNSReportCorrelationOutput`, `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, and `WriteJurisdictionContextOutput` functions
+- Native analysis JSON/JSONL/CSV: the mode-specific `WriteConfigurationValidationOutput`, `WriteDNSSnapshotOutput`, `WriteDNSAuthenticationOutput`, `WriteDNSHealthOutput`, `WriteDNSPerspectivesOutput`, `WriteReportEvidenceOutput`, `WriteDNSReportCorrelationOutput`, `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, `WriteSourceActivityOutput`, `WritePhishingIntelligenceOutput`, and `WriteJurisdictionContextOutput` functions
 - Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
 - Explicit optional DNS perspectives: `dmarcgo.CollectDNSPerspectives(ctx, portfolio, snapshot, provider, options)`
 - Pure snapshot record parsing: `dmarcgo.ParseAuthenticationRecords(snapshot)`
@@ -454,11 +455,15 @@ tests used by the Phase 13 integration gate.
 - Use `OutputRedactionPublic` before sending results outside the operational trust boundary, but remember that its stable tokens are pseudonyms rather than encryption and low-entropy values remain dictionary-enumerable.
 - Use `OutputRedactionOperational` for normal defensive processing; it retains identifiers but removes restricted free-form row text. Use `OutputRedactionRestricted` only inside the complete operational trust boundary.
 - Set `GeneratedAt` explicitly when reproducible output matters.
+- For completed analysis results, `evaluation.evaluated_at` preserves the result timestamp even when `GeneratedAt` selects a different reproducible envelope timestamp. Failed results do not invent an evaluation time.
 - Set `MaxItems` to bound each named collection supplied to a model and inspect `truncation.collections` for total and returned counts.
+- Set `MaxFindings` and `MaxEvidence` to bound severity-prioritized findings and their combined retained evidence. Truncation totals include evidence attached to findings omitted by the finding limit.
 - Treat stable finding and action codes as the contract; explanatory prose may improve between releases.
 - `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis. Create validation input with `report.ValidationResult(mode, generatedAt)`. Use `OutputMessageForError` plus `BuildFailureOutput` when a prerequisite failed before evaluation.
+- `BuildAnalysisOutput` accepts only the sealed `OutputResult` set of completed organization, DNS, report-evidence, correlation, source-context, jurisdiction, and campaign results. It uses the completed result timestamp when `GeneratedAt` is unset and never consults the system clock or reruns upstream work.
 - `WriteOutputJSONL` emits one complete self-describing envelope per line.
-- Use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or `schemas/output/v1.json` to discover and validate downstream contracts.
+- Every common envelope declares a strict `data_schema`. Summary-detail and failed envelopes use `OutputEmptyDataSchemaID`; completed standard/full envelopes use the selected mode schema. Use `OutputDataSchemaID` and `OutputDataSchema` to discover mode payloads, and use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or `schemas/output/v1.json` to discover and validate the envelope.
+- Use `OutputModeDescriptors` to inspect required completed inputs and the explicit no-side-effect serialization boundary. Output selection never opens reports, queries DNS, calls a provider, enriches a source, resolves campaign configuration, or contacts a subject IP.
 - Native analysis writers serialize completed immutable values only. JSON emits
   one mode-specific document; JSONL/CSV stream a metadata record and each
   existing result item without building a second result-sized collection.

@@ -849,6 +849,87 @@
       ],
       "type": "object"
     },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "authentication_digest": {
+          "type": "string"
+        },
+        "dns_health_digest": {
+          "type": "string"
+        },
+        "dns_observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dns_snapshot_digest": {
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/DNSReportCorrelationFinding"
+          },
+          "type": "array"
+        },
+        "inventory": {
+          "items": {
+            "$ref": "#/$defs/DNSReportCorrelationInventory"
+          },
+          "type": "array"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "previous_digest": {
+          "type": "string"
+        },
+        "provider_catalog_digest": {
+          "type": "string"
+        },
+        "provider_catalog_provenance": {
+          "$ref": "#/$defs/ProviderCatalogProvenance"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "streams": {
+          "items": {
+            "$ref": "#/$defs/DNSReportCorrelationStream"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "$ref": "#/$defs/DNSReportCorrelationSummary"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/DNSReportCorrelationThresholds"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authentication_digest",
+        "dns_health_digest",
+        "dns_observed_at",
+        "dns_snapshot_digest",
+        "findings",
+        "inventory",
+        "organization_id",
+        "portfolio_digest",
+        "provider_catalog_digest",
+        "provider_catalog_provenance",
+        "report_evidence_digest",
+        "streams",
+        "summary",
+        "thresholds",
+        "version"
+      ],
+      "type": "object"
+    },
     "jsonl_record": {
       "additionalProperties": false,
       "oneOf": [

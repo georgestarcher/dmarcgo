@@ -385,6 +385,52 @@
       ],
       "type": "object"
     },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/JurisdictionContextCandidate"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/JurisdictionContextFinding"
+          },
+          "type": "array"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "policy_digest": {
+          "type": "string"
+        },
+        "policy_freshness": {
+          "type": "string"
+        },
+        "source_enrichment_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/JurisdictionContextSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "findings",
+        "organization_id",
+        "policy_digest",
+        "policy_freshness",
+        "source_enrichment_digest",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    },
     "jsonl_record": {
       "additionalProperties": false,
       "oneOf": [

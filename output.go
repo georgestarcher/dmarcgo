@@ -44,11 +44,25 @@ var ErrOutputSerialization = errors.New("output serialization failed")
 type OutputMode = AnalysisMode
 
 const (
-	OutputModeReportValidation = AnalysisModeReportValidation
-	OutputModeReportSummary    = AnalysisModeReportSummary
-	OutputModeAggregateSummary = AnalysisModeAggregateSummary
-	OutputModeReportRows       = AnalysisModeReportRows
-	OutputModeSourceReview     = AnalysisModeSourceReview
+	OutputModeReportValidation        = AnalysisModeReportValidation
+	OutputModeReportSummary           = AnalysisModeReportSummary
+	OutputModeAggregateSummary        = AnalysisModeAggregateSummary
+	OutputModeReportRows              = AnalysisModeReportRows
+	OutputModeSourceReview            = AnalysisModeSourceReview
+	OutputModeConfigurationValidation = AnalysisModeConfigurationValidation
+	OutputModeDNSSnapshot             = AnalysisModeDNSSnapshot
+	OutputModeDNSAuthentication       = AnalysisModeDNSAuthentication
+	OutputModeDNSHealth               = AnalysisModeDNSHealth
+	OutputModeDNSPerspectives         = AnalysisModeDNSPerspectives
+	OutputModeReportEvidence          = AnalysisModeReportEvidence
+	OutputModeDNSReportCorrelation    = AnalysisModeDNSReportCorrelation
+	OutputModeThreatCandidates        = AnalysisModeThreatCandidates
+	OutputModeSourceEnrichment        = AnalysisModeSourceEnrichment
+	OutputModeSourceActivity          = AnalysisModeSourceActivity
+	OutputModePhishingIntelligence    = AnalysisModePhishingIntelligence
+	OutputModeJurisdictionContext     = AnalysisModeJurisdictionContext
+	OutputModeCampaignValidation      = AnalysisModeCampaignValidation
+	OutputModeCampaignClassification  = AnalysisModeCampaignClassification
 )
 
 // OutputProfile controls representation. It never triggers analysis or I/O.
@@ -66,6 +80,14 @@ const (
 	OutputDetailSummary  OutputDetail = "summary"
 	OutputDetailStandard OutputDetail = "standard"
 	OutputDetailFull     OutputDetail = "full"
+)
+
+const (
+	defaultAutomationOutputItems    = 1000
+	defaultAgentOutputItems         = 100
+	defaultOutputFindings           = 100
+	defaultOutputEvidencePerFinding = 50
+	maximumOutputBound              = 1_000_000
 )
 
 // OutputRedaction controls operational identifier disclosure.
@@ -104,6 +126,8 @@ type OutputOptions struct {
 	GeneratedAt   time.Time
 	ModuleVersion string
 	MaxItems      int
+	MaxFindings   int
+	MaxEvidence   int
 }
 
 // OutputEnvelope is the common versioned contract for automation and AI consumers.
@@ -121,6 +145,7 @@ type OutputEnvelope struct {
 	Input              OutputInput        `json:"input"`
 	Summary            OutputSummary      `json:"summary"`
 	Findings           []OutputFinding    `json:"findings"`
+	DataSchema         string             `json:"data_schema"`
 	Data               any                `json:"data"`
 	RecommendedActions []OutputAction     `json:"recommended_actions"`
 	Warnings           []OutputMessage    `json:"warnings"`
@@ -129,20 +154,49 @@ type OutputEnvelope struct {
 	Provenance         []OutputProvenance `json:"provenance"`
 	Redaction          RedactionMetadata  `json:"redaction"`
 	Truncation         TruncationMetadata `json:"truncation"`
+	Automation         AutomationPolicy   `json:"automation"`
 }
 
-// OutputEvaluation records whether analysis was performed and why it was not
-// performed when the state is not evaluated.
-type OutputEvaluation = Evaluation
+// OutputEvaluation records whether analysis was performed, when the completed
+// result was produced, and why it was not performed when evaluation did not
+// complete. EvaluatedAt is absent only when no evaluation timestamp exists.
+type OutputEvaluation struct {
+	State       OutputEvaluationState `json:"state"`
+	Reason      string                `json:"reason,omitempty"`
+	EvaluatedAt *time.Time            `json:"evaluated_at,omitempty"`
+}
 
 type OutputScope struct {
-	TargetDomains []string `json:"target_domains"`
+	OrganizationID string   `json:"organization_id,omitempty"`
+	EntityIDs      []string `json:"entity_ids"`
+	BusinessUnits  []string `json:"business_units"`
+	TargetDomains  []string `json:"target_domains"`
 }
 
 type OutputInput struct {
-	ReportCount  int `json:"report_count"`
-	RecordCount  int `json:"record_count"`
-	MessageCount int `json:"message_count"`
+	ReportCount  int                   `json:"report_count"`
+	RecordCount  int                   `json:"record_count"`
+	MessageCount int                   `json:"message_count"`
+	Artifacts    []OutputInputArtifact `json:"artifacts"`
+	Coverage     []OutputCoverage      `json:"coverage"`
+}
+
+// OutputInputArtifact identifies one immutable input or upstream result.
+type OutputInputArtifact struct {
+	Type        string                `json:"type"`
+	Digest      AnalysisID            `json:"digest,omitempty"`
+	State       OutputEvaluationState `json:"state"`
+	Sensitivity Sensitivity           `json:"sensitivity"`
+}
+
+// OutputCoverage distinguishes completed, unknown, and unevaluated input
+// coverage without treating absence as a clean result.
+type OutputCoverage struct {
+	Name      string                `json:"name"`
+	State     OutputEvaluationState `json:"state"`
+	Total     int                   `json:"total"`
+	Evaluated int                   `json:"evaluated"`
+	Unknown   int                   `json:"unknown"`
 }
 
 type OutputSummary struct {
@@ -152,19 +206,28 @@ type OutputSummary struct {
 }
 
 type OutputFinding struct {
-	Code        FindingCode       `json:"code"`
-	Category    string            `json:"category"`
-	Severity    FindingSeverity   `json:"severity"`
-	Confidence  FindingConfidence `json:"confidence"`
-	Title       string            `json:"title"`
-	Explanation string            `json:"explanation"`
-	Subject     map[string]string `json:"subject"`
-	Evidence    []OutputEvidence  `json:"evidence"`
-	Limitations []string          `json:"limitations"`
-	ActionCodes []ActionCode      `json:"action_codes"`
+	ID                    FindingID         `json:"id"`
+	Code                  FindingCode       `json:"code"`
+	Category              string            `json:"category"`
+	Severity              FindingSeverity   `json:"severity"`
+	Confidence            FindingConfidence `json:"confidence"`
+	Title                 string            `json:"title"`
+	Explanation           string            `json:"explanation"`
+	Subject               map[string]string `json:"subject"`
+	Evidence              []OutputEvidence  `json:"evidence"`
+	ContradictoryEvidence []OutputEvidence  `json:"contradictory_evidence"`
+	MissingEvidence       []OutputEvidence  `json:"missing_evidence"`
+	UnverifiableEvidence  []OutputEvidence  `json:"unverifiable_evidence"`
+	Limitations           []string          `json:"limitations"`
+	ActionCodes           []ActionCode      `json:"action_codes"`
+	Automation            AutomationPolicy  `json:"automation"`
+	Sensitivity           Sensitivity       `json:"sensitivity"`
+	Documentation         string            `json:"documentation"`
+	Provenance            []ProvenanceID    `json:"provenance"`
 }
 
 type OutputEvidence struct {
+	ID          EvidenceID            `json:"id"`
 	Type        string                `json:"type"`
 	Source      string                `json:"source"`
 	Path        string                `json:"path,omitempty"`
@@ -175,12 +238,14 @@ type OutputEvidence struct {
 }
 
 type OutputAction struct {
-	Code       ActionCode        `json:"code"`
-	Priority   int               `json:"priority"`
-	Title      string            `json:"title"`
-	Reason     string            `json:"reason"`
-	Target     map[string]string `json:"target"`
-	Automation AutomationPolicy  `json:"automation"`
+	ID          ActionID          `json:"id"`
+	Code        ActionCode        `json:"code"`
+	Priority    int               `json:"priority"`
+	Title       string            `json:"title"`
+	Reason      string            `json:"reason"`
+	Target      map[string]string `json:"target"`
+	Automation  AutomationPolicy  `json:"automation"`
+	Sensitivity Sensitivity       `json:"sensitivity"`
 }
 
 type AutomationPolicy struct {
@@ -206,9 +271,10 @@ const (
 )
 
 type OutputProvenance struct {
-	ID   ProvenanceID `json:"id"`
-	Type string       `json:"type"`
-	Key  string       `json:"key,omitempty"`
+	ID          ProvenanceID `json:"id"`
+	Type        string       `json:"type"`
+	Key         string       `json:"key,omitempty"`
+	Sensitivity Sensitivity  `json:"sensitivity"`
 }
 
 // ResultMetadata returns shared metadata without performing analysis or I/O.
@@ -217,7 +283,7 @@ func (output OutputEnvelope) ResultMetadata() ResultMetadata {
 		ContractVersion: AnalysisContractVersion,
 		Mode:            output.Mode,
 		GeneratedAt:     output.GeneratedAt,
-		Evaluation:      output.Evaluation,
+		Evaluation:      Evaluation{State: output.Evaluation.State, Reason: output.Evaluation.Reason},
 	}
 }
 
@@ -264,13 +330,7 @@ func OutputSchemaVersions() []string { return []string{OutputSchemaVersion} }
 
 // SupportedOutputModes returns the modes supported by the current schema.
 func SupportedOutputModes() []OutputMode {
-	return []OutputMode{
-		OutputModeReportValidation,
-		OutputModeReportSummary,
-		OutputModeAggregateSummary,
-		OutputModeReportRows,
-		OutputModeSourceReview,
-	}
+	return append([]OutputMode(nil), outputModeOrder...)
 }
 
 // OutputMessageForError classifies a report-processing error without copying
@@ -479,7 +539,7 @@ func BuildFailureOutput(mode OutputMode, scope OutputScope, input OutputInput, o
 			return OutputEnvelope{}, fmt.Errorf("%w: failed output errors require code and category", ErrInvalidOutputOptions)
 		}
 	}
-	out := baseOutput(mode, OutputScope{TargetDomains: compactSortedStrings(scope.TargetDomains)}, input, options)
+	out := baseOutput(mode, scope, input, options)
 	out.Status = OutputStatusFailed
 	out.Evaluation = OutputEvaluation{State: OutputEvaluationNotEvaluated, Reason: "The requested analysis did not complete."}
 	out.Summary = OutputSummary{Headline: "The requested analysis did not complete.", Severity: FindingSeverityHigh, Confidence: FindingConfidenceHigh}
@@ -506,6 +566,20 @@ func WriteOutputJSONL(writer io.Writer, outputs []OutputEnvelope) error {
 }
 
 func normalizeOutputOptions(options OutputOptions) (OutputOptions, error) {
+	if options.GeneratedAt.IsZero() {
+		options.GeneratedAt = time.Now().UTC()
+	}
+	return normalizeOutputOptionValues(options)
+}
+
+func normalizeOutputOptionsWithoutClock(options OutputOptions, generatedAt time.Time) (OutputOptions, error) {
+	if options.GeneratedAt.IsZero() {
+		options.GeneratedAt = generatedAt.UTC()
+	}
+	return normalizeOutputOptionValues(options)
+}
+
+func normalizeOutputOptionValues(options OutputOptions) (OutputOptions, error) {
 	if options.Profile == "" {
 		options.Profile = OutputProfileAutomation
 	}
@@ -515,13 +589,8 @@ func normalizeOutputOptions(options OutputOptions) (OutputOptions, error) {
 	if options.Redaction == "" {
 		options.Redaction = OutputRedactionOperational
 	}
-	if options.GeneratedAt.IsZero() {
-		options.GeneratedAt = time.Now().UTC()
-	} else {
+	if !options.GeneratedAt.IsZero() {
 		options.GeneratedAt = options.GeneratedAt.UTC()
-	}
-	if options.MaxItems < 0 {
-		return options, fmt.Errorf("%w: max items must not be negative", ErrInvalidOutputOptions)
 	}
 	if options.Profile != OutputProfileAutomation && options.Profile != OutputProfileAgent {
 		return options, fmt.Errorf("%w: unsupported profile %q", ErrInvalidOutputOptions, options.Profile)
@@ -532,18 +601,45 @@ func normalizeOutputOptions(options OutputOptions) (OutputOptions, error) {
 	if options.Redaction != OutputRedactionPublic && options.Redaction != OutputRedactionOperational && options.Redaction != OutputRedactionRestricted {
 		return options, fmt.Errorf("%w: unsupported redaction %q", ErrInvalidOutputOptions, options.Redaction)
 	}
+	if options.MaxItems == 0 {
+		options.MaxItems = defaultAutomationOutputItems
+		if options.Profile == OutputProfileAgent {
+			options.MaxItems = defaultAgentOutputItems
+		}
+	}
+	if options.MaxFindings == 0 {
+		options.MaxFindings = defaultOutputFindings
+	}
+	if options.MaxEvidence == 0 {
+		options.MaxEvidence = defaultOutputEvidencePerFinding
+	}
+	if options.MaxItems < 1 || options.MaxItems > maximumOutputBound ||
+		options.MaxFindings < 1 || options.MaxFindings > maximumOutputBound ||
+		options.MaxEvidence < 1 || options.MaxEvidence > maximumOutputBound {
+		return options, fmt.Errorf("%w: output bounds must be between 1 and %d", ErrInvalidOutputOptions, maximumOutputBound)
+	}
 	return options, nil
 }
 
 func baseOutput(mode OutputMode, scope OutputScope, input OutputInput, options OutputOptions) OutputEnvelope {
+	scope.EntityIDs = compactSortedStrings(scope.EntityIDs)
+	scope.BusinessUnits = compactSortedStrings(scope.BusinessUnits)
 	scope.TargetDomains = compactSortedStrings(scope.TargetDomains)
+	if input.Artifacts == nil {
+		input.Artifacts = []OutputInputArtifact{}
+	}
+	if input.Coverage == nil {
+		input.Coverage = []OutputCoverage{}
+	}
+	evaluatedAt := options.GeneratedAt
 	return OutputEnvelope{
 		Schema: OutputSchemaID, SchemaVersion: OutputSchemaVersion, ModuleVersion: options.ModuleVersion,
 		Mode: mode, Profile: options.Profile, Detail: options.Detail, GeneratedAt: options.GeneratedAt, Status: OutputStatusCompleted,
-		Evaluation: OutputEvaluation{State: OutputEvaluationEvaluated},
+		Evaluation: OutputEvaluation{State: OutputEvaluationEvaluated, EvaluatedAt: &evaluatedAt},
 		Scope:      scope, Input: input, Summary: OutputSummary{Severity: FindingSeverityInfo, Confidence: FindingConfidenceHigh},
-		Findings: []OutputFinding{}, Data: map[string]any{}, RecommendedActions: []OutputAction{}, Warnings: []OutputMessage{}, Errors: []OutputMessage{}, Limitations: []string{}, Provenance: []OutputProvenance{},
+		Findings: []OutputFinding{}, DataSchema: outputDataSchemaForMode(mode), Data: map[string]any{}, RecommendedActions: []OutputAction{}, Warnings: []OutputMessage{}, Errors: []OutputMessage{}, Limitations: []string{}, Provenance: []OutputProvenance{},
 		Redaction: RedactionMetadata{Profile: options.Redaction}, Truncation: TruncationMetadata{Collections: []OutputCollectionTruncation{}},
+		Automation: AutomationPolicy{Eligible: false, Reason: "Output serialization never authorizes an external action."},
 	}
 }
 
@@ -573,6 +669,7 @@ func addAuthenticationFindings(out *OutputEnvelope, failed, invalid int, domain 
 }
 
 func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, error) {
+	normalizeOutputContractCollections(&out)
 	if len(out.Findings) > 0 {
 		out.Status = OutputStatusCompletedWithFindings
 	}
@@ -594,11 +691,14 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 		}
 		return out.RecommendedActions[i].Code < out.RecommendedActions[j].Code
 	})
+	assignOutputContractIDs(&out)
+	limitOutputContractCollections(&out, options)
 	sortOutputMessages(out.Warnings)
 	sortOutputMessages(out.Errors)
 	sort.SliceStable(out.Provenance, func(i, j int) bool { return canonicalSortKey(out.Provenance[i]) < canonicalSortKey(out.Provenance[j]) })
-	if options.Detail == OutputDetailSummary {
+	if options.Detail == OutputDetailSummary || out.Status == OutputStatusFailed {
 		out.Data = map[string]any{}
+		out.DataSchema = OutputEmptyDataSchemaID
 		omitModeDataCollections(&out)
 	}
 	if options.Profile == OutputProfileAutomation {
@@ -606,6 +706,10 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 		for i := range out.Findings {
 			out.Findings[i].Explanation = ""
 		}
+	}
+	redactionChanged := out.Redaction.OperationalFieldsChanged
+	if data, ok := out.Data.(map[string]any); ok {
+		redactionChanged = redactionChanged || analysisDocumentRedactionChanged(data)
 	}
 	switch options.Redaction {
 	case OutputRedactionPublic:
@@ -621,9 +725,17 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 		if err != nil {
 			return OutputEnvelope{}, fmt.Errorf("%w: %w: %v", ErrOutputRedaction, ErrOutputSerialization, err)
 		}
-		out.Redaction.OperationalFieldsChanged = !bytes.Equal(before, after)
+		out.Redaction.OperationalFieldsChanged = redactionChanged || !bytes.Equal(before, after)
 	case OutputRedactionOperational:
-		out, out.Redaction.OperationalFieldsChanged = removeRestrictedReportText(out)
+		var err error
+		var changed bool
+		out, changed, err = removeRestrictedReportText(out)
+		if err != nil {
+			return OutputEnvelope{}, err
+		}
+		out.Redaction.OperationalFieldsChanged = redactionChanged || changed
+	default:
+		out.Redaction.OperationalFieldsChanged = redactionChanged
 	}
 	if _, err := json.Marshal(out); err != nil {
 		if options.Redaction == OutputRedactionPublic {
@@ -634,23 +746,169 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 	return out, nil
 }
 
+func normalizeOutputContractCollections(out *OutputEnvelope) {
+	if out.Scope.EntityIDs == nil {
+		out.Scope.EntityIDs = []string{}
+	}
+	if out.Scope.BusinessUnits == nil {
+		out.Scope.BusinessUnits = []string{}
+	}
+	if out.Input.Artifacts == nil {
+		out.Input.Artifacts = []OutputInputArtifact{}
+	}
+	if out.Input.Coverage == nil {
+		out.Input.Coverage = []OutputCoverage{}
+	}
+	for index := range out.Findings {
+		finding := &out.Findings[index]
+		if finding.Subject == nil {
+			finding.Subject = map[string]string{}
+		}
+		if finding.Evidence == nil {
+			finding.Evidence = []OutputEvidence{}
+		}
+		if finding.ContradictoryEvidence == nil {
+			finding.ContradictoryEvidence = []OutputEvidence{}
+		}
+		if finding.MissingEvidence == nil {
+			finding.MissingEvidence = []OutputEvidence{}
+		}
+		if finding.UnverifiableEvidence == nil {
+			finding.UnverifiableEvidence = []OutputEvidence{}
+		}
+		if finding.Limitations == nil {
+			finding.Limitations = []string{}
+		}
+		if finding.ActionCodes == nil {
+			finding.ActionCodes = []ActionCode{}
+		}
+		if finding.Provenance == nil {
+			finding.Provenance = []ProvenanceID{}
+		}
+		if finding.Automation.Reason == "" {
+			finding.Automation = AutomationPolicy{Eligible: false, Reason: "A finding requires caller policy and human authorization."}
+		}
+		if finding.Sensitivity == "" {
+			finding.Sensitivity = SensitivityOperational
+		}
+		if finding.Documentation == "" {
+			finding.Documentation = "docs/wiki/Automation-Outputs-and-AI-Safety.md"
+		}
+		for _, evidence := range [][]OutputEvidence{finding.Evidence, finding.ContradictoryEvidence, finding.MissingEvidence, finding.UnverifiableEvidence} {
+			for evidenceIndex := range evidence {
+				if evidence[evidenceIndex].Sensitivity == "" {
+					evidence[evidenceIndex].Sensitivity = SensitivityOperational
+				}
+			}
+		}
+	}
+	for index := range out.RecommendedActions {
+		if out.RecommendedActions[index].Target == nil {
+			out.RecommendedActions[index].Target = map[string]string{}
+		}
+		if out.RecommendedActions[index].Automation.Reason == "" {
+			out.RecommendedActions[index].Automation = AutomationPolicy{Eligible: false, Reason: "The caller must authorize and execute any external action."}
+		}
+		if out.RecommendedActions[index].Sensitivity == "" {
+			out.RecommendedActions[index].Sensitivity = SensitivityOperational
+		}
+	}
+	for index := range out.Provenance {
+		if out.Provenance[index].Sensitivity == "" {
+			out.Provenance[index].Sensitivity = SensitivityOperational
+		}
+	}
+}
+
+func assignOutputContractIDs(out *OutputEnvelope) {
+	for index := range out.Findings {
+		finding := &out.Findings[index]
+		if finding.ID == "" {
+			finding.ID = FindingID(StableAnalysisID("output_finding", string(out.Mode), string(finding.Code), fmt.Sprint(index), canonicalSortKey(finding.Subject)))
+		}
+		assignEvidenceIDs := func(kind string, values []OutputEvidence) {
+			sort.SliceStable(values, func(i, j int) bool { return canonicalSortKey(values[i]) < canonicalSortKey(values[j]) })
+			for evidenceIndex := range values {
+				if values[evidenceIndex].ID == "" {
+					values[evidenceIndex].ID = EvidenceID(StableAnalysisID("output_evidence", string(finding.ID), kind, fmt.Sprint(evidenceIndex), canonicalSortKey(values[evidenceIndex])))
+				}
+			}
+		}
+		assignEvidenceIDs("matched", finding.Evidence)
+		assignEvidenceIDs("contradictory", finding.ContradictoryEvidence)
+		assignEvidenceIDs("missing", finding.MissingEvidence)
+		assignEvidenceIDs("unverifiable", finding.UnverifiableEvidence)
+	}
+	for index := range out.RecommendedActions {
+		if out.RecommendedActions[index].ID == "" {
+			out.RecommendedActions[index].ID = ActionID(StableAnalysisID("output_action", string(out.Mode), string(out.RecommendedActions[index].Code), fmt.Sprint(index), canonicalSortKey(out.RecommendedActions[index].Target)))
+		}
+	}
+}
+
+func limitOutputContractCollections(out *OutputEnvelope, options OutputOptions) {
+	totalEvidence := 0
+	for index := range out.Findings {
+		finding := &out.Findings[index]
+		totalEvidence += len(finding.Evidence) + len(finding.ContradictoryEvidence) + len(finding.MissingEvidence) + len(finding.UnverifiableEvidence)
+	}
+	totalFindings := len(out.Findings)
+	if totalFindings > options.MaxFindings {
+		out.Findings = append([]OutputFinding(nil), out.Findings[:options.MaxFindings]...)
+	}
+	addTruncation(out, "findings", totalFindings, len(out.Findings))
+
+	returnedEvidence := 0
+	for index := range out.Findings {
+		finding := &out.Findings[index]
+		collections := []*[]OutputEvidence{&finding.ContradictoryEvidence, &finding.MissingEvidence, &finding.UnverifiableEvidence, &finding.Evidence}
+		remaining := options.MaxEvidence
+		for _, collection := range collections {
+			if len(*collection) > remaining {
+				*collection = append([]OutputEvidence(nil), (*collection)[:remaining]...)
+			}
+			returnedEvidence += len(*collection)
+			remaining -= len(*collection)
+		}
+	}
+	addTruncation(out, "finding_evidence", totalEvidence, returnedEvidence)
+}
+
 func redactOutput(out OutputEnvelope) (OutputEnvelope, error) {
+	out.Scope.OrganizationID = redactOptionalText("organization", out.Scope.OrganizationID)
+	for index := range out.Scope.EntityIDs {
+		out.Scope.EntityIDs[index] = redactOptionalText("organization", out.Scope.EntityIDs[index])
+	}
+	for index := range out.Scope.BusinessUnits {
+		out.Scope.BusinessUnits[index] = redactOptionalText("organization", out.Scope.BusinessUnits[index])
+	}
 	for i, domain := range out.Scope.TargetDomains {
 		out.Scope.TargetDomains[i] = redactionToken("target_domain", domain)
 	}
+	for index := range out.Input.Artifacts {
+		out.Input.Artifacts[index].Digest = AnalysisID(redactOptionalText("analysis_reference", string(out.Input.Artifacts[index].Digest)))
+	}
 	for i := range out.Findings {
+		out.Findings[i].ID = FindingID(redactOptionalText("analysis_reference", string(out.Findings[i].ID)))
 		out.Findings[i].Subject = redactStringMap(out.Findings[i].Subject, "finding_subject")
-		for j := range out.Findings[i].Evidence {
-			value, err := redactArbitraryValue(out.Findings[i].Evidence[j].Value, "evidence")
-			if err != nil {
-				return OutputEnvelope{}, err
+		for _, evidence := range []*[]OutputEvidence{&out.Findings[i].Evidence, &out.Findings[i].ContradictoryEvidence, &out.Findings[i].MissingEvidence, &out.Findings[i].UnverifiableEvidence} {
+			for j := range *evidence {
+				value, err := redactArbitraryValue((*evidence)[j].Value, "evidence")
+				if err != nil {
+					return OutputEnvelope{}, err
+				}
+				(*evidence)[j].ID = EvidenceID(redactOptionalText("analysis_reference", string((*evidence)[j].ID)))
+				(*evidence)[j].Value = value
+				(*evidence)[j].Path = redactOptionalText("evidence_path", (*evidence)[j].Path)
+				(*evidence)[j].Provenance = ProvenanceID(redactOptionalText("analysis_reference", string((*evidence)[j].Provenance)))
 			}
-			out.Findings[i].Evidence[j].Value = value
-			out.Findings[i].Evidence[j].Path = redactOptionalText("evidence_path", out.Findings[i].Evidence[j].Path)
-			out.Findings[i].Evidence[j].Provenance = ProvenanceID(redactOptionalText("provenance", string(out.Findings[i].Evidence[j].Provenance)))
+		}
+		for provenanceIndex := range out.Findings[i].Provenance {
+			out.Findings[i].Provenance[provenanceIndex] = ProvenanceID(redactOptionalText("analysis_reference", string(out.Findings[i].Provenance[provenanceIndex])))
 		}
 	}
 	for i := range out.RecommendedActions {
+		out.RecommendedActions[i].ID = ActionID(redactOptionalText("analysis_reference", string(out.RecommendedActions[i].ID)))
 		out.RecommendedActions[i].Target = redactStringMap(out.RecommendedActions[i].Target, "action_target")
 	}
 	for i := range out.Warnings {
@@ -660,13 +918,23 @@ func redactOutput(out OutputEnvelope) (OutputEnvelope, error) {
 		redactOutputMessage(&out.Errors[i])
 	}
 	for i := range out.Provenance {
+		out.Provenance[i].ID = ProvenanceID(redactOptionalText("analysis_reference", string(out.Provenance[i].ID)))
 		out.Provenance[i].Key = redactOptionalText("provenance_key", out.Provenance[i].Key)
 	}
 
 	switch data := out.Data.(type) {
 	case map[string]any:
 		if len(data) != 0 {
-			return OutputEnvelope{}, fmt.Errorf("%w: unsupported untyped data object", ErrOutputRedaction)
+			value, changed, err := transformAnalysisOutputValue(data, OutputRedactionPublic)
+			if err != nil {
+				return OutputEnvelope{}, err
+			}
+			redacted, ok := value.(map[string]any)
+			if !ok {
+				return OutputEnvelope{}, fmt.Errorf("%w: unsupported transformed data type %T", ErrOutputRedaction, value)
+			}
+			setAnalysisDocumentRedaction(redacted, OutputRedactionPublic, changed || analysisDocumentRedactionChanged(data))
+			out.Data = redacted
 		}
 	case []ValidationFinding:
 		for i := range data {
@@ -915,19 +1183,37 @@ func redactFeatureRows(rows []FeatureRow) []FeatureRow {
 	return out
 }
 
-func removeRestrictedReportText(out OutputEnvelope) (OutputEnvelope, bool) {
-	rows, ok := out.Data.([]FeatureRow)
-	if !ok {
-		return out, false
+func removeRestrictedReportText(out OutputEnvelope) (OutputEnvelope, bool, error) {
+	switch data := out.Data.(type) {
+	case []FeatureRow:
+		rows := cloneFeatureRows(data)
+		changed := false
+		for i := range rows {
+			changed = changed || featureRowHasRestrictedText(rows[i])
+			clearRestrictedFeatureText(&rows[i])
+		}
+		out.Data = rows
+		return out, changed, nil
+	case map[string]any:
+		if len(data) == 0 {
+			return out, false, nil
+		}
+		previouslyChanged := analysisDocumentRedactionChanged(data)
+		value, changed, err := transformAnalysisOutputValue(data, OutputRedactionOperational)
+		if err != nil {
+			return OutputEnvelope{}, false, err
+		}
+		transformed, ok := value.(map[string]any)
+		if !ok {
+			return OutputEnvelope{}, false, fmt.Errorf("%w: unsupported transformed data type %T", ErrOutputRedaction, value)
+		}
+		changed = changed || previouslyChanged
+		setAnalysisDocumentRedaction(transformed, OutputRedactionOperational, changed)
+		out.Data = transformed
+		return out, changed, nil
+	default:
+		return out, false, nil
 	}
-	rows = cloneFeatureRows(rows)
-	changed := false
-	for i := range rows {
-		changed = changed || featureRowHasRestrictedText(rows[i])
-		clearRestrictedFeatureText(&rows[i])
-	}
-	out.Data = rows
-	return out, changed
 }
 
 func featureRowHasRestrictedText(row FeatureRow) bool {
@@ -1064,7 +1350,10 @@ func addTruncation(out *OutputEnvelope, name string, total, returned int) {
 func omitModeDataCollections(out *OutputEnvelope) {
 	out.Truncation.Truncated = false
 	for i := range out.Truncation.Collections {
-		if out.Truncation.Collections[i].Name != "validation_findings" {
+		switch out.Truncation.Collections[i].Name {
+		case "validation_findings", "findings", "finding_evidence":
+			// These collections remain in summary detail.
+		default:
 			out.Truncation.Collections[i].ReturnedItems = 0
 		}
 		if out.Truncation.Collections[i].ReturnedItems < out.Truncation.Collections[i].TotalItems {

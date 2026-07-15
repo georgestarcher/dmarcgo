@@ -88,20 +88,45 @@ type analysisCSVColumn struct {
 const analysisPublicSafeValue = "analysis_output_public_safe"
 
 var analysisModeRecordTypes = map[AnalysisMode][]string{
-	AnalysisModeDNSHealth:            {"metadata", "record", "domain", "entity", "finding", "provider_context"},
-	AnalysisModeReportEvidence:       {"metadata", "report", "observation", "diagnostic"},
-	AnalysisModeDNSReportCorrelation: {"metadata", "inventory", "stream", "finding"},
-	AnalysisModeThreatCandidates:     {"metadata", "candidate"},
-	AnalysisModeSourceEnrichment:     {"metadata", "candidate", "asn", "diagnostic"},
-	AnalysisModeJurisdictionContext:  {"metadata", "candidate", "finding"},
+	AnalysisModeConfigurationValidation: {"metadata", "diagnostic"},
+	AnalysisModeDNSSnapshot:             {"metadata", "observation", "diagnostic"},
+	AnalysisModeDNSAuthentication:       {"metadata", "record_set", "diagnostic"},
+	AnalysisModeDNSHealth:               {"metadata", "record", "domain", "entity", "finding", "provider_context"},
+	AnalysisModeDNSPerspectives:         {"metadata", "query", "finding", "diagnostic"},
+	AnalysisModeReportEvidence:          {"metadata", "report", "observation", "diagnostic"},
+	AnalysisModeDNSReportCorrelation:    {"metadata", "inventory", "stream", "finding"},
+	AnalysisModeThreatCandidates:        {"metadata", "candidate"},
+	AnalysisModeSourceEnrichment:        {"metadata", "candidate", "asn", "diagnostic"},
+	AnalysisModeSourceActivity:          {"metadata", "record", "finding", "diagnostic"},
+	AnalysisModePhishingIntelligence:    {"metadata", "source", "candidate", "match", "finding"},
+	AnalysisModeJurisdictionContext:     {"metadata", "candidate", "finding"},
 }
 
 var analysisModeCSVColumns = map[AnalysisMode][]analysisCSVColumn{
+	AnalysisModeConfigurationValidation: {
+		{header: "code", path: []string{"code"}}, {header: "severity", path: []string{"severity"}},
+		{header: "path", path: []string{"path"}},
+	},
+	AnalysisModeDNSSnapshot: {
+		{header: "name", path: []string{"name"}}, {header: "status", path: []string{"status"}},
+		{header: "resolver", path: []string{"resolver"}}, {header: "answer_source", path: []string{"answer_source"}},
+		{header: "attempts", path: []string{"attempts"}},
+	},
+	AnalysisModeDNSAuthentication: {
+		{header: "name", path: []string{"name"}}, {header: "dns_record_type", path: []string{"type"}},
+		{header: "status", path: []string{"status"}}, {header: "observation_status", path: []string{"observation_status"}},
+		{header: "resolver", path: []string{"resolver"}},
+	},
 	AnalysisModeDNSHealth: {
 		{header: "entity_id", path: []string{"entity_id"}}, {header: "domain", path: []string{"domain"}},
 		{header: "name", path: []string{"name"}}, {header: "dns_record_type", path: []string{"type"}},
 		{header: "status", path: []string{"status"}}, {header: "severity", path: []string{"severity"}},
 		{header: "score", path: []string{"score", "value"}}, {header: "grade", path: []string{"score", "grade"}},
+	},
+	AnalysisModeDNSPerspectives: {
+		{header: "name", path: []string{"query", "name"}}, {header: "dns_record_type", path: []string{"query", "type"}},
+		{header: "outcome", path: []string{"outcome"}}, {header: "successful_perspectives", path: []string{"successful_perspectives"}},
+		{header: "perspective_agreement", path: []string{"perspective_agreement"}}, {header: "snapshot_agreement", path: []string{"snapshot_agreement"}},
 	},
 	AnalysisModeReportEvidence: {
 		{header: "reporter", path: []string{"reporter", "value"}}, {header: "target_domain", path: []string{"target_domain", "value"}},
@@ -127,6 +152,16 @@ var analysisModeCSVColumns = map[AnalysisMode][]analysisCSVColumn{
 		{header: "country_code", path: []string{"metadata", "assertions", "0", "country_code"}},
 		{header: "organization", path: []string{"metadata", "assertions", "0", "organization"}},
 	},
+	AnalysisModeSourceActivity: {
+		{header: "source_ip", path: []string{"source_ip"}}, {header: "status", path: []string{"status"}},
+		{header: "activity_observed", path: []string{"evidence", "activity_observed"}}, {header: "freshness", path: []string{"evidence", "freshness"}},
+		{header: "time_relationship", path: []string{"evidence", "time_relationship"}},
+	},
+	AnalysisModePhishingIntelligence: {
+		{header: "source_ip", path: []string{"source_ip"}}, {header: "status", path: []string{"status"}},
+		{header: "candidate_id", path: []string{"candidate_id"}}, {header: "role", path: []string{"role"}},
+		{header: "indicator_type", path: []string{"type"}},
+	},
 	AnalysisModeJurisdictionContext: {
 		{header: "source_ip", path: []string{"source_ip"}}, {header: "status", path: []string{"status"}},
 		{header: "tier", path: []string{"tier"}}, {header: "country_codes", path: []string{"country_codes"}},
@@ -138,11 +173,17 @@ var analysisModeCSVColumns = map[AnalysisMode][]analysisCSVColumn{
 // SupportedAnalysisOutputModes returns native-output modes in dependency order.
 func SupportedAnalysisOutputModes() []AnalysisMode {
 	return []AnalysisMode{
+		AnalysisModeConfigurationValidation,
+		AnalysisModeDNSSnapshot,
+		AnalysisModeDNSAuthentication,
 		AnalysisModeDNSHealth,
+		AnalysisModeDNSPerspectives,
 		AnalysisModeReportEvidence,
 		AnalysisModeDNSReportCorrelation,
 		AnalysisModeThreatCandidates,
 		AnalysisModeSourceEnrichment,
+		AnalysisModeSourceActivity,
+		AnalysisModePhishingIntelligence,
 		AnalysisModeJurisdictionContext,
 	}
 }
@@ -224,6 +265,26 @@ func WriteDNSHealthOutput(writer io.Writer, result DNSHealthResult, format Analy
 	return writeAnalysisOutput(writer, dnsHealthOutputSpec(result), format, options)
 }
 
+// WriteConfigurationValidationOutput encodes completed portfolio diagnostics.
+func WriteConfigurationValidationOutput(writer io.Writer, result ConfigurationValidationResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, configurationValidationOutputSpec(result), format, options)
+}
+
+// WriteDNSSnapshotOutput encodes an already completed DNS snapshot.
+func WriteDNSSnapshotOutput(writer io.Writer, result DNSSnapshot, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, dnsSnapshotOutputSpec(result), format, options)
+}
+
+// WriteDNSAuthenticationOutput encodes already parsed authentication records.
+func WriteDNSAuthenticationOutput(writer io.Writer, result DNSAuthenticationResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, dnsAuthenticationOutputSpec(result), format, options)
+}
+
+// WriteDNSPerspectivesOutput encodes an already completed perspective result.
+func WriteDNSPerspectivesOutput(writer io.Writer, result DNSPerspectiveResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, dnsPerspectivesOutputSpec(result), format, options)
+}
+
 // WriteReportEvidenceOutput encodes an already computed report-evidence result.
 func WriteReportEvidenceOutput(writer io.Writer, result ReportEvidenceResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 	return writeAnalysisOutput(writer, reportEvidenceOutputSpec(result), format, options)
@@ -242,6 +303,16 @@ func WriteThreatCandidatesOutput(writer io.Writer, result ThreatCandidateResult,
 // WriteSourceEnrichmentOutput encodes an already computed enrichment result.
 func WriteSourceEnrichmentOutput(writer io.Writer, result SourceEnrichmentResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 	return writeAnalysisOutput(writer, sourceEnrichmentOutputSpec(result), format, options)
+}
+
+// WriteSourceActivityOutput encodes an already completed activity result.
+func WriteSourceActivityOutput(writer io.Writer, result SourceActivityResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, sourceActivityOutputSpec(result), format, options)
+}
+
+// WritePhishingIntelligenceOutput encodes an already completed correlation.
+func WritePhishingIntelligenceOutput(writer io.Writer, result PhishingIntelligenceResult, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+	return writeAnalysisOutput(writer, phishingIntelligenceOutputSpec(result), format, options)
 }
 
 // WriteJurisdictionContextOutput encodes an already computed jurisdiction result.
@@ -475,13 +546,18 @@ func analysisPublicStringSafe(key, value string, object map[string]any) bool {
 	switch key {
 	case "schema", "schema_version", "mode", "profile", "redaction", "record_type", "contract_version",
 		"generated_at", "observed_at", "dns_observed_at", "provider_reviewed_at", "lookup_at", "created_at", "effective_at", "as_of", "expires_at",
+		"collected_at", "retrieved_at", "last_modified", "updated_at", "first_seen", "last_seen", "message_time", "period_start", "period_end",
 		"version", "evidence_schema_version", "scoring_version", "catalog_version", "overlay_version",
-		"state", "code", "severity", "confidence", "confidence_level", "sensitivity", "status", "type", "kind", "grade",
+		"state", "code", "severity", "confidence", "confidence_level", "sensitivity", "type", "kind", "grade",
 		"classification", "relationship_type", "inventory_state", "candidate_basis", "temporal_relationship", "freshness",
-		"tier", "recommended_usage", "provider_status", "include_status", "match_rule", "evidence_confidence",
-		"policy_freshness", "ip_type", "unknown_policy", "combined", "dkim", "spf",
+		"tier", "recommended_usage", "include_status", "match_rule", "evidence_confidence",
+		"policy_freshness", "ip_type", "unknown_policy", "combined", "dkim", "spf", "view", "evidence_kind", "routing",
 		"summary", "recommendation", "standard", "message", "explanation":
 		return true
+	case "status":
+		return analysisPublicStatusSafe(value)
+	case "provider_status":
+		return false
 	case "name":
 		_, versionedProfile := object["version"]
 		return versionedProfile
@@ -498,6 +574,27 @@ func analysisPublicStringSafe(key, value string, object map[string]any) bool {
 		return value == "" || value == "mfrom" || value == "helo" || value == "domain" || value == "entity" || value == "portfolio" || value == "source" || value == "cidr" || value == "sender"
 	case "country_code":
 		return len(value) == 0 || len(value) == 2
+	default:
+		return false
+	}
+}
+
+func analysisPublicStatusSafe(value string) bool {
+	switch value {
+	case "", "active", "active_match", "after_reports", "agreement", "authorized_simulation_high_confidence", "before_reports",
+		"canceled", "completed", "configured_selector_not_observed", "conflicting", "current_dns_historical_variance", "declared",
+		"disagreement", "dns_after_reports", "dns_before_reports", "dns_during_reports", "expected_sender_began_failing",
+		"expected_sender_configuration_failure", "expected_sender_healthy", "expired", "fail", "failed", "fresh", "future",
+		"indeterminate", "insufficient_evidence", "invalid", "last_known_good", "loaded", "malformed", "malformed_response",
+		"match", "matched", "mismatched", "missing", "new_selector", "new_signing_domain", "new_source", "new_spf_identity",
+		"new_subdomain", "no_answer", "no_data", "no_match", "no_overlap", "no_temporal_match", "not_declared", "not_eligible",
+		"not_evaluated", "not_found", "not_overlapping", "not_selected", "nxdomain", "overlaps", "pass",
+		"possible_authorized_simulation", "probable_onboarding_gap", "rate_limited", "retired_configuration_observed", "scheduled",
+		"simulation_authorization_expired", "simulation_authorization_unavailable", "simulation_configuration_mismatch",
+		"simulation_outside_campaign_window", "stale", "state_unknown", "success", "temporary_failure", "time_unknown", "timeout",
+		"unavailable", "unknown", "unknown_passing_stream", "unknown_source_authentication_failure", "unknown_suspicious_message",
+		"unsupported", "unverifiable", "valid", "weak", "withdrawn":
+		return true
 	default:
 		return false
 	}
@@ -522,6 +619,9 @@ func analysisStringSlice(values []any) bool {
 }
 
 func analysisRedactionKind(key, inherited string) string {
+	if key == "neutral_employee_template_id" {
+		return analysisPublicSafeValue
+	}
 	if key == "value" && inherited != "" {
 		return inherited
 	}
@@ -576,7 +676,23 @@ func setAnalysisDocumentRedaction(value any, profile OutputRedaction, changed bo
 	if !ok {
 		return
 	}
+	if _, present := object["redaction"]; !present {
+		return
+	}
 	object["redaction"] = map[string]any{"profile": string(profile), "operational_fields_changed": changed}
+}
+
+func analysisDocumentRedactionChanged(value any) bool {
+	object, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+	redaction, ok := object["redaction"].(map[string]any)
+	if !ok {
+		return false
+	}
+	changed, _ := redaction["operational_fields_changed"].(bool)
+	return changed
 }
 
 func csvSafe(value string) string {

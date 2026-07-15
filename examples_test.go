@@ -755,6 +755,31 @@ func ExampleBuildValidationOutput() {
 	// mode=report_validation findings=0
 }
 
+func ExampleBuildAnalysisOutput() {
+	generatedAt := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	completed := ValidatePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+	}, generatedAt)
+	output, err := BuildAnalysisOutput(completed, OutputOptions{
+		Profile: OutputProfileAgent, Detail: OutputDetailStandard, Redaction: OutputRedactionPublic,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("mode=%s generated=%s schema=%t\n", output.Mode, output.GeneratedAt.Format(time.RFC3339), output.DataSchema != "")
+	// Output: mode=configuration_validation generated=2026-07-15T12:00:00Z schema=true
+}
+
+func ExampleOutputModeDescriptors() {
+	descriptor, err := OutputModeDescriptorFor(OutputModeSourceEnrichment)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("serialization_network=%s subject_ip_contact=%t\n", descriptor.Serialization.NetworkAccess, descriptor.Serialization.SubjectIPContact)
+	// Output: serialization_network=none subject_ip_contact=false
+}
+
 func ExampleStableAnalysisID() {
 	first := StableAnalysisID("finding", "report.authentication_failures", "example.test")
 	second := StableAnalysisID("finding", "report.authentication_failures", "example.test")

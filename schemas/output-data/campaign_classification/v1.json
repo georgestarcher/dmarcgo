@@ -1,0 +1,775 @@
+{
+  "$defs": {
+    "CampaignClassificationCount": {
+      "additionalProperties": false,
+      "properties": {
+        "classification": {
+          "type": "string"
+        },
+        "records": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "classification",
+        "records"
+      ],
+      "type": "object"
+    },
+    "CampaignClassificationFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "automatic_action": {
+          "type": "boolean"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "record_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "automatic_action",
+        "classification",
+        "code",
+        "confidence",
+        "evidence_ids",
+        "id",
+        "recommendation",
+        "record_ids",
+        "sensitivity",
+        "severity",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "CampaignClassificationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_evidence_only": {
+          "type": "boolean"
+        },
+        "authentication_findings_retained": {
+          "type": "boolean"
+        },
+        "authorization_source": {
+          "type": "string"
+        },
+        "automatic_disposition_eligible": {
+          "type": "boolean"
+        },
+        "campaign_digest": {
+          "type": "string"
+        },
+        "campaign_id": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "employee_disclosure": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "factors": {
+          "items": {
+            "$ref": "#/$defs/CampaignFactorEvaluation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "matched": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "mismatched": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "privileged_employee_template_id": {
+          "type": "string"
+        },
+        "privileged_workflow_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "unverifiable": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "aggregate_evidence_only",
+        "authentication_findings_retained",
+        "authorization_source",
+        "automatic_disposition_eligible",
+        "campaign_digest",
+        "campaign_id",
+        "classification",
+        "confidence",
+        "employee_disclosure",
+        "evidence_id",
+        "factors",
+        "id",
+        "matched",
+        "mismatched",
+        "missing",
+        "sensitivity",
+        "unverifiable"
+      ],
+      "type": "object"
+    },
+    "CampaignClassificationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_evidence_only": {
+          "type": "boolean"
+        },
+        "automatic_disposition_ready": {
+          "type": "integer"
+        },
+        "campaigns_available": {
+          "type": "integer"
+        },
+        "campaigns_evaluated": {
+          "type": "integer"
+        },
+        "classifications": {
+          "items": {
+            "$ref": "#/$defs/CampaignClassificationCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "high_confidence_records": {
+          "type": "integer"
+        },
+        "overall_classification": {
+          "type": "string"
+        },
+        "possible_records": {
+          "type": "integer"
+        },
+        "relevant_records": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "aggregate_evidence_only",
+        "automatic_disposition_ready",
+        "campaigns_available",
+        "campaigns_evaluated",
+        "classifications",
+        "high_confidence_records",
+        "overall_classification",
+        "possible_records",
+        "relevant_records"
+      ],
+      "type": "object"
+    },
+    "CampaignDisclosureRoutingCount": {
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "type": "integer"
+        },
+        "routing": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "records",
+        "routing"
+      ],
+      "type": "object"
+    },
+    "CampaignDisclosureSafeFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "automatic_action": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "routing": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "automatic_action",
+        "code",
+        "confidence",
+        "id",
+        "recommendation",
+        "routing",
+        "sensitivity",
+        "severity",
+        "summary"
+      ],
+      "type": "object"
+    },
+    "CampaignDisclosureSafeRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_evidence_only": {
+          "type": "boolean"
+        },
+        "automatic_disposition_eligible": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "contradictory_factor_count": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "matched_factor_count": {
+          "type": "integer"
+        },
+        "missing_factor_count": {
+          "type": "integer"
+        },
+        "neutral_employee_template_id": {
+          "type": "string"
+        },
+        "routing": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "unverifiable_factor_count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "aggregate_evidence_only",
+        "automatic_disposition_eligible",
+        "confidence",
+        "contradictory_factor_count",
+        "id",
+        "matched_factor_count",
+        "missing_factor_count",
+        "neutral_employee_template_id",
+        "routing",
+        "sensitivity",
+        "unverifiable_factor_count"
+      ],
+      "type": "object"
+    },
+    "CampaignDisclosureSafeSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_evidence_only": {
+          "type": "boolean"
+        },
+        "automatic_disposition_ready": {
+          "type": "integer"
+        },
+        "relevant_records": {
+          "type": "integer"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/CampaignDisclosureRoutingCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "aggregate_evidence_only",
+        "automatic_disposition_ready",
+        "relevant_records",
+        "routes"
+      ],
+      "type": "object"
+    },
+    "CampaignFactorEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "factor": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_ids",
+        "factor",
+        "required",
+        "sensitivity",
+        "state"
+      ],
+      "type": "object"
+    },
+    "CampaignReportCorrelationDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "campaign_id": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "id",
+        "message",
+        "sensitivity",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "CampaignReportCorrelationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "messages": {
+          "type": "integer"
+        },
+        "mismatch_observations": {
+          "type": "integer"
+        },
+        "observations": {
+          "type": "integer"
+        },
+        "outside_window_observations": {
+          "type": "integer"
+        },
+        "possible_observations": {
+          "type": "integer"
+        },
+        "relevant_observations": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "messages",
+        "mismatch_observations",
+        "observations",
+        "outside_window_observations",
+        "possible_observations",
+        "relevant_observations"
+      ],
+      "type": "object"
+    },
+    "CampaignReportObservationClassification": {
+      "additionalProperties": false,
+      "properties": {
+        "classification_digest": {
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "messages": {
+          "type": "integer"
+        },
+        "observation_id": {
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/CampaignClassificationRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "report_evidence_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "classification_digest",
+        "finding_ids",
+        "messages",
+        "observation_id",
+        "records",
+        "report_evidence_id",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "campaignClassificationDisclosureData": {
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/CampaignDisclosureSafeFinding"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/CampaignDisclosureSafeRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/CampaignDisclosureSafeSummary"
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "findings",
+        "records",
+        "summary",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    },
+    "campaignClassificationPrivilegedData": {
+      "additionalProperties": false,
+      "properties": {
+        "campaign_snapshot_digest": {
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/CampaignClassificationFinding"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "message_evidence_digest": {
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/CampaignClassificationRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/CampaignClassificationSummary"
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "campaign_snapshot_digest",
+        "findings",
+        "message_evidence_digest",
+        "records",
+        "summary",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    },
+    "campaignReportDisclosureData": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_evidence_only": {
+          "type": "boolean"
+        },
+        "diagnostic_count": {
+          "type": "integer"
+        },
+        "evidence_kind": {
+          "type": "string"
+        },
+        "observation_count": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "aggregate_evidence_only",
+        "diagnostic_count",
+        "evidence_kind",
+        "observation_count",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    },
+    "campaignReportPrivilegedData": {
+      "additionalProperties": false,
+      "properties": {
+        "campaign_snapshot_digest": {
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/CampaignReportCorrelationDiagnostic"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "evidence_kind": {
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/CampaignReportObservationClassification"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/CampaignReportCorrelationSummary"
+        },
+        "version": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "campaign_snapshot_digest",
+        "diagnostics",
+        "evidence_kind",
+        "observations",
+        "report_evidence_digest",
+        "summary",
+        "version",
+        "view"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output-data/campaign_classification/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignClassificationPrivilegedData"
+        },
+        {
+          "properties": {
+            "view": {
+              "const": "privileged"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignClassificationDisclosureData"
+        },
+        {
+          "properties": {
+            "view": {
+              "const": "disclosure_safe"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignReportPrivilegedData"
+        },
+        {
+          "properties": {
+            "evidence_kind": {
+              "const": "aggregate_report"
+            },
+            "view": {
+              "const": "privileged"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/$defs/campaignReportDisclosureData"
+        },
+        {
+          "properties": {
+            "evidence_kind": {
+              "const": "aggregate_report"
+            },
+            "view": {
+              "const": "disclosure_safe"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "title": "dmarcgo campaign_classification common-envelope data v1"
+}

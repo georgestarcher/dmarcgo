@@ -1,6 +1,91 @@
 {
-  "version": "phase13-workflow-samples-v1",
+  "version": "phase17-workflow-samples-v1",
   "analysis_jsonl_metadata_records": [
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/configuration_validation/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "configuration_validation",
+        "generated_at": "2026-07-11T12:00:00Z",
+        "result_digest": "configuration_validation:db16597eae2056f2fe2dc6a0940052d151912993847e6af6480018f1ead8cb4f",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "2026-07-11T12:00:00Z",
+            "mode": "configuration_validation"
+          },
+          "result_digest": "configuration_validation:db16597eae2056f2fe2dc6a0940052d151912993847e6af6480018f1ead8cb4f"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "dns_snapshot",
+        "generated_at": "2026-07-12T12:00:00Z",
+        "result_digest": "dns_snapshot:17bc3cf6ea85a2936d00fa4de2dde299b1d7ba5502f16f289dae347b8f67a66d",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "complete": true,
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "2026-07-12T12:00:00Z",
+            "mode": "dns_snapshot"
+          },
+          "portfolio_digest": "portfolio:af12c1c1f3c4065357253039ec08a48b9b6af5205343bc4b049c4c80cfb7e89c"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "observation",
+        "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "dns_authentication_records",
+        "generated_at": "2026-07-12T12:00:00Z",
+        "result_digest": "dns_authentication_records:9058c1c8c241a342cb6ea7ac5931f906dd88bea3ba8604483da59b74f65fb295",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "2026-07-12T12:00:00Z",
+            "mode": "dns_authentication_records"
+          },
+          "portfolio_digest": "portfolio:af12c1c1f3c4065357253039ec08a48b9b6af5205343bc4b049c4c80cfb7e89c",
+          "snapshot_digest": "dns_snapshot:17bc3cf6ea85a2936d00fa4de2dde299b1d7ba5502f16f289dae347b8f67a66d"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "record_set",
+        "diagnostic"
+      ]
+    },
     {
       "metadata_record": {
         "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json#/$defs/jsonl_record",
@@ -111,6 +196,82 @@
         "entity",
         "finding",
         "provider_context"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "dns_perspectives",
+        "generated_at": "2026-07-12T12:00:00Z",
+        "result_digest": "dns_perspectives:085906085d8f017d521a1cc16558e468e4cbcbca58a5261f38769f86d34b3a13",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "complete": false,
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "reason": "No DNS perspective provider was supplied.",
+              "state": "not_evaluated"
+            },
+            "generated_at": "2026-07-12T12:00:00Z",
+            "mode": "dns_perspectives"
+          },
+          "portfolio_digest": "portfolio:af12c1c1f3c4065357253039ec08a48b9b6af5205343bc4b049c4c80cfb7e89c",
+          "snapshot_digest": "dns_snapshot:17bc3cf6ea85a2936d00fa4de2dde299b1d7ba5502f16f289dae347b8f67a66d",
+          "summary": {
+            "failed_perspectives": 0,
+            "findings": 0,
+            "no_answer_perspectives": 0,
+            "outcomes": [
+              {
+                "outcome": "success",
+                "queries": 0
+              },
+              {
+                "outcome": "no_answer",
+                "queries": 0
+              },
+              {
+                "outcome": "failed",
+                "queries": 0
+              },
+              {
+                "outcome": "rate_limited",
+                "queries": 0
+              },
+              {
+                "outcome": "malformed",
+                "queries": 0
+              },
+              {
+                "outcome": "unavailable",
+                "queries": 0
+              },
+              {
+                "outcome": "canceled",
+                "queries": 0
+              },
+              {
+                "outcome": "not_evaluated",
+                "queries": 5
+              }
+            ],
+            "perspectives": 0,
+            "queries": 5,
+            "successful_perspectives": 0,
+            "truncated_queries": 0
+          },
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "query",
+        "finding",
+        "diagnostic"
       ]
     },
     {
@@ -404,6 +565,97 @@
         "candidate",
         "asn",
         "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "source_activity",
+        "generated_at": "1970-01-02T03:48:20Z",
+        "result_digest": "source_activity:e4de5b3a94d8ad6f3924167cf32fb3003fc9bec63fd5c1582bb6bae3355020ef",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "complete": true,
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:48:20Z",
+            "mode": "source_activity"
+          },
+          "organization_id": "example-group",
+          "source_enrichment_digest": "source_enrichment:575b96cda6cc0b56ccd21f12440008e94f83f25a965f153cb8ec7ce4f18fbac1",
+          "summary": {
+            "activity_observed": 0,
+            "eligible": 0,
+            "findings": 0,
+            "sources": 0,
+            "statuses": null,
+            "truncated": 0
+          },
+          "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "record",
+        "finding",
+        "diagnostic"
+      ]
+    },
+    {
+      "metadata_record": {
+        "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json#/$defs/jsonl_record",
+        "schema_version": "1",
+        "mode": "phishing_intelligence",
+        "generated_at": "1970-01-02T03:46:40Z",
+        "result_digest": "phishing_intelligence:7011bce5703c3dc36fad35f4556ec8dcdfa847dd5e53afa9e98be13872e0b6e0",
+        "redaction": "restricted",
+        "record_type": "metadata",
+        "record_id": "metadata",
+        "data": {
+          "metadata": {
+            "contract_version": "1",
+            "evaluation": {
+              "state": "evaluated"
+            },
+            "generated_at": "1970-01-02T03:46:40Z",
+            "mode": "phishing_intelligence"
+          },
+          "organization_id": "example-group",
+          "report_evidence_digest": "report_evidence:983955385cc776e045c960f23ce364ac82f6e20310bbed6f7720c71f716b4d79",
+          "snapshot_digests": [
+            "phishing_intelligence_snapshot:759eb1a77324673215a57c14e39fabea602c7877ee77d0493d7728a52b90231c"
+          ],
+          "summary": {
+            "active_matches": 0,
+            "candidates": 1,
+            "exact_matches": 0,
+            "findings": 0,
+            "indicators": 0,
+            "sources": 1,
+            "statuses": [
+              {
+                "candidates": 1,
+                "status": "no_match"
+              }
+            ]
+          },
+          "threat_candidate_digest": "threat_candidates:704101a7bef243c81ad9c5ab02d61c5df47afd99e52d7ac3d78f979daa03e1dc",
+          "version": "1"
+        }
+      },
+      "record_types": [
+        "metadata",
+        "source",
+        "candidate",
+        "match",
+        "finding"
       ]
     },
     {

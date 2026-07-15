@@ -652,6 +652,43 @@
       ],
       "type": "object"
     },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceDiagnostic"
+          },
+          "type": "array"
+        },
+        "evidence_schema_version": {
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceObservation"
+          },
+          "type": "array"
+        },
+        "reports": {
+          "items": {
+            "$ref": "#/$defs/ReportEvidenceReport"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "$ref": "#/$defs/ReportEvidenceAggregate"
+        }
+      },
+      "required": [
+        "diagnostics",
+        "evidence_schema_version",
+        "observations",
+        "reports",
+        "summary"
+      ],
+      "type": "object"
+    },
     "jsonl_record": {
       "additionalProperties": false,
       "oneOf": [

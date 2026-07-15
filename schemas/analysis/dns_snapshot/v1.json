@@ -1,0 +1,585 @@
+{
+  "$defs": {
+    "DNSCollectionDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "attempts": {
+          "type": "integer"
+        },
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempts",
+        "code",
+        "message",
+        "name",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "DNSDurationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_source": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "canonical_name": {
+          "type": "string"
+        },
+        "cname_path": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dnssec": {
+          "$ref": "#/$defs/DNSSECEvidence"
+        },
+        "name": {
+          "type": "string"
+        },
+        "negative_ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        },
+        "rcode": {
+          "$ref": "#/$defs/DNSRCodeEvidence"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/TXTRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/DNSRecordReference"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "resolver": {
+          "type": "string"
+        },
+        "soa": {
+          "$ref": "#/$defs/DNSSOAEvidence"
+        },
+        "status": {
+          "type": "string"
+        },
+        "ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        }
+      },
+      "required": [
+        "answer_source",
+        "attempts",
+        "cname_path",
+        "dnssec",
+        "name",
+        "negative_ttl",
+        "rcode",
+        "records",
+        "references",
+        "status",
+        "ttl"
+      ],
+      "type": "object"
+    },
+    "DNSRCodeEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSRecordReference": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain",
+        "entity_id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DNSSECEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "authenticated_data": {
+          "type": "boolean"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "authenticated_data",
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSSOAEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "expire": {
+          "type": "integer"
+        },
+        "minimum": {
+          "type": "integer"
+        },
+        "mname": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "refresh": {
+          "type": "integer"
+        },
+        "retry": {
+          "type": "integer"
+        },
+        "rname": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "integer"
+        },
+        "ttl": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expire",
+        "minimum",
+        "mname",
+        "name",
+        "refresh",
+        "retry",
+        "rname",
+        "serial",
+        "ttl"
+      ],
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "TXTRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "fragments": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "fragments_available": {
+          "type": "boolean"
+        },
+        "joined": {
+          "type": "string"
+        },
+        "ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        }
+      },
+      "required": [
+        "fragments_available",
+        "ttl"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_source": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_snapshot"
+        },
+        "name": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "resolver": {
+          "type": "string"
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "name",
+        "status",
+        "resolver",
+        "answer_source",
+        "attempts",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "dnsSnapshotOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "metadata",
+        "portfolio_digest"
+      ],
+      "type": "object"
+    },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/DNSCollectionDiagnostic"
+          },
+          "type": "array"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/DNSObservation"
+          },
+          "type": "array"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "diagnostics",
+        "observations",
+        "portfolio_digest"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/dnsSnapshotOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSObservation"
+            },
+            "record_type": {
+              "const": "observation"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSCollectionDiagnostic"
+            },
+            "record_type": {
+              "const": "diagnostic"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_snapshot"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "complete": {
+      "type": "boolean"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/DNSCollectionDiagnostic"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "dns_snapshot"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "dns_snapshot"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/DNSObservation"
+      },
+      "type": "array"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    }
+  },
+  "required": [
+    "complete",
+    "diagnostics",
+    "metadata",
+    "mode",
+    "observations",
+    "portfolio_digest",
+    "profile",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version"
+  ],
+  "title": "dmarcgo native dns snapshot output v1",
+  "type": "object"
+}

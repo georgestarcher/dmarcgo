@@ -1,6 +1,7 @@
 # dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v2.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v2)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v2) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
-`dmarcgo` is a Go library for parsing DMARC aggregate report files.
+`dmarcgo` is a Go library for parsing DMARC aggregate report files and
+performing explicit, independently callable email-authentication analysis.
 
 It supports older real-world aggregate reports, legacy DMARC RUA XML output, and the current [RFC 9990](https://www.rfc-editor.org/rfc/rfc9990.html) aggregate-report shape. It intentionally does not parse [RFC 9991](https://www.rfc-editor.org/rfc/rfc9991.html) DMARC failure/forensic reports.
 
@@ -19,6 +20,15 @@ approved campaign classification, suspicious-source review, defensive exports,
 and automation output. The wiki is a navigation layer; the
 [repository documentation index](docs/README.md), Go documentation, and shipped
 schemas remain the versioned contracts.
+
+Building an application integration? Follow the
+[organization adoption guide](docs/adoption-guide.md). AI coding assistants can
+start with the self-contained
+[consumer-agent guide](docs/consumer-agent-guide.md). Exact portfolio and
+campaign fields are in the
+[configuration reference](docs/configuration-reference.md), and production
+ownership and failure handling are in
+[operations and troubleshooting](docs/operations-and-troubleshooting.md).
 
 ## Install
 
@@ -55,7 +65,11 @@ original API and is retained only for Go module history; it is not maintained.
 
 ## What this package does
 
-`dmarcgo` is a parser library. It is meant to be imported by other Go code that wants to parse DMARC aggregate report artifacts and then decide how to ingest, store, summarize, or display the results.
+`dmarcgo` is a library meant to be imported by other Go code. It parses DMARC
+aggregate artifacts and can evaluate caller-supplied organization, DNS,
+historical-report, campaign, and optional security context through separate
+bounded stages. The application still decides how to ingest, schedule, store,
+review, display, submit, or act on results.
 
 It does not provide a mailbox ingester, directory watcher, database, CLI,
 dashboard, generic IP-reputation engine, or automatic enforcement system.
@@ -64,8 +78,8 @@ reports require per-message and connection evidence that DMARC aggregate
 reports do not contain. See the
 [XARF v4 feasibility decision](docs/xarf-feasibility.md).
 
-The planned organizational-analysis features follow independently callable
-stages with explicit side-effect boundaries. See
+The organization-analysis features follow independently callable stages with
+explicit side-effect boundaries. See
 [Analysis architecture](docs/architecture.md) for result ownership, dependency
 direction, deterministic metadata, and the rule that output serialization never
 initiates analysis or network access.
@@ -520,7 +534,7 @@ Do not publish public output when that correlation risk is unacceptable.
 
 These examples use synthetic, documentation-safe values. Real reports can expose source IPs, domains, reporter metadata, and authentication behavior.
 
-The generated Phase 17 sample contains one real JSONL metadata record for every
+The generated cross-mode sample contains one real JSONL metadata record for every
 native organization-analysis mode and identifies the STIX, ThreatConnect, MISP,
 and ThreatStream payloads derived from the same reviewed candidate. See
 [`testdata/golden/phase17_workflow_samples.json`](testdata/golden/phase17_workflow_samples.json).
@@ -1613,6 +1627,7 @@ go test ./...
 go test -race ./...
 go vet ./...
 python3 scripts/check_readme_examples.py
+make docs-check
 make workflow-check
 make campaign-check
 ```

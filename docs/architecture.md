@@ -252,12 +252,12 @@ reject report loading, parsing, evaluation, summarization, and network imports.
 Each future collection or enrichment interface must add counting and failing
 spies that prove unrelated modes never invoke it.
 
-The Phase 17 workflow gate adds a complete synthetic evidence chain, generated
+The cross-mode workflow gate adds a complete synthetic evidence chain, generated
 metadata samples for every native analysis mode, common-candidate exchange
 proof, and a static dependency audit across all pure analysis and export
 implementations. See [Independent automation workflows](automation-workflows.md).
 
-The Phase 14 campaign gate adds a separate synthetic commercial/self-hosted
+The campaign gate adds a separate synthetic commercial/self-hosted
 inventory, explicit source resolution, body-free message evidence, pure bounded
 classification, and disclosure-safe output proof. The explicit source adapter
 file is intentionally outside the pure-stage import audit; campaign
@@ -265,7 +265,7 @@ configuration normalization, evidence normalization, matching, aggregate
 review, and output remain inside it. See
 [Security-simulation campaign correlation](campaign-correlation.md).
 
-The Phase 15 DNS-perspective gate uses synthetic provider fixtures and the
+The DNS-perspective gate uses synthetic provider fixtures and the
 ignored private portfolio record-name collection to prove explicit selection,
 TXT-only planning, deduplication, bounded concurrency, no retry, cancellation,
 partial failure, deterministic comparison, defensive copies, and isolation

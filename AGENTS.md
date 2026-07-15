@@ -1,6 +1,22 @@
-# Agent guide for dmarcgo
+# Repository maintainer guide for dmarcgo
 
 This repository is a Go library for parsing and analyzing DMARC aggregate reports. Use this guide when an automated coding agent is adding `dmarcgo` to an application project or modifying this repository.
+
+## Audience boundary
+
+- Agents integrating the released module into another application should begin
+  with `docs/consumer-agent-guide.md`, then use `docs/adoption-guide.md` and the
+  selected feature guide. That consumer guide is self-contained and does not
+  grant permission to modify this repository.
+- This `AGENTS.md` is the repository-maintainer contract. Its API summaries are
+  maintained to review consumer-facing changes, while the repository guides,
+  examples, schemas, and Go documentation are the public adoption contract.
+- When behavior or public API changes, update the authoritative feature guide
+  first, then the adoption/configuration/operations/consumer-agent layer and
+  relevant wiki navigation in the same pull request.
+- Never copy a private portfolio, provider overlay, report corpus, campaign
+  inventory, source address, credential, contact, or local path into public
+  documentation or examples.
 
 ## Scope
 
@@ -136,7 +152,7 @@ Choose the narrowest independently callable workflow:
 
 See `docs/automation-workflows.md` for the synthetic reference workflow,
 cross-mode sample output, marketing-service onboarding case, and isolation
-tests used by the Phase 13 integration gate.
+tests used by the cross-mode integration gate.
 
 ## Recommended app integration flow
 
@@ -566,6 +582,19 @@ Run the full local suite before committing repository changes:
 make ci
 ```
 
+Documentation-only changes still run the complete documentation gate:
+
+```shell
+make docs-check
+```
+
+`docs-check` compiles README snippets in an isolated consumer module, executes
+all Go examples, validates public configuration fixtures, checks the canonical
+wiki, checks exact internal links and anchors, applies the curated spelling
+regression list, and rejects private or credential-shaped public sample data.
+Intentional spelling exceptions belong in
+`scripts/docs_spelling_allowlist.txt`, one literal word per line with a comment.
+
 If the Go proxy times out fetching Staticcheck or govulncheck during local validation, retry with direct module fetch:
 
 ```shell
@@ -578,6 +607,7 @@ Useful targeted checks:
 go test ./...
 go test -race ./...
 python3 scripts/check_readme_examples.py
+make docs-check
 make cover-check
 make fuzz-smoke
 make bench-smoke

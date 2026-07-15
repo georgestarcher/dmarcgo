@@ -4,10 +4,25 @@ The project wiki is a task-oriented navigation layer for new users. These
 repository guides, the Go documentation, and embedded schemas are the
 authoritative, versioned sources for behavior.
 
+## Recommended reading paths
+
+| Audience | Start here | Continue with |
+| --- | --- | --- |
+| New Go application developer | [Organization adoption](adoption-guide.md) | [Consumer-agent guide](consumer-agent-guide.md), then the selected feature guide |
+| Email or DNS administrator | [Configuration reference](configuration-reference.md) | [Portfolio configuration](portfolio-configuration.md), [DNS snapshots](dns-snapshots.md), and [DNS health](dns-health.md) |
+| SOC or security engineering | [Automation workflows](automation-workflows.md) | Correlation, threat-candidate, optional-context, and export guides |
+| Security-awareness team | [Campaign correlation](campaign-correlation.md) | [Configuration reference](configuration-reference.md) and disclosure-safe output guidance |
+| Platform operator or reviewer | [Operations and troubleshooting](operations-and-troubleshooting.md) | [Analysis architecture](architecture.md) and [output contract](output-contract.md) |
+| AI coding assistant integrating the module | [Consumer-agent guide](consumer-agent-guide.md) | [Organization adoption](adoption-guide.md) and machine-readable schemas |
+
 ## Choose a workflow
 
 | Goal | Authoritative guide |
 | --- | --- |
+| Adopt the complete library safely | [Organization adoption](adoption-guide.md) |
+| Look up exact portfolio and campaign fields | [Configuration reference](configuration-reference.md) |
+| Integrate from an AI coding assistant | [Consumer-agent guide](consumer-agent-guide.md) |
+| Operate, roll out, and troubleshoot an integration | [Operations and troubleshooting](operations-and-troubleshooting.md) |
 | Understand stage ownership and side effects | [Analysis architecture](architecture.md) |
 | Define organizations, domains, records, and expected senders | [Portfolio configuration](portfolio-configuration.md) |
 | Collect declared DNS evidence | [DNS snapshots](dns-snapshots.md) |
@@ -37,6 +52,28 @@ authoritative, versioned sources for behavior.
 - [Output schemas](../schemas)
 - [Changelog](../CHANGELOG.md)
 - [Task-oriented project wiki](https://github.com/georgestarcher/dmarcgo/wiki)
+
+## Documentation validation
+
+Run the complete local documentation gate with:
+
+```shell
+make docs-check
+```
+
+The gate compiles README code blocks in an isolated consumer module, executes
+all Go examples, loads the public portfolio and campaign fixtures through the
+strict APIs, validates the canonical wiki source, checks exact internal paths
+and Markdown anchors, rejects formatting and curated spelling regressions, and
+scans public samples for credential/private-data markers and non-reserved
+domains or addresses.
+
+Intentional spelling exceptions belong in
+[`scripts/docs_spelling_allowlist.txt`](../scripts/docs_spelling_allowlist.txt),
+one literal word per line with a short comment explaining unusual additions.
+The checker deliberately does not probe external links during CI; external
+availability and first-party contract review remain part of the relevant
+feature-maintenance process.
 
 Wiki source is maintained under [`docs/wiki`](wiki) and published only from
 trusted `main` after pull-request validation. See

@@ -6,10 +6,14 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"net/netip"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -73,6 +77,12 @@ func (provider exampleSourceActivityProvider) LookupSourceActivity(ctx context.C
 	return response, nil
 }
 
+type exampleRoundTripper func(*http.Request) (*http.Response, error)
+
+func (roundTripper exampleRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return roundTripper(request)
+}
+
 func exampleCampaignConfiguration() CampaignConfigurationConfig {
 	return CampaignConfigurationConfig{
 		SchemaVersion: CampaignConfigurationSchemaVersion,
@@ -122,6 +132,38 @@ func ExampleResolveCampaignConfiguration() {
 	}
 	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
 		ID: "testing-team-feed", Source: NewCampaignBytesSource(data, CampaignConfigurationMetadata{}), Required: true,
+	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time {
+		return time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	})})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("complete=%t authorization=%t sources=%d\n", snapshot.Complete(), snapshot.AuthorizationAvailable(), len(snapshot.Sources()))
+	// Output: complete=true authorization=true sources=1
+}
+
+// ExampleNewCampaignHTTPSSource demonstrates caller-controlled HTTPS retrieval
+// with an offline transport fixture. Production callers own endpoint and
+// redirect allowlists, credentials, response limits, caching, and scheduling.
+func ExampleNewCampaignHTTPSSource() {
+	data, err := json.Marshal(exampleCampaignConfiguration())
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := &http.Client{Transport: exampleRoundTripper(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(bytes.NewReader(data)),
+			Request:    request,
+		}, nil
+	})}
+	source, err := NewCampaignHTTPSSource("https://config.example.test/security-simulations.json", client)
+	if err != nil {
+		log.Fatal(err)
+	}
+	snapshot, err := ResolveCampaignConfiguration(context.Background(), []CampaignConfigurationSourceSpec{{
+		ID: "testing-team-https", Source: source, Required: true,
 	}}, CampaignConfigurationResolveOptions{Clock: ClockFunc(func() time.Time {
 		return time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	})})
@@ -1080,6 +1122,15 @@ func ExampleLoadBytes() {
 
 	fmt.Println(report.ReportMetadata.ReportID)
 	// Output: example-report-id
+}
+
+// ExampleLoadReaderContext demonstrates request cancellation before parsing.
+func ExampleLoadReaderContext() {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := LoadReaderContext(ctx, strings.NewReader("<feedback/>"))
+	fmt.Println(errors.Is(err, context.Canceled))
+	// Output: true
 }
 
 // ExampleAggregateReport_Summary demonstrates aggregate message counts.

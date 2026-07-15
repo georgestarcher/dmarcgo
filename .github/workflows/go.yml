@@ -158,11 +158,8 @@ jobs:
       - name: Govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 
-      - name: Compile README examples
-        run: python3 scripts/check_readme_examples.py
-
-      - name: Validate project wiki source
-        run: make wiki-check
+      - name: Validate documentation and runnable examples
+        run: make docs-check
 
       - name: Validate independent analysis workflows
         run: make workflow-check

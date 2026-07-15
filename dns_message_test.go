@@ -189,27 +189,33 @@ func TestDNSMessageResolverRetriesMalformedTruncatedUDPOverTCP(t *testing.T) {
 
 func listenSharedDNSFixturePort(t *testing.T) (*net.TCPListener, *net.UDPConn) {
 	t.Helper()
-	const maxAttempts = 16
+	const (
+		firstCandidatePort = 20000
+		maxAttempts        = 128
+	)
+	loopback := net.IPv4(127, 0, 0, 1)
 	var lastErr error
-	for range maxAttempts {
-		// Allocate through UDP first. Windows can choose a TCP ephemeral port
-		// that belongs to a UDP-excluded range, making the second bind fail with
-		// WSAEACCES even though the TCP bind succeeded.
-		udpListener, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP("127.0.0.1")})
+	for attempt := range maxAttempts {
+		// Windows chooses dynamic TCP and UDP ports from independently
+		// configurable ranges. Use bounded candidates below the default dynamic
+		// range instead of asking one protocol to choose a port that the other
+		// protocol may reserve or exclude.
+		port := firstCandidatePort + attempt
+		tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: loopback, Port: port})
 		if err != nil {
-			t.Fatalf("listen UDP fixture: %v", err)
+			lastErr = err
+			continue
 		}
-		udpAddress := udpListener.LocalAddr().(*net.UDPAddr)
-		tcpListener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: udpAddress.IP, Port: udpAddress.Port})
+		udpListener, err := net.ListenUDP("udp4", &net.UDPAddr{IP: loopback, Port: port})
 		if err == nil {
 			return tcpListener, udpListener
 		}
 		lastErr = err
-		if closeErr := udpListener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
-			t.Fatalf("close UDP fixture after TCP bind failure: %v", closeErr)
+		if closeErr := tcpListener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			t.Fatalf("close TCP fixture after UDP bind failure: %v", closeErr)
 		}
 	}
-	t.Fatalf("listen TCP and UDP fixtures on one port after %d attempts: %v", maxAttempts, lastErr)
+	t.Fatalf("listen TCP and UDP fixtures on one non-dynamic port after %d attempts: %v", maxAttempts, lastErr)
 	return nil, nil
 }
 

@@ -75,6 +75,9 @@ or use an untyped map. Field, item, total-text, query, concurrency, timeout, and
 retry-after limits are enforced again at the library boundary.
 Future timestamps in either the top-level activity window or a threat-feed
 membership window produce an explicit `future` freshness and record status.
+An expired caller deadline and an expired per-lookup deadline both produce a
+`timeout` record status; diagnostics distinguish caller deadline expiry from a
+provider lookup timeout. Explicit context cancellation remains `canceled`.
 
 Provider, dataset, endpoint, reference, metric, feed, organization, and network
 strings are untrusted data. They remain structured fields and never enter

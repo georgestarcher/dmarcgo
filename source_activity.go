@@ -825,11 +825,14 @@ func validateSourceActivityWindow(first, last *time.Time) error {
 
 func failedSourceActivityLookupOutcome(index int, item sourceActivityPlanItem, response SourceActivityResponse, lookupErr error, parent context.Context, options SourceActivityOptions) sourceActivityLookupOutcome {
 	status, code, message, severity := SourceActivityFailed, DiagnosticCode("source_activity.failed"), "The caller-supplied source-activity provider failed.", FindingSeverityLow
+	complete := true
 	switch {
 	case parent != nil && errors.Is(parent.Err(), context.Canceled), errors.Is(lookupErr, context.Canceled):
 		status, code, message, severity = SourceActivityCanceled, "source_activity.canceled", "Source-activity collection was canceled before evidence was available.", FindingSeverityInfo
+		complete = false
 	case parent != nil && errors.Is(parent.Err(), context.DeadlineExceeded):
-		status, code, message = SourceActivityCanceled, "source_activity.deadline_exceeded", "Source-activity collection exceeded its caller deadline."
+		status, code, message = SourceActivityTimeout, "source_activity.deadline_exceeded", "Source-activity collection exceeded its caller deadline."
+		complete = false
 	case errors.Is(lookupErr, context.DeadlineExceeded):
 		status, code, message = SourceActivityTimeout, "source_activity.timeout", "The source-activity provider lookup exceeded its deadline."
 	case errors.Is(lookupErr, ErrSourceActivityRateLimited):
@@ -844,13 +847,13 @@ func failedSourceActivityLookupOutcome(index int, item sourceActivityPlanItem, r
 		record.RetryAfter = retryAfter
 	}
 	diagnostic := SourceActivityDiagnostic{Code: code, Severity: severity, RecordID: record.ID, Status: status, Message: message}
-	return sourceActivityLookupOutcome{index: index, record: record, diagnostics: []SourceActivityDiagnostic{diagnostic}, complete: status != SourceActivityCanceled}
+	return sourceActivityLookupOutcome{index: index, record: record, diagnostics: []SourceActivityDiagnostic{diagnostic}, complete: complete}
 }
 
 func canceledSourceActivityLookupOutcome(index int, item sourceActivityPlanItem, err error) sourceActivityLookupOutcome {
 	status, code, message := SourceActivityCanceled, DiagnosticCode("source_activity.canceled"), "Source-activity collection was canceled before evidence was available."
 	if errors.Is(err, context.DeadlineExceeded) {
-		code, message = "source_activity.deadline_exceeded", "Source-activity collection exceeded its caller deadline."
+		status, code, message = SourceActivityTimeout, "source_activity.deadline_exceeded", "Source-activity collection exceeded its caller deadline."
 	}
 	record := emptySourceActivityRecord(item, status)
 	return sourceActivityLookupOutcome{index: index, record: record, diagnostics: []SourceActivityDiagnostic{{Code: code, Severity: FindingSeverityInfo, RecordID: record.ID, Status: status, Message: message}}, complete: false}

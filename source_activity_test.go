@@ -238,6 +238,22 @@ func TestCollectSourceActivityCancellationTimeoutAndPartialFailure(t *testing.T)
 	if !errors.Is(err, context.Canceled) || result.Complete() || provider.totalCalls() != 0 {
 		t.Fatalf("pre-canceled error=%v complete=%v calls=%d", err, result.Complete(), provider.totalCalls())
 	}
+	expiredCtx, expiredCancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer expiredCancel()
+	expired, err := CollectSourceActivity(expiredCtx, candidates, nil, provider, SourceActivityOptions{Selection: selection, Clock: sourcePanicClock{}})
+	if !errors.Is(err, context.DeadlineExceeded) || expired.Complete() || provider.totalCalls() != 0 || len(expired.Records()) != 2 {
+		t.Fatalf("pre-expired error=%v complete=%v calls=%d records=%+v", err, expired.Complete(), provider.totalCalls(), expired.Records())
+	}
+	for _, record := range expired.Records() {
+		if record.Status != SourceActivityTimeout {
+			t.Fatalf("pre-expired record=%+v", record)
+		}
+	}
+	for _, diagnostic := range expired.Diagnostics() {
+		if diagnostic.Code != "source_activity.deadline_exceeded" || diagnostic.Status != SourceActivityTimeout {
+			t.Fatalf("pre-expired diagnostic=%+v", diagnostic)
+		}
+	}
 
 	now := time.Unix(200_000, 0).UTC()
 	blocking := &sourceActivityBlockingProvider{}
@@ -247,6 +263,16 @@ func TestCollectSourceActivityCancellationTimeoutAndPartialFailure(t *testing.T)
 	})
 	if err != nil || len(timed.Records()) != 1 || timed.Records()[0].Status != SourceActivityTimeout || timed.Diagnostics()[0].Code != "source_activity.timeout" || blocking.calls != 1 {
 		t.Fatalf("timeout error=%v records=%+v diagnostics=%+v calls=%d", err, timed.Records(), timed.Diagnostics(), blocking.calls)
+	}
+	deadlineCtx, deadlineCancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer deadlineCancel()
+	deadlineProvider := &sourceActivityBlockingProvider{}
+	deadlineResult, err := CollectSourceActivity(deadlineCtx, candidates, nil, deadlineProvider, SourceActivityOptions{
+		Selection: SourceActivitySelection{SourceIPs: []string{"198.51.100.20"}}, LookupTimeout: time.Second,
+		Clock: ClockFunc(func() time.Time { return now }),
+	})
+	if !errors.Is(err, context.DeadlineExceeded) || deadlineResult.Complete() || len(deadlineResult.Records()) != 1 || deadlineResult.Records()[0].Status != SourceActivityTimeout || deadlineResult.Diagnostics()[0].Code != "source_activity.deadline_exceeded" || deadlineProvider.calls != 1 {
+		t.Fatalf("caller deadline error=%v complete=%v records=%+v diagnostics=%+v calls=%d", err, deadlineResult.Complete(), deadlineResult.Records(), deadlineResult.Diagnostics(), deadlineProvider.calls)
 	}
 
 	partialProvider := &sourceActivityFixtureProvider{responses: map[string]SourceActivityResponse{"198.51.100.20": sourceActivityTestResponse(now)}, errors: map[string]error{"2001:db8::20": ErrSourceActivityUnavailable}}

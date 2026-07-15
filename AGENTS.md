@@ -305,6 +305,7 @@ tests used by the Phase 13 integration gate.
 - Provider adapters own endpoint allowlisting, raw-response limits, redirect policy, credentials, contact-bearing User-Agent, current terms, attribution, caching, and scheduling. The library ships no DShield adapter.
 - Activity metrics and feed memberships are third-party context, not IP ownership metadata, malicious attribution, a reputation verdict, or evidence of safety when absent.
 - Preserve time-window mismatch, stale, future, conflicting, unavailable, rate-limited, malformed, failed, timed-out, canceled, and truncated states. Future top-level or threat-feed membership timestamps must remain explicit future evidence. Never select a preferred conflicting assertion.
+- Preserve caller deadline expiry as `timeout` and explicit cancellation as `canceled`; a caller deadline that interrupts collection remains incomplete even though its records are timed out.
 - Source activity never changes threat score, confidence, severity, eligibility, exclusion, promotion, or recommended usage and never authorizes automatic action.
 - Provider values are untrusted structured data. Generated findings and diagnostics use fixed library text only.
 - Use synthetic committed fixtures. See `docs/source-activity.md` for the DShield research date, current first-party sources, disclosure boundary, and caller-adapter requirements.

@@ -19,6 +19,7 @@ campaign snapshot + report evidence -> aggregate campaign review
 completed campaign classification -> privileged or disclosure-safe output
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
+threat candidates + explicit selection/provider + optional matching enrichment -> source activity
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
 threat candidates + optional matching enrichment -> STIX 2.1 bundle
 explicit threat-candidate/ASN selections + optional matching enrichment -> ThreatConnect v3 request payloads
@@ -53,6 +54,7 @@ structure containing every possible input or output.
 | DNS/report correlation | `dns_report_correlation`, `DNSReportCorrelationResult` | Correlation feature |
 | Suspicious-source candidates | `threat_candidates` | Candidate-scoring feature |
 | Optional enrichment | `source_enrichment` | Enrichment feature |
+| Optional source activity | `source_activity` | Source-activity feature |
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
 | ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
@@ -112,6 +114,16 @@ third-party service. Successful enrichment replaces the earlier unenriched cap
 with a provider-confidence cap; missing confidence retains the original
 conservative maximum. It never changes the score, exclusions, review
 eligibility, recommended usage, or disabled promotion state.
+
+`SourceActivityResult` implements a separate optional collection branch over
+explicitly selected threat-candidate addresses and optional matching enrichment
+references. A caller-supplied `SourceActivityProvider` owns third-party
+transport and raw-response limits. The stage deduplicates canonical addresses,
+defaults to one request at a time, never retries, and preserves activity time
+bounds, freshness, conflicts, truncation, rate limits, and partial failures. It
+does not mutate candidates, infer maliciousness or benignness, or contact the
+subject address. A nil provider and empty selection are deterministic
+no-network, no-clock paths. The library ships no DShield adapter.
 
 `JurisdictionContextResult` implements the following pure context stage. It
 consumes only a completed `SourceEnrichmentResult` and an explicit immutable
@@ -203,6 +215,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Campaign output | No | Writer supplied by caller | No | No | Privacy representation only |
 | Threat candidates | Supplied completed values only | No | No | No | Explainable scoring |
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
+| Source activity | No implicit reports | No | Explicit third-party provider only | No | Bounded selected-IP collection |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | ThreatConnect export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | MISP export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |

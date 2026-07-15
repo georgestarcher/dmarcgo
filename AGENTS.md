@@ -70,6 +70,7 @@ Version 2 is the supported API line. Import
 - Explicit privileged/disclosure-safe campaign output: `dmarcgo.WriteCampaignClassificationOutput(writer, result, format, options)`
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
+- Explicit optional source activity: `dmarcgo.CollectSourceActivity(ctx, threatCandidates, enrichment, provider, options)`
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
 - Pure STIX 2.1 observed-data export: `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)`
 - Pure ThreatConnect v3 request encoding: `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)`
@@ -295,6 +296,18 @@ tests used by the Phase 13 integration gate.
 - Successful non-conflicting enrichment replaces the prior unenriched confidence cap with a provider-confidence cap. Missing provider confidence keeps the original conservative maximum; enrichment never changes the score, review eligibility, exclusions, recommendation, or `PromotionEligible: false` policy.
 - Stale, unavailable, conflicting, failed, timed-out, canceled, and not-evaluated outcomes remain explicit. ASN rollups retain every source IP, candidate ID, assertion ID, and contradictory ASN assertion.
 - Use only offline deterministic fixtures in committed tests and examples. See `docs/source-enrichment.md` for the complete side-effect, failure, freshness, and aggregation contract.
+
+## Optional source activity
+
+- `CollectSourceActivity` consumes a completed `ThreatCandidateResult`, optional matching `SourceEnrichmentResult`, explicit candidate-ID or canonical source-IP selection, and a caller-supplied `SourceActivityProvider`.
+- Empty selection and nil provider are no-clock, no-network paths. Only explicitly selected, review-eligible, non-excluded, non-expected-sender-only addresses may reach the provider.
+- Each selected address is canonicalized, deduplicated, sorted, and attempted at most once. Default concurrency is one; the stage never retries, sleeps, polls, discovers additional addresses, or contacts the subject IP.
+- Provider adapters own endpoint allowlisting, raw-response limits, redirect policy, credentials, contact-bearing User-Agent, current terms, attribution, caching, and scheduling. The library ships no DShield adapter.
+- Activity metrics and feed memberships are third-party context, not IP ownership metadata, malicious attribution, a reputation verdict, or evidence of safety when absent.
+- Preserve time-window mismatch, stale, future, conflicting, unavailable, rate-limited, malformed, failed, timed-out, canceled, and truncated states. Never select a preferred conflicting assertion.
+- Source activity never changes threat score, confidence, severity, eligibility, exclusion, promotion, or recommended usage and never authorizes automatic action.
+- Provider values are untrusted structured data. Generated findings and diagnostics use fixed library text only.
+- Use synthetic committed fixtures. See `docs/source-activity.md` for the DShield research date, current first-party sources, disclosure boundary, and caller-adapter requirements.
 
 ## Versioned jurisdiction context
 

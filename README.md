@@ -120,6 +120,13 @@ It accepts only a caller-supplied context-aware dependency, performs no built-in
 network or PTR lookups, and never contacts an observed source IP. See
 [Optional source enrichment](docs/source-enrichment.md).
 
+Optional source-activity collection is a separate explicit branch for selected
+review-eligible candidate IPs. It calls only a caller-supplied third-party
+provider, never contacts the subject IP, and never changes candidate scoring or
+authorizes action. The library ships no DShield adapter because bounded
+2026-07-14 compatibility research did not establish a stable IPv6 response
+contract. See [Optional source-activity context](docs/source-activity.md).
+
 STIX 2.1 export is a pure final transformation of completed threat-candidate
 evidence and optional enrichment. It defaults to SCOs plus Observed Data;
 Indicators require an explicit caller promotion. See
@@ -185,6 +192,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want privileged or disclosure-safe campaign output | `dmarcgo.WriteCampaignClassificationOutput(writer, result, format, options)` | Requires an explicit privacy view, defaults to disclosure-safe, and never reruns matching or retrieves a source. |
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
+| You explicitly want optional source-activity context | `dmarcgo.CollectSourceActivity(ctx, threatCandidates, enrichment, provider, options)` | Queries only explicit candidate/IP selections through a caller-supplied third-party provider; empty selection and nil provider perform no lookup, and results never alter scoring or authorize action. |
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
 | You want reviewed ThreatConnect v3 request bodies | `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)` | Purely encodes explicitly selected Address and enriched ASN requests; defaults are inactive/private, confidence and rating are opt-in, and the application owns submission. |
 | You want reviewed MISP Attribute or complete offline Event bodies | `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)` or `dmarcgo.BuildMISPEventPayload(threatCandidates, options)` | Requires explicit event context and target-instance type/category capabilities; Attributes default to `to_ids: false` with correlation disabled, and the application owns discovery, review, HTTP, and submission. |
@@ -230,6 +238,7 @@ runs another stage.
 | Route a neutral response | completed campaign classification -> disclosure-safe output | Campaign disclosure, response sending, or action execution |
 | Review unexplained sources | portfolio + report evidence + correlation -> threat candidates | Enrichment or malicious attribution |
 | Add optional ASN/country context | threat candidates + explicit caller enricher -> enrichment -> optional jurisdiction policy | Built-in providers, PTR, or source-IP contact |
+| Add optional source-activity context | threat candidates + explicit selection + caller provider -> source activity | Broad reputation sweeps, source-IP contact, score changes, or automatic action |
 | Serialize one result | completed result -> its native JSON, JSONL, or CSV writer | Any upstream computation |
 | Build exchange payloads | explicit reviewed candidates -> STIX, ThreatConnect, MISP, or ThreatStream | Credentials, HTTP, submission, or enforcement |
 

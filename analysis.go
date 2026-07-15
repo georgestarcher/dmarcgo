@@ -36,6 +36,7 @@ const (
 	AnalysisModeDNSReportCorrelation    AnalysisMode = "dns_report_correlation"
 	AnalysisModeThreatCandidates        AnalysisMode = "threat_candidates"
 	AnalysisModeSourceEnrichment        AnalysisMode = "source_enrichment"
+	AnalysisModeSourceActivity          AnalysisMode = "source_activity"
 	AnalysisModeJurisdictionContext     AnalysisMode = "jurisdiction_context"
 	AnalysisModeCampaignValidation      AnalysisMode = "campaign_configuration_validation"
 	AnalysisModeCampaignClassification  AnalysisMode = "campaign_classification"

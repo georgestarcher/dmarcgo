@@ -23,15 +23,18 @@ exclusions.
 
 `ScoreThreatCandidates` is pure and performs no DNS, PTR, HTTP, SMTP, ICMP,
 scanning, enrichment, storage, retries, clock lookup, or other source-IP
-activity. Optional enrichment is a separate explicit stage and must use only a
-third-party service, never the subject IP.
+activity. Optional enrichment and optional source-activity context are separate
+explicit stages and may use only caller-selected third-party services, never
+the subject IP.
 
 ## Starting APIs
 
 1. `ScoreThreatCandidates`
 2. Optionally `EnrichThreatCandidates` with a caller-supplied safe dependency
-3. Optionally `EvaluateJurisdictionContext` with an immutable policy
-4. `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or
+3. Optionally `CollectSourceActivity` for an explicit candidate/IP selection
+4. Optionally `EvaluateJurisdictionContext` with an immutable policy
+5. Inspect the immutable `SourceActivityResult` when that branch was requested
+6. `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or
    `WriteJurisdictionContextOutput`
 
 ## Outputs
@@ -39,6 +42,13 @@ third-party service, never the subject IP.
 Review-only candidates with inspectable score contributions, confidence caps,
 severity, exclusions, recommendation codes, optional provider assertions, and
 optional coarse jurisdiction context.
+
+Source-activity context is a time-qualified third-party observation, not a
+reputation score. It never changes candidate scoring, and absence never proves
+that an address is safe. Selecting it can disclose the source IP and a
+contact-bearing User-Agent to the provider.
+Current output writers do not serialize this result and never initiate its
+lookups; cross-mode output integration is a separate contract change.
 
 ## What this does not prove
 
@@ -62,4 +72,5 @@ with a potentially adversarial source address out of the default path.
 
 - [Suspicious-source candidate scoring](https://github.com/georgestarcher/dmarcgo/blob/main/docs/threat-candidates.md)
 - [Optional source enrichment](https://github.com/georgestarcher/dmarcgo/blob/main/docs/source-enrichment.md)
+- [Optional source-activity context](https://github.com/georgestarcher/dmarcgo/blob/main/docs/source-activity.md)
 - [Jurisdiction context](https://github.com/georgestarcher/dmarcgo/blob/main/docs/jurisdiction-context.md)

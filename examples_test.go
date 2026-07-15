@@ -58,6 +58,21 @@ func (enricher exampleIPEnricher) EnrichIP(ctx context.Context, ip netip.Addr) (
 	return metadata, nil
 }
 
+type exampleSourceActivityProvider map[netip.Addr]SourceActivityResponse
+
+func (provider exampleSourceActivityProvider) LookupSourceActivity(ctx context.Context, ip netip.Addr) (SourceActivityResponse, error) {
+	select {
+	case <-ctx.Done():
+		return SourceActivityResponse{}, ctx.Err()
+	default:
+	}
+	response, ok := provider[ip]
+	if !ok {
+		return SourceActivityResponse{}, ErrSourceActivityUnavailable
+	}
+	return response, nil
+}
+
 func exampleCampaignConfiguration() CampaignConfigurationConfig {
 	return CampaignConfigurationConfig{
 		SchemaVersion: CampaignConfigurationSchemaVersion,
@@ -545,6 +560,36 @@ func ExampleEnrichThreatCandidates() {
 	value := enriched.Candidates()[0]
 	fmt.Printf("status=%s asns=%d confidence=%d promotion=%t\n", value.Status, len(enriched.ASNs()), value.Candidate.Confidence, value.Candidate.PromotionEligible)
 	// Output: status=success asns=1 confidence=45 promotion=false
+}
+
+// ExampleCollectSourceActivity demonstrates one explicitly selected source
+// lookup through an offline provider fixture. A real adapter may contact only
+// its configured third-party service, never the selected source address.
+func ExampleCollectSourceActivity() {
+	candidates, err := exampleThreatCandidates()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	collectedAt := time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC)
+	firstSeen := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	lastSeen := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
+	result, err := CollectSourceActivity(context.Background(), candidates, nil, exampleSourceActivityProvider{
+		netip.MustParseAddr(candidate.SourceIP): {
+			Provider: "offline-example", Dataset: "embedded-fixture-v1", EndpointIdentity: "offline-fixture",
+			ActivityObserved: true, FirstSeen: &firstSeen, LastSeen: &lastSeen,
+			Metrics: []SourceActivityMetric{{Name: "observations", Value: 3, Unit: "count"}},
+		},
+	}, SourceActivityOptions{
+		Selection:  SourceActivitySelection{CandidateIDs: []AnalysisID{candidate.ID}},
+		MaxQueries: 1, MaxConcurrency: 1, Clock: ClockFunc(func() time.Time { return collectedAt }),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	record := result.Records()[0]
+	fmt.Printf("status=%s observed=%t score=%d promotion=%t\n", record.Status, record.Evidence.ActivityObserved, candidate.Score, candidate.PromotionEligible)
+	// Output: status=success observed=true score=35 promotion=false
 }
 
 // ExampleEvaluateJurisdictionContext demonstrates explicit, offline review

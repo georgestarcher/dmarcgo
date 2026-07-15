@@ -21,9 +21,13 @@ credentials, endpoint, scheduler, cache, or background updater.
    and partial-failure states alongside the original DMARC evidence.
 
 Empty selection performs no provider call. A nil provider is a supported
-no-clock, no-network result. Selected addresses that are excluded, not review
-eligible, or expected-sender-only remain visible as `not_eligible` and are not
-sent to the provider.
+no-clock, no-network result. Selected addresses that are excluded or not review
+eligible remain visible as `not_eligible` and are not sent to the provider.
+Default threat-candidate scoring omits expected-sender-only sources entirely.
+When expected-sender evidence was explicitly included upstream, source activity
+uses that completed scoring mode to distinguish an expected-sender-only
+candidate from a mixed expected/unattributed source; mixed sources remain
+eligible when their completed candidate is review eligible.
 
 ```go
 result, err := dmarcgo.CollectSourceActivity(

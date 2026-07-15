@@ -543,7 +543,7 @@ func buildSourceActivityPlan(candidates ThreatCandidateResult, enrichment *Sourc
 			}
 			selectedCandidates = append(selectedCandidates, candidate)
 			item.candidateIDs = append(item.candidateIDs, candidate.ID)
-			item.eligible = item.eligible || sourceActivityEligible(candidate)
+			item.eligible = item.eligible || sourceActivityEligible(candidate, candidates.includeExpectedSenders)
 		}
 		item.reportWindow = sourceActivityReportWindow(selectedCandidates)
 		sort.Slice(item.candidateIDs, func(i, j int) bool { return item.candidateIDs[i] < item.candidateIDs[j] })
@@ -557,11 +557,14 @@ func buildSourceActivityPlan(candidates ThreatCandidateResult, enrichment *Sourc
 	return plan, nil
 }
 
-func sourceActivityEligible(candidate ThreatCandidate) bool {
+func sourceActivityEligible(candidate ThreatCandidate, includeExpectedSenders bool) bool {
 	if !sourceEnrichmentEligible(candidate) {
 		return false
 	}
-	return candidate.DualFailureMessages == 0 || candidate.ExpectedSenderFailureMessages < candidate.DualFailureMessages
+	if !includeExpectedSenders {
+		return true
+	}
+	return candidate.ExpectedSenderFailureMessages < candidate.DualFailureMessages
 }
 
 type sourceActivityEnrichmentReference struct {

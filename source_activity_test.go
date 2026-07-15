@@ -104,7 +104,7 @@ func TestCollectSourceActivityQueriesOnlyExplicitEligibleDeduplicatedIPs(t *test
 			duplicate = candidates.candidates[index]
 		}
 		if candidates.candidates[index].SourceIP == "192.0.2.30" {
-			candidates.candidates[index].ReviewEligible = true
+			candidates.candidates[index].ReviewEligible = false
 			candidates.candidates[index].ExpectedSenderFailureMessages = candidates.candidates[index].DualFailureMessages
 			expectedSenderOnlyID = candidates.candidates[index].ID
 		}
@@ -136,6 +136,68 @@ func TestCollectSourceActivityQueriesOnlyExplicitEligibleDeduplicatedIPs(t *test
 	})
 	if err != nil || provider.totalCalls() != 0 || len(ineligible.Records()) != 1 || ineligible.Records()[0].Status != SourceActivityNotEligible || !slices.Equal(ineligible.Records()[0].CandidateIDs, []AnalysisID{expectedSenderOnlyID}) {
 		t.Fatalf("ineligible error=%v calls=%d records=%+v", err, provider.totalCalls(), ineligible.Records())
+	}
+}
+
+func TestSourceActivityEligibilityPreservesMixedSources(t *testing.T) {
+	mixedReport := correlationTestReport("mixed", "receiver.example", 100, 200,
+		correlationTestRecord("192.0.2.10", "20", "example.test", "fail", "fail", "example.test", "mk1", "example.test"),
+		threatTestRecord("192.0.2.10", "10", "example.test", "none"),
+	)
+	mixed := threatTestScore(t, correlationTestConfig(AuthenticationPolicyConfig{}), correlationHealthyDNSValues(), []*AggregateReport{mixedReport}, ThreatCandidateOptions{})
+	if len(mixed.Candidates()) != 1 {
+		t.Fatalf("mixed candidates=%+v", mixed.Candidates())
+	}
+	defaultMixed := mixed.Candidates()[0]
+	if !sourceActivityEligible(defaultMixed, mixed.includeExpectedSenders) {
+		t.Fatalf("default-scoring mixed candidate was not eligible: %+v", defaultMixed)
+	}
+	expectedReports := []*AggregateReport{
+		correlationTestReport("expected-1", "receiver-one.example", 100, 200,
+			correlationTestRecord("192.0.2.10", "100", "example.test", "fail", "fail", "example.test", "mk1", "example.test")),
+		correlationTestReport("expected-2", "receiver-two.example", 100_000, 100_100,
+			correlationTestRecord("192.0.2.10", "100", "example.test", "fail", "fail", "example.test", "mk1", "example.test")),
+	}
+	includedOnly := threatTestScore(t, correlationTestConfig(AuthenticationPolicyConfig{}), correlationHealthyDNSValues(), expectedReports, ThreatCandidateOptions{IncludeExpectedSenders: true})
+	if len(includedOnly.Candidates()) != 1 || !includedOnly.Candidates()[0].ReviewEligible {
+		t.Fatalf("explicitly included expected-only candidates=%+v", includedOnly.Candidates())
+	}
+	if sourceActivityEligible(includedOnly.Candidates()[0], includedOnly.includeExpectedSenders) {
+		t.Fatalf("explicitly included expected-only candidate was eligible: %+v", includedOnly.Candidates()[0])
+	}
+
+	base := ThreatCandidate{
+		Evaluation: Evaluation{State: EvaluationStateEvaluated}, ReviewEligible: true,
+		DualFailureMessages: 5, ExpectedSenderFailureMessages: 20,
+	}
+	tests := []struct {
+		name                   string
+		candidate              ThreatCandidate
+		includeExpectedSenders bool
+		want                   bool
+	}{
+		{name: "included expected and unattributed failures", candidate: func() ThreatCandidate {
+			value := base
+			value.DualFailureMessages = 25
+			return value
+		}(), includeExpectedSenders: true, want: true},
+		{name: "explicitly included expected sender only", candidate: func() ThreatCandidate {
+			value := base
+			value.DualFailureMessages = 20
+			return value
+		}(), includeExpectedSenders: true, want: false},
+		{name: "not review eligible", candidate: func() ThreatCandidate {
+			value := base
+			value.ReviewEligible = false
+			return value
+		}(), want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := sourceActivityEligible(test.candidate, test.includeExpectedSenders); got != test.want {
+				t.Fatalf("eligible=%v want=%v candidate=%+v", got, test.want, test.candidate)
+			}
+		})
 	}
 }
 

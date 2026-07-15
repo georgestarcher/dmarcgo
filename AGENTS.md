@@ -300,7 +300,7 @@ tests used by the Phase 13 integration gate.
 ## Optional source activity
 
 - `CollectSourceActivity` consumes a completed `ThreatCandidateResult`, optional matching `SourceEnrichmentResult`, explicit candidate-ID or canonical source-IP selection, and a caller-supplied `SourceActivityProvider`.
-- Empty selection and nil provider are no-clock, no-network paths. Only explicitly selected, review-eligible, non-excluded, non-expected-sender-only addresses may reach the provider.
+- Empty selection and nil provider are no-clock, no-network paths. Only explicitly selected, review-eligible, non-excluded addresses may reach the provider. Default scoring omits expected-sender-only sources; never infer that a mixed source is expected-sender-only by directly comparing counters with different upstream inclusion semantics.
 - Each selected address is canonicalized, deduplicated, sorted, and attempted at most once. Default concurrency is one; the stage never retries, sleeps, polls, discovers additional addresses, or contacts the subject IP.
 - Provider adapters own endpoint allowlisting, raw-response limits, redirect policy, credentials, contact-bearing User-Agent, current terms, attribution, caching, and scheduling. The library ships no DShield adapter.
 - Activity metrics and feed memberships are third-party context, not IP ownership metadata, malicious attribution, a reputation verdict, or evidence of safety when absent.

@@ -35,6 +35,7 @@ wiki-check:
 	python3 scripts/check_wiki.py
 
 docs-check: readme-check wiki-check
+	python3 scripts/check_docs_test.py
 	python3 scripts/check_docs.py
 	go test -run '^Example' ./...
 	go test -run 'TestAdoptionDocumentationFixtures|TestCampaignSyntheticFixtureCoversCommercialAndSelfHostedProviders' ./...

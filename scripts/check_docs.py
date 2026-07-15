@@ -30,6 +30,13 @@ LINK_RE = re.compile(r"(?<!!)\[([^\]]+)\]\(([^)]+)\)")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 DOMAIN_RE = re.compile(r"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9_-]+\.)+[A-Za-z]{2,}(?![A-Za-z0-9_-])")
 IP_RE = re.compile(r"(?<![0-9A-Fa-f:.])(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9A-Fa-f]*:[0-9A-Fa-f:]+)(?:/\d{1,3})?(?![0-9A-Fa-f:.])")
+RESERVED_DOMAIN_SUFFIXES = (".test", ".example", ".invalid", ".localhost")
+RESERVED_DOMAIN_ROOTS = ("example.com", "example.net", "example.org")
+NON_DNS_SAMPLE_SUFFIXES = (".gz", ".json", ".xmlns")
+DOCUMENTATION_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in ("192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24", "2001:db8::/32")
+)
 SECRET_RE = re.compile(
     r"(?:-----BEGIN (?:OPENSSH |RSA |EC |DSA )?PRIVATE KEY-----|"
     r"github_pat_[A-Za-z0-9_]{8,}|ghp_[A-Za-z0-9]{8,}|"
@@ -175,6 +182,100 @@ def load_spelling_allowlist(errors: list[str]) -> set[str]:
     return allowed
 
 
+def go_strings_and_comments(text: str) -> str:
+    """Return only Go string literals and comments for sample-data checks."""
+    retained: list[str] = []
+    index = 0
+    while index < len(text):
+        if text.startswith("//", index):
+            end = text.find("\n", index + 2)
+            if end < 0:
+                end = len(text)
+            retained.append(text[index + 2 : end])
+            index = end
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            if end < 0:
+                end = len(text)
+                retained.append(text[index + 2 : end])
+                index = end
+            else:
+                retained.append(text[index + 2 : end])
+                index = end + 2
+            continue
+
+        delimiter = text[index]
+        if delimiter == "`":
+            end = text.find("`", index + 1)
+            if end < 0:
+                end = len(text)
+            retained.append(text[index + 1 : end])
+            index = min(end + 1, len(text))
+            continue
+        if delimiter == '"':
+            value: list[str] = []
+            index += 1
+            while index < len(text):
+                if text[index] == "\\" and index + 1 < len(text):
+                    value.extend(text[index : index + 2])
+                    index += 2
+                    continue
+                if text[index] == '"':
+                    index += 1
+                    break
+                value.append(text[index])
+                index += 1
+            retained.append("".join(value))
+            continue
+        if delimiter == "'":
+            index += 1
+            while index < len(text):
+                if text[index] == "\\" and index + 1 < len(text):
+                    index += 2
+                    continue
+                index += 1
+                if text[index - 1] == "'":
+                    break
+            continue
+        index += 1
+    return "\n".join(retained)
+
+
+def reserved_sample_domain(domain: str) -> bool:
+    normalized = domain.casefold().rstrip(".")
+    if normalized.endswith(RESERVED_DOMAIN_SUFFIXES):
+        return True
+    return any(normalized == root or normalized.endswith(f".{root}") for root in RESERVED_DOMAIN_ROOTS)
+
+
+def domain_sample_candidate(domain: str) -> bool:
+    normalized = domain.casefold().rstrip(".")
+    if normalized.endswith(NON_DNS_SAMPLE_SUFFIXES):
+        return False
+    labels = normalized.split(".")
+    return not (labels[-1] == "zip" and all(label.isdigit() for label in labels[:-1]))
+
+
+def documentation_sample_address(value: str) -> bool:
+    try:
+        network = ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return True
+    return any(network.version == reserved.version and network.subnet_of(reserved) for reserved in DOCUMENTATION_NETWORKS)
+
+
+def sample_network_errors(text: str) -> list[str]:
+    errors: list[str] = []
+    for domain in DOMAIN_RE.findall(text):
+        if domain_sample_candidate(domain) and not reserved_sample_domain(domain):
+            errors.append(f"sample domain is not reserved for documentation: {domain}")
+    for raw in IP_RE.findall(text):
+        if not documentation_sample_address(raw):
+            errors.append(f"sample address is not reserved documentation space: {raw}")
+    return errors
+
+
 def validate_markdown(errors: list[str], path: Path, allowed: set[str]) -> None:
     text = path.read_text(encoding="utf-8")
     if not text.endswith("\n"):
@@ -212,17 +313,9 @@ def validate_sample_safety(errors: list[str], path: Path) -> None:
         if marker.casefold() in folded:
             report(errors, path, f"contains prohibited private marker {marker!r}")
 
-    if path.suffix in {".yaml", ".yml"}:
-        for domain in DOMAIN_RE.findall(text):
-            if not domain.casefold().endswith((".test", ".example", ".invalid", ".localhost")):
-                report(errors, path, f"sample domain is not reserved for documentation: {domain}")
-        for raw in IP_RE.findall(text):
-            try:
-                network = ipaddress.ip_network(raw, strict=False)
-            except ValueError:
-                continue
-            if not network.is_private:
-                report(errors, path, f"sample address is not non-public documentation space: {raw}")
+    network_text = go_strings_and_comments(text) if path.suffix == ".go" else text
+    for message in sample_network_errors(network_text):
+        report(errors, path, message)
 
 
 def validate_index(errors: list[str]) -> None:

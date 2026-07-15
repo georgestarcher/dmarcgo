@@ -894,13 +894,8 @@ func ExampleDefaultProviderCatalog() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	record, diagnostics := ParseSPFRecord("v=spf1 include:_spf.google.com -all")
-	if len(diagnostics) != 0 {
-		log.Fatal(diagnostics)
-	}
-	match, ok := catalog.MatchSPFRelationship(record.Relationships[0])
-	fmt.Printf("provider=%s context_only=%t matched=%t\n", match.ProviderID, match.ContextOnly, ok)
-	// Output: provider=google-workspace context_only=true matched=true
+	fmt.Printf("schema=%d providers=%t\n", catalog.SchemaVersion(), len(catalog.Providers()) > 0)
+	// Output: schema=1 providers=true
 }
 
 func ExampleParseDMARCPolicyRecord() {
@@ -1191,13 +1186,13 @@ func ExampleExcludeUnauthenticatedSources() {
 
 // ExampleParseReportFilename demonstrates parsing common RUA attachment names.
 func ExampleParseReportFilename() {
-	info, err := ParseReportFilename("google.com!example.com!1700000000!1700086399.zip")
+	info, err := ParseReportFilename("reporter.example.com!example.com!1700000000!1700086399.zip")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Printf("%s %s %s\n", info.Reporter, info.PolicyDomain, info.Compression)
-	// Output: google.com example.com zip
+	// Output: reporter.example.com example.com zip
 }
 
 // ExampleDeduplicateReports demonstrates keeping the first report per identity.

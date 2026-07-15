@@ -167,6 +167,24 @@ func TestOutputOptionsAndSchema(t *testing.T) {
 	if _, err := OutputSchemaForVersion("unsupported"); !errors.Is(err, ErrUnsupportedOutputSchema) {
 		t.Fatalf("unexpected unsupported-schema error: %v", err)
 	}
+	for _, mode := range SupportedOutputModes() {
+		id, err := OutputDataSchemaID(mode, OutputDataSchemaVersion)
+		if err != nil || id == "" {
+			t.Fatalf("data schema ID for %s: %q, %v", mode, id, err)
+		}
+		data, err := OutputDataSchema(mode, OutputDataSchemaVersion)
+		if err != nil || !json.Valid(data) {
+			t.Fatalf("data schema for %s: %v", mode, err)
+		}
+		data[0] = 'x'
+		fresh, err := OutputDataSchema(mode, OutputDataSchemaVersion)
+		if err != nil || fresh[0] == 'x' {
+			t.Fatalf("data schema for %s was not a defensive copy", mode)
+		}
+	}
+	if _, err := OutputDataSchemaID(OutputMode("unsupported"), OutputDataSchemaVersion); !errors.Is(err, ErrUnsupportedOutputSchema) {
+		t.Fatalf("unexpected unsupported data-schema error: %v", err)
+	}
 }
 
 func TestWriteOutputJSONL(t *testing.T) {
@@ -338,6 +356,7 @@ func TestOutputSchemaRejectsInvalidEnvelopes(t *testing.T) {
 		"unknown nested field":    func(value map[string]any) { value["scope"].(map[string]any)["unexpected"] = true },
 		"invalid enum":            func(value map[string]any) { value["profile"] = "unknown" },
 		"wrong mode data":         func(value map[string]any) { value["data"] = []any{} },
+		"wrong data schema":       func(value map[string]any) { value["data_schema"] = OutputSchemaID + "#/$defs/sourceReview" },
 		"negative input":          func(value map[string]any) { value["input"].(map[string]any)["record_count"] = -1 },
 	}
 	for name, mutate := range tests {
@@ -607,6 +626,13 @@ func TestOutputDetailAndFailureSemantics(t *testing.T) {
 	if failure.Status != OutputStatusFailed || failure.Evaluation.State != OutputEvaluationNotEvaluated || len(failure.Errors) != 1 {
 		t.Fatalf("unexpected failure output: %+v", failure)
 	}
+	if failure.DataSchema != OutputEmptyDataSchemaID {
+		t.Fatalf("failure data schema = %q", failure.DataSchema)
+	}
+	if failure.Evaluation.EvaluatedAt != nil {
+		t.Fatalf("failed output invented an evaluation time: %+v", failure.Evaluation)
+	}
+	validateOutputDataAgainstSchema(t, failure)
 	if _, err := BuildFailureOutput("unsupported", OutputScope{}, OutputInput{}, failure.Errors, OutputOptions{}); !errors.Is(err, ErrInvalidOutputOptions) {
 		t.Fatalf("unexpected mode error: %v", err)
 	}

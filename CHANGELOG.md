@@ -9,6 +9,15 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- A strict common automation and AI-agent envelope for every completed v2
+  analysis, source-context, and campaign mode, with sealed completed-result
+  inputs, discoverable per-mode data schemas, explicit mode-isolation
+  descriptors, bounded deterministic findings and evidence, campaign-safe
+  disclosure views, hostile-input redaction, and no implicit parsing, DNS,
+  provider, enrichment, source-IP, campaign-resolution, or clock activity;
+  plus native JSON, JSONL, and CSV contracts for configuration validation, DNS
+  snapshots and authentication records, DNS perspectives, source activity, and
+  phishing-intelligence results.
 - A repository-owned, task-oriented project wiki source with distinct domain
   monitoring, report ingestion, correlation, approved campaign, suspicious
   source, scoring, defensive export, and automation/AI-safety journeys; a

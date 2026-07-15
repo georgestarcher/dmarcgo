@@ -1,0 +1,995 @@
+{
+  "$defs": {
+    "AuthenticationDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "standard": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "severity",
+        "standard"
+      ],
+      "type": "object"
+    },
+    "AuthenticationRecordSet": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_source": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "canonical_name": {
+          "type": "string"
+        },
+        "cname_path": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dnssec": {
+          "$ref": "#/$defs/DNSSECEvidence"
+        },
+        "name": {
+          "type": "string"
+        },
+        "negative_ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        },
+        "observation_status": {
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "rcode": {
+          "$ref": "#/$defs/DNSRCodeEvidence"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/ParsedAuthenticationRecord"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/DNSRecordReference"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "resolver": {
+          "type": "string"
+        },
+        "soa": {
+          "$ref": "#/$defs/DNSSOAEvidence"
+        },
+        "status": {
+          "type": "string"
+        },
+        "ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer_source",
+        "attempts",
+        "cname_path",
+        "dnssec",
+        "name",
+        "negative_ttl",
+        "observation_status",
+        "observed_at",
+        "rcode",
+        "records",
+        "references",
+        "status",
+        "ttl",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DKIMKeyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "granularity": {
+          "type": "string"
+        },
+        "hash_algorithms": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "key_bits": {
+          "type": "integer"
+        },
+        "key_encoding": {
+          "type": "string"
+        },
+        "key_type": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "public_key": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "revoked": {
+          "type": "boolean"
+        },
+        "selector": {
+          "type": "string"
+        },
+        "services": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "unknown_tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "flags",
+        "hash_algorithms",
+        "key_bits",
+        "key_type",
+        "public_key",
+        "revoked",
+        "services",
+        "status",
+        "unknown_tags",
+        "version"
+      ],
+      "type": "object"
+    },
+    "DMARCPolicyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregate_reports": {
+          "items": {
+            "$ref": "#/$defs/DMARCReportURI"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dkim_alignment": {
+          "type": "string"
+        },
+        "effective_policy": {
+          "type": "string"
+        },
+        "failure_options": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "failure_reports": {
+          "items": {
+            "$ref": "#/$defs/DMARCReportURI"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "nonexistent_policy": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "policy_domain": {
+          "type": "string"
+        },
+        "psd": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "recovered_monitoring": {
+          "type": "boolean"
+        },
+        "removed_legacy_tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "spf_alignment": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "subdomain_policy": {
+          "type": "string"
+        },
+        "testing": {
+          "type": "boolean"
+        },
+        "unknown_tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "aggregate_reports",
+        "dkim_alignment",
+        "failure_options",
+        "failure_reports",
+        "recovered_monitoring",
+        "removed_legacy_tags",
+        "spf_alignment",
+        "status",
+        "testing",
+        "unknown_tags",
+        "version"
+      ],
+      "type": "object"
+    },
+    "DMARCReportURI": {
+      "additionalProperties": false,
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "legacy_size": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "scheme": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "address",
+        "scheme"
+      ],
+      "type": "object"
+    },
+    "DNSDurationEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSRCodeEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSRecordReference": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain",
+        "entity_id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DNSSECEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "authenticated_data": {
+          "type": "boolean"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "authenticated_data",
+        "available"
+      ],
+      "type": "object"
+    },
+    "DNSSOAEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "expire": {
+          "type": "integer"
+        },
+        "minimum": {
+          "type": "integer"
+        },
+        "mname": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "refresh": {
+          "type": "integer"
+        },
+        "retry": {
+          "type": "integer"
+        },
+        "rname": {
+          "type": "string"
+        },
+        "serial": {
+          "type": "integer"
+        },
+        "ttl": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expire",
+        "minimum",
+        "mname",
+        "name",
+        "refresh",
+        "retry",
+        "rname",
+        "serial",
+        "ttl"
+      ],
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "ParsedAuthenticationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "dkim": {
+          "$ref": "#/$defs/DKIMKeyRecord"
+        },
+        "dmarc": {
+          "$ref": "#/$defs/DMARCPolicyRecord"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "fragments": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "fragments_available": {
+          "type": "boolean"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "spf": {
+          "$ref": "#/$defs/SPFRecord"
+        },
+        "status": {
+          "type": "string"
+        },
+        "ttl": {
+          "$ref": "#/$defs/DNSDurationEvidence"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "fragments_available",
+        "status",
+        "ttl"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "SPFLookupEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "direct_terms": {
+          "type": "integer"
+        },
+        "exceeded": {
+          "type": "boolean"
+        },
+        "expanded_available": {
+          "type": "boolean"
+        },
+        "expanded_terms": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "void_available": {
+          "type": "boolean"
+        },
+        "void_limit": {
+          "type": "integer"
+        },
+        "void_lookups": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "direct_terms",
+        "exceeded",
+        "expanded_available",
+        "expanded_terms",
+        "limit",
+        "void_available",
+        "void_limit",
+        "void_lookups"
+      ],
+      "type": "object"
+    },
+    "SPFRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "lookup": {
+          "$ref": "#/$defs/SPFLookupEvidence"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "relationships": {
+          "items": {
+            "$ref": "#/$defs/SPFRelationship"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "terms": {
+          "items": {
+            "$ref": "#/$defs/SPFTerm"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "lookup",
+        "relationships",
+        "status",
+        "terms",
+        "version"
+      ],
+      "type": "object"
+    },
+    "SPFRelationship": {
+      "additionalProperties": false,
+      "properties": {
+        "dynamic": {
+          "type": "boolean"
+        },
+        "target": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "dynamic",
+        "target",
+        "type"
+      ],
+      "type": "object"
+    },
+    "SPFTerm": {
+      "additionalProperties": false,
+      "properties": {
+        "causes_dns": {
+          "type": "boolean"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "dynamic": {
+          "type": "boolean"
+        },
+        "ipv4_cidr": {
+          "type": "integer"
+        },
+        "ipv6_cidr": {
+          "type": "integer"
+        },
+        "mechanism": {
+          "type": "string"
+        },
+        "modifier": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "qualifier": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "causes_dns",
+        "dynamic",
+        "position"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "data_json": {
+          "type": "string"
+        },
+        "dns_record_type": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_authentication_records"
+        },
+        "name": {
+          "type": "string"
+        },
+        "observation_status": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "resolver": {
+          "type": "string"
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "name",
+        "dns_record_type",
+        "status",
+        "observation_status",
+        "resolver",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "dnsAuthenticationOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "metadata",
+        "portfolio_digest",
+        "snapshot_digest"
+      ],
+      "type": "object"
+    },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/AuthenticationDiagnostic"
+          },
+          "type": "array"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "record_sets": {
+          "items": {
+            "$ref": "#/$defs/AuthenticationRecordSet"
+          },
+          "type": "array"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "diagnostics",
+        "portfolio_digest",
+        "record_sets",
+        "snapshot_digest"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/dnsAuthenticationOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/AuthenticationRecordSet"
+            },
+            "record_type": {
+              "const": "record_set"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/AuthenticationDiagnostic"
+            },
+            "record_type": {
+              "const": "diagnostic"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_authentication_records"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/AuthenticationDiagnostic"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "dns_authentication_records"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "dns_authentication_records"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "record_sets": {
+      "items": {
+        "$ref": "#/$defs/AuthenticationRecordSet"
+      },
+      "type": "array"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "snapshot_digest": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "diagnostics",
+    "metadata",
+    "mode",
+    "portfolio_digest",
+    "profile",
+    "record_sets",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "snapshot_digest"
+  ],
+  "title": "dmarcgo native dns authentication records output v1",
+  "type": "object"
+}

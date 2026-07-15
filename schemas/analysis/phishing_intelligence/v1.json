@@ -1,0 +1,851 @@
+{
+  "$defs": {
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceCandidate": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "match_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "finding_ids",
+        "match_ids",
+        "sensitivity",
+        "source_ip",
+        "status"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceConfidence": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceContext": {
+      "additionalProperties": false,
+      "properties": {
+        "asns": {
+          "items": {
+            "type": "integer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "brands": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "country_codes": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "infrastructure_providers": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "asns",
+        "brands",
+        "country_codes",
+        "infrastructure_providers",
+        "sectors",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "match_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "code",
+        "explanation",
+        "id",
+        "match_ids",
+        "recommendation",
+        "sensitivity",
+        "severity",
+        "title"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceLicense": {
+      "additionalProperties": false,
+      "properties": {
+        "commercial_use": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "redistribution": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "terms_uri": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "commercial_use",
+        "name",
+        "redistribution",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "context": {
+          "$ref": "#/$defs/PhishingIntelligenceContext"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "first_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "indicator_id": {
+          "type": "string"
+        },
+        "indicator_state": {
+          "type": "string"
+        },
+        "last_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "provider_confidence": {
+          "$ref": "#/$defs/PhishingIntelligenceConfidence"
+        },
+        "reference_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "snapshot_freshness": {
+          "type": "string"
+        },
+        "snapshot_id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "temporal_relationship": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "context",
+        "id",
+        "indicator_id",
+        "indicator_state",
+        "observation_ids",
+        "provider_confidence",
+        "role",
+        "sensitivity",
+        "snapshot_freshness",
+        "snapshot_id",
+        "status",
+        "temporal_relationship",
+        "type",
+        "value"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "as_of": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "collected_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dataset": {
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string"
+        },
+        "indicators": {
+          "type": "integer"
+        },
+        "license": {
+          "$ref": "#/$defs/PhishingIntelligenceLicense"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        },
+        "snapshot_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "as_of",
+        "collected_at",
+        "dataset",
+        "freshness",
+        "indicators",
+        "license",
+        "provider",
+        "schema_version",
+        "sensitivity",
+        "snapshot_digest",
+        "snapshot_id"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceStatusCount": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "status"
+      ],
+      "type": "object"
+    },
+    "PhishingIntelligenceSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "active_matches": {
+          "type": "integer"
+        },
+        "candidates": {
+          "type": "integer"
+        },
+        "exact_matches": {
+          "type": "integer"
+        },
+        "findings": {
+          "type": "integer"
+        },
+        "indicators": {
+          "type": "integer"
+        },
+        "sources": {
+          "type": "integer"
+        },
+        "statuses": {
+          "items": {
+            "$ref": "#/$defs/PhishingIntelligenceStatusCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "active_matches",
+        "candidates",
+        "exact_matches",
+        "findings",
+        "indicators",
+        "sources",
+        "statuses"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "indicator_type": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "phishing_intelligence"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "source_ip",
+        "status",
+        "candidate_id",
+        "role",
+        "indicator_type",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/PhishingIntelligenceCandidate"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/PhishingIntelligenceFinding"
+          },
+          "type": "array"
+        },
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/PhishingIntelligenceMatch"
+          },
+          "type": "array"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "snapshot_digests": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/PhishingIntelligenceSource"
+          },
+          "type": "array"
+        },
+        "summary": {
+          "$ref": "#/$defs/PhishingIntelligenceSummary"
+        },
+        "threat_candidate_digest": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "findings",
+        "matches",
+        "organization_id",
+        "report_evidence_digest",
+        "snapshot_digests",
+        "sources",
+        "summary",
+        "threat_candidate_digest",
+        "version"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/phishingIntelligenceOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/PhishingIntelligenceSource"
+            },
+            "record_type": {
+              "const": "source"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/PhishingIntelligenceCandidate"
+            },
+            "record_type": {
+              "const": "candidate"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/PhishingIntelligenceMatch"
+            },
+            "record_type": {
+              "const": "match"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/PhishingIntelligenceFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "phishing_intelligence"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    },
+    "phishingIntelligenceOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "snapshot_digests": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/PhishingIntelligenceSummary"
+        },
+        "threat_candidate_digest": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "metadata",
+        "organization_id",
+        "report_evidence_digest",
+        "snapshot_digests",
+        "summary",
+        "threat_candidate_digest",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/PhishingIntelligenceCandidate"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/PhishingIntelligenceFinding"
+      },
+      "type": "array"
+    },
+    "matches": {
+      "items": {
+        "$ref": "#/$defs/PhishingIntelligenceMatch"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "phishing_intelligence"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "phishing_intelligence"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "report_evidence_digest": {
+      "type": "string"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "snapshot_digests": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/PhishingIntelligenceSource"
+      },
+      "type": "array"
+    },
+    "summary": {
+      "$ref": "#/$defs/PhishingIntelligenceSummary"
+    },
+    "threat_candidate_digest": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidates",
+    "findings",
+    "matches",
+    "metadata",
+    "mode",
+    "organization_id",
+    "profile",
+    "redaction",
+    "report_evidence_digest",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "snapshot_digests",
+    "sources",
+    "summary",
+    "threat_candidate_digest",
+    "version"
+  ],
+  "title": "dmarcgo native phishing intelligence output v1",
+  "type": "object"
+}

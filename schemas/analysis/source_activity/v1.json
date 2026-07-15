@@ -1,0 +1,871 @@
+{
+  "$defs": {
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ReportEvidenceTimestamp": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "value": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "SourceActivityDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "record_id",
+        "severity",
+        "status"
+      ],
+      "type": "object"
+    },
+    "SourceActivityEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_observed": {
+          "type": "boolean"
+        },
+        "assertions": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityNetworkAssertion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "conflict_fields": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "expires_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "first_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityMetric"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "threat_feeds": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityThreatFeed"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "time_relationship": {
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "activity_observed",
+        "assertions",
+        "conflict_fields",
+        "freshness",
+        "id",
+        "metrics",
+        "sensitivity",
+        "threat_feeds",
+        "time_relationship"
+      ],
+      "type": "object"
+    },
+    "SourceActivityFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "evidence_ids",
+        "explanation",
+        "id",
+        "recommendation",
+        "record_id",
+        "sensitivity",
+        "severity",
+        "title"
+      ],
+      "type": "object"
+    },
+    "SourceActivityMetric": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "semantics": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "sensitivity",
+        "unit",
+        "value"
+      ],
+      "type": "object"
+    },
+    "SourceActivityNetworkAssertion": {
+      "additionalProperties": false,
+      "properties": {
+        "asn": {
+          "type": "integer"
+        },
+        "asn_name": {
+          "type": "string"
+        },
+        "country_code": {
+          "type": "string"
+        },
+        "network_prefix": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "SourceActivityProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "collected_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dataset": {
+          "type": "string"
+        },
+        "endpoint_identity": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "reference_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "collected_at",
+        "dataset",
+        "endpoint_identity",
+        "provider",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "SourceActivityRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "enrichment_assertion_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "enrichment_conflict_fields": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "evidence": {
+          "$ref": "#/$defs/SourceActivityEvidence"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/SourceActivityProvenance"
+        },
+        "report_window": {
+          "$ref": "#/$defs/SourceActivityReportWindow"
+        },
+        "retry_after": {
+          "$ref": "#/$defs/SourceActivityRetryAfter"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "candidate_ids",
+        "enrichment_assertion_ids",
+        "enrichment_conflict_fields",
+        "evidence",
+        "finding_ids",
+        "id",
+        "provenance",
+        "report_window",
+        "retry_after",
+        "sensitivity",
+        "source_ip",
+        "status",
+        "truncated"
+      ],
+      "type": "object"
+    },
+    "SourceActivityReportWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "first_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/ReportEvidenceTimestamp"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "first_seen",
+        "last_seen",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "SourceActivityRetryAfter": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "capped": {
+          "type": "boolean"
+        },
+        "seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available",
+        "capped"
+      ],
+      "type": "object"
+    },
+    "SourceActivityStatusCount": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sources",
+        "status"
+      ],
+      "type": "object"
+    },
+    "SourceActivitySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_observed": {
+          "type": "integer"
+        },
+        "eligible": {
+          "type": "integer"
+        },
+        "findings": {
+          "type": "integer"
+        },
+        "sources": {
+          "type": "integer"
+        },
+        "statuses": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityStatusCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "truncated": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "activity_observed",
+        "eligible",
+        "findings",
+        "sources",
+        "statuses",
+        "truncated"
+      ],
+      "type": "object"
+    },
+    "SourceActivityThreatFeed": {
+      "additionalProperties": false,
+      "properties": {
+        "first_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "last_seen": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "activity_observed": {
+          "type": "string"
+        },
+        "data_json": {
+          "type": "string"
+        },
+        "freshness": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "source_activity"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "source_ip": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "time_relationship": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "source_ip",
+        "status",
+        "activity_observed",
+        "freshness",
+        "time_relationship",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityDiagnostic"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityFinding"
+          },
+          "type": "array"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/SourceActivityRecord"
+          },
+          "type": "array"
+        },
+        "source_enrichment_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/SourceActivitySummary"
+        },
+        "threat_candidate_digest": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "diagnostics",
+        "findings",
+        "organization_id",
+        "records",
+        "summary",
+        "threat_candidate_digest",
+        "version"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/sourceActivityOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/SourceActivityRecord"
+            },
+            "record_type": {
+              "const": "record"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/SourceActivityFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/SourceActivityDiagnostic"
+            },
+            "record_type": {
+              "const": "diagnostic"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "source_activity"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    },
+    "sourceActivityOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "source_enrichment_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/SourceActivitySummary"
+        },
+        "threat_candidate_digest": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "metadata",
+        "organization_id",
+        "summary",
+        "threat_candidate_digest",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "complete": {
+      "type": "boolean"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/SourceActivityDiagnostic"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/SourceActivityFinding"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "source_activity"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "source_activity"
+    },
+    "organization_id": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/SourceActivityRecord"
+      },
+      "type": "array"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "source_enrichment_digest": {
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/SourceActivitySummary"
+    },
+    "threat_candidate_digest": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "complete",
+    "diagnostics",
+    "findings",
+    "metadata",
+    "mode",
+    "organization_id",
+    "profile",
+    "records",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "summary",
+    "threat_candidate_digest",
+    "version"
+  ],
+  "title": "dmarcgo native source activity output v1",
+  "type": "object"
+}

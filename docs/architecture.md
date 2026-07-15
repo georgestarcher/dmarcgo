@@ -252,7 +252,7 @@ reject report loading, parsing, evaluation, summarization, and network imports.
 Each future collection or enrichment interface must add counting and failing
 spies that prove unrelated modes never invoke it.
 
-The Phase 13 workflow gate adds a complete synthetic evidence chain, generated
+The Phase 17 workflow gate adds a complete synthetic evidence chain, generated
 metadata samples for every native analysis mode, common-candidate exchange
 proof, and a static dependency audit across all pure analysis and export
 implementations. See [Independent automation workflows](automation-workflows.md).

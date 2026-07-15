@@ -4,12 +4,12 @@
   "title": "dmarcgo automation output envelope v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "schema_version", "mode", "profile", "detail", "generated_at", "status", "evaluation", "scope", "input", "summary", "findings", "data", "recommended_actions", "warnings", "errors", "limitations", "provenance", "redaction", "truncation"],
+  "required": ["schema", "schema_version", "mode", "profile", "detail", "generated_at", "status", "evaluation", "scope", "input", "summary", "findings", "data_schema", "data", "recommended_actions", "warnings", "errors", "limitations", "provenance", "redaction", "truncation", "automation"],
   "properties": {
     "schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json"},
     "schema_version": {"const": "1"},
     "module_version": {"type": "string"},
-    "mode": {"enum": ["report_validation", "report_summary", "aggregate_summary", "report_rows", "source_review"]},
+    "mode": {"enum": ["report_validation", "report_summary", "aggregate_summary", "report_rows", "source_review", "configuration_validation", "dns_snapshot", "dns_authentication_records", "dns_health", "dns_perspectives", "report_evidence", "dns_report_correlation", "threat_candidates", "source_enrichment", "source_activity", "phishing_intelligence", "jurisdiction_context", "campaign_configuration_validation", "campaign_classification"]},
     "profile": {"enum": ["automation", "agent"]},
     "detail": {"enum": ["summary", "standard", "full"]},
     "generated_at": {"type": "string", "format": "date-time"},
@@ -19,6 +19,7 @@
     "input": {"$ref": "#/$defs/input"},
     "summary": {"$ref": "#/$defs/summary"},
     "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "data_schema": {"type": "string", "minLength": 1},
     "data": {},
     "recommended_actions": {"type": "array", "items": {"$ref": "#/$defs/action"}},
     "warnings": {"type": "array", "items": {"$ref": "#/$defs/message"}},
@@ -26,13 +27,39 @@
     "limitations": {"type": "array", "items": {"type": "string"}},
     "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}},
     "redaction": {"$ref": "#/$defs/redaction"},
-    "truncation": {"$ref": "#/$defs/truncation"}
+    "truncation": {"$ref": "#/$defs/truncation"},
+    "automation": {"$ref": "#/$defs/automation"}
   },
   "allOf": [
     {
-      "if": {"properties": {"detail": {"const": "summary"}}, "required": ["detail"]},
-      "then": {"properties": {"data": {"type": "object", "maxProperties": 0}}}
+      "if": {"anyOf": [
+        {"properties": {"detail": {"const": "summary"}}, "required": ["detail"]},
+        {"properties": {"status": {"const": "failed"}}, "required": ["status"]}
+      ]},
+      "then": {"properties": {
+        "data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/emptyData"},
+        "data": {"type": "object", "maxProperties": 0}
+      }}
     },
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_validation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/validationFindingList"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_summary"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/reportSummary"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "aggregate_summary"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/aggregateSummary"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_rows"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/featureRowList"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "source_review"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json#/$defs/sourceReview"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "configuration_validation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/configuration_validation/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "dns_snapshot"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_snapshot/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "dns_authentication_records"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_authentication_records/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "dns_health"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_health/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "dns_perspectives"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_evidence"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/report_evidence/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "dns_report_correlation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_report_correlation/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "threat_candidates"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/threat_candidates/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "source_enrichment"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_enrichment/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "source_activity"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/source_activity/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "phishing_intelligence"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/phishing_intelligence/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "jurisdiction_context"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/jurisdiction_context/v1.json#/$defs/envelope_data"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "campaign_configuration_validation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output-data/campaign_configuration_validation/v1.json"}}}},
+    {"if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "campaign_classification"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]}, "then": {"properties": {"data_schema": {"const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output-data/campaign_classification/v1.json"}}}},
     {
       "if": {"properties": {"detail": {"enum": ["standard", "full"]}, "mode": {"const": "report_validation"}, "status": {"enum": ["completed", "completed_with_findings"]}}, "required": ["detail", "mode", "status"]},
       "then": {"properties": {"data": {"type": "array", "items": {"$ref": "#/$defs/validationFinding"}}}}
@@ -55,6 +82,9 @@
     }
   ],
   "$defs": {
+    "emptyData": {"type": "object", "maxProperties": 0},
+    "validationFindingList": {"type": "array", "items": {"$ref": "#/$defs/validationFinding"}},
+    "featureRowList": {"type": "array", "items": {"$ref": "#/$defs/featureRow"}},
     "nonNegativeInteger": {"type": "integer", "minimum": 0},
     "rate": {"type": "number", "minimum": 0, "maximum": 1},
     "countMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/nonNegativeInteger"}},
@@ -63,22 +93,56 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["state"],
-      "properties": {"state": {"$ref": "#/$defs/evaluationState"}, "reason": {"type": "string"}}
+      "properties": {
+        "state": {"$ref": "#/$defs/evaluationState"},
+        "reason": {"type": "string"},
+        "evaluated_at": {"type": "string", "format": "date-time"}
+      }
     },
     "scope": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["target_domains"],
-      "properties": {"target_domains": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}}
+      "required": ["entity_ids", "business_units", "target_domains"],
+      "properties": {
+        "organization_id": {"type": "string"},
+        "entity_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "business_units": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "target_domains": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
     },
     "input": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["report_count", "record_count", "message_count"],
+      "required": ["report_count", "record_count", "message_count", "artifacts", "coverage"],
       "properties": {
         "report_count": {"$ref": "#/$defs/nonNegativeInteger"},
         "record_count": {"$ref": "#/$defs/nonNegativeInteger"},
-        "message_count": {"$ref": "#/$defs/nonNegativeInteger"}
+        "message_count": {"$ref": "#/$defs/nonNegativeInteger"},
+        "artifacts": {"type": "array", "items": {"$ref": "#/$defs/inputArtifact"}},
+        "coverage": {"type": "array", "items": {"$ref": "#/$defs/coverage"}}
+      }
+    },
+    "inputArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "state", "sensitivity"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "digest": {"type": "string"},
+        "state": {"$ref": "#/$defs/evaluationState"},
+        "sensitivity": {"enum": ["public", "operational", "restricted"]}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "state", "total", "evaluated", "unknown"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "state": {"$ref": "#/$defs/evaluationState"},
+        "total": {"$ref": "#/$defs/nonNegativeInteger"},
+        "evaluated": {"$ref": "#/$defs/nonNegativeInteger"},
+        "unknown": {"$ref": "#/$defs/nonNegativeInteger"}
       }
     },
     "summary": {
@@ -94,8 +158,9 @@
     "finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "category", "severity", "confidence", "title", "explanation", "subject", "evidence", "limitations", "action_codes"],
+      "required": ["id", "code", "category", "severity", "confidence", "title", "explanation", "subject", "evidence", "contradictory_evidence", "missing_evidence", "unverifiable_evidence", "limitations", "action_codes", "automation", "sensitivity", "documentation", "provenance"],
       "properties": {
+        "id": {"type": "string", "minLength": 1},
         "code": {"type": "string", "minLength": 1},
         "category": {"type": "string", "minLength": 1},
         "severity": {"enum": ["info", "low", "medium", "high", "critical"]},
@@ -104,15 +169,23 @@
         "explanation": {"type": "string"},
         "subject": {"type": "object", "additionalProperties": {"type": "string"}},
         "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "contradictory_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "missing_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "unverifiable_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
         "limitations": {"type": "array", "items": {"type": "string"}},
-        "action_codes": {"type": "array", "items": {"type": "string"}}
+        "action_codes": {"type": "array", "items": {"type": "string"}},
+        "automation": {"$ref": "#/$defs/automation"},
+        "sensitivity": {"enum": ["public", "operational", "restricted"]},
+        "documentation": {"type": "string"},
+        "provenance": {"type": "array", "items": {"type": "string"}}
       }
     },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "source", "value", "state", "sensitivity"],
+      "required": ["id", "type", "source", "value", "state", "sensitivity"],
       "properties": {
+        "id": {"type": "string", "minLength": 1},
         "type": {"type": "string", "minLength": 1},
         "source": {"type": "string", "minLength": 1},
         "path": {"type": "string"},
@@ -125,14 +198,16 @@
     "action": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "priority", "title", "reason", "target", "automation"],
+      "required": ["id", "code", "priority", "title", "reason", "target", "automation", "sensitivity"],
       "properties": {
+        "id": {"type": "string", "minLength": 1},
         "code": {"type": "string", "minLength": 1},
         "priority": {"type": "integer", "minimum": 1},
         "title": {"type": "string"},
         "reason": {"type": "string"},
         "target": {"type": "object", "additionalProperties": {"type": "string"}},
-        "automation": {"$ref": "#/$defs/automation"}
+        "automation": {"$ref": "#/$defs/automation"},
+        "sensitivity": {"enum": ["public", "operational", "restricted"]}
       }
     },
     "automation": {
@@ -156,8 +231,8 @@
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "type"],
-      "properties": {"id": {"type": "string", "minLength": 1}, "type": {"type": "string", "minLength": 1}, "key": {"type": "string"}}
+      "required": ["id", "type", "sensitivity"],
+      "properties": {"id": {"type": "string", "minLength": 1}, "type": {"type": "string", "minLength": 1}, "key": {"type": "string"}, "sensitivity": {"enum": ["public", "operational", "restricted"]}}
     },
     "redaction": {
       "type": "object",

@@ -749,6 +749,49 @@
       ],
       "type": "object"
     },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/ThreatCandidate"
+          },
+          "type": "array"
+        },
+        "correlation_digest": {
+          "type": "string"
+        },
+        "organization_id": {
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "report_evidence_digest": {
+          "type": "string"
+        },
+        "scoring_profile": {
+          "$ref": "#/$defs/ThreatCandidateScoringProfile"
+        },
+        "summary": {
+          "$ref": "#/$defs/ThreatCandidateSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidates",
+        "correlation_digest",
+        "organization_id",
+        "portfolio_digest",
+        "report_evidence_digest",
+        "scoring_profile",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    },
     "jsonl_record": {
       "additionalProperties": false,
       "oneOf": [

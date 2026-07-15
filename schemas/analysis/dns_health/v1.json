@@ -980,6 +980,86 @@
       ],
       "type": "object"
     },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "authentication_digest": {
+          "type": "string"
+        },
+        "domains": {
+          "items": {
+            "$ref": "#/$defs/DNSDomainHealth"
+          },
+          "type": "array"
+        },
+        "entities": {
+          "items": {
+            "$ref": "#/$defs/DNSEntityHealth"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/DNSHealthFinding"
+          },
+          "type": "array"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "portfolio_maturity": {
+          "$ref": "#/$defs/DNSHealthMaturity"
+        },
+        "portfolio_score": {
+          "$ref": "#/$defs/DNSHealthScore"
+        },
+        "provider_catalog_digest": {
+          "type": "string"
+        },
+        "provider_catalog_provenance": {
+          "$ref": "#/$defs/ProviderCatalogProvenance"
+        },
+        "provider_contexts": {
+          "items": {
+            "$ref": "#/$defs/DNSHealthProviderContext"
+          },
+          "type": "array"
+        },
+        "records": {
+          "items": {
+            "$ref": "#/$defs/DNSRecordHealth"
+          },
+          "type": "array"
+        },
+        "scoring_profile": {
+          "$ref": "#/$defs/DNSHealthScoringProfile"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "authentication_digest",
+        "domains",
+        "entities",
+        "findings",
+        "observed_at",
+        "portfolio_digest",
+        "portfolio_maturity",
+        "portfolio_score",
+        "provider_catalog_digest",
+        "provider_catalog_provenance",
+        "provider_contexts",
+        "records",
+        "scoring_profile",
+        "snapshot_digest"
+      ],
+      "type": "object"
+    },
     "jsonl_record": {
       "additionalProperties": false,
       "oneOf": [

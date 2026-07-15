@@ -15,14 +15,14 @@ import (
 	"time"
 )
 
-const phase13WorkflowSamplesVersion = "phase13-workflow-samples-v1"
+const phase17WorkflowSamplesVersion = "phase17-workflow-samples-v1"
 
-type phase13AnalysisSample struct {
+type phase17AnalysisSample struct {
 	MetadataRecord analysisOutputRecord `json:"metadata_record"`
 	RecordTypes    []string             `json:"record_types"`
 }
 
-type phase13ExportSample struct {
+type phase17ExportSample struct {
 	Name                  string       `json:"name"`
 	NativeType            string       `json:"native_type"`
 	CandidateIDs          []AnalysisID `json:"candidate_ids"`
@@ -31,16 +31,17 @@ type phase13ExportSample struct {
 	SubmissionPerformed   bool         `json:"submission_performed"`
 }
 
-type phase13WorkflowSamples struct {
+type phase17WorkflowSamples struct {
 	Version  string                  `json:"version"`
-	Analysis []phase13AnalysisSample `json:"analysis_jsonl_metadata_records"`
-	Exports  []phase13ExportSample   `json:"exchange_outputs"`
+	Analysis []phase17AnalysisSample `json:"analysis_jsonl_metadata_records"`
+	Exports  []phase17ExportSample   `json:"exchange_outputs"`
 }
 
-func TestPhase13CompletedWorkflowSamples(t *testing.T) {
+func TestPhase17CompletedWorkflowSamples(t *testing.T) {
 	health, evidence, correlation, threats, enrichment, jurisdiction := analysisOutputTestResults(t)
-	fixtures := phase13AnalysisFixtures(health, evidence, correlation, threats, enrichment, jurisdiction)
-	samples := phase13WorkflowSamples{Version: phase13WorkflowSamplesVersion, Analysis: []phase13AnalysisSample{}, Exports: []phase13ExportSample{}}
+	configuration, snapshot, authentication, perspectives, activity, phishing := additionalAnalysisOutputTestResults(t, threats, enrichment, evidence)
+	fixtures := phase17AnalysisFixtures(configuration, snapshot, authentication, health, perspectives, evidence, correlation, threats, enrichment, activity, phishing, jurisdiction)
+	samples := phase17WorkflowSamples{Version: phase17WorkflowSamplesVersion, Analysis: []phase17AnalysisSample{}, Exports: []phase17ExportSample{}}
 
 	for _, fixture := range fixtures {
 		descriptor, err := AnalysisOutputDescriptorForMode(fixture.mode)
@@ -62,20 +63,20 @@ func TestPhase13CompletedWorkflowSamples(t *testing.T) {
 		if record.Mode != fixture.mode || record.RecordType != "metadata" || record.RecordID != "metadata" || record.ResultDigest == "" {
 			t.Fatalf("mode %s metadata record = %#v", fixture.mode, record)
 		}
-		samples.Analysis = append(samples.Analysis, phase13AnalysisSample{
+		samples.Analysis = append(samples.Analysis, phase17AnalysisSample{
 			MetadataRecord: record,
 			RecordTypes:    descriptor.JSONLRecordTypes,
 		})
 	}
 
-	samples.Exports = phase13ExchangeSamples(t, threats, enrichment)
+	samples.Exports = phase17ExchangeSamples(t, threats, enrichment)
 	encoded, err := json.MarshalIndent(samples, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}
 	encoded = append(encoded, '\n')
-	const goldenPath = "testdata/golden/phase13_workflow_samples.json"
-	if os.Getenv("DMARCGO_UPDATE_PHASE13_GOLDEN") == "1" {
+	const goldenPath = "testdata/golden/phase17_workflow_samples.json"
+	if os.Getenv("DMARCGO_UPDATE_PHASE17_GOLDEN") == "1" {
 		if err := os.WriteFile(goldenPath, encoded, 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -85,7 +86,7 @@ func TestPhase13CompletedWorkflowSamples(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(encoded, expected) {
-		t.Fatalf("Phase 13 workflow samples changed; review and regenerate with DMARCGO_UPDATE_PHASE13_GOLDEN=1 go test -run '^TestPhase13CompletedWorkflowSamples$' .\n%s", encoded)
+		t.Fatalf("Phase 17 workflow samples changed; review and regenerate with DMARCGO_UPDATE_PHASE17_GOLDEN=1 go test -run '^TestPhase17CompletedWorkflowSamples$' .\n%s", encoded)
 	}
 }
 
@@ -172,7 +173,7 @@ func TestPhase13TruncationPreservesFullFindingEvidence(t *testing.T) {
 	}
 }
 
-func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
+func TestPhase17PureStagesCannotJumpUpstream(t *testing.T) {
 	files := []string{
 		"dns_health.go",
 		"dns_maturity.go",
@@ -182,7 +183,11 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 		"phishing_intelligence.go",
 		"jurisdiction_context.go",
 		"analysis_output.go",
+		"analysis_output_extended_modes.go",
 		"analysis_output_modes.go",
+		"output_analysis.go",
+		"output_capabilities.go",
+		"output_data_schema.go",
 		"stix.go",
 		"stix_validate.go",
 		"threatconnect.go",
@@ -202,7 +207,9 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 		"ParseBytes": true, "ParseReader": true, "CollectDNSSnapshot": true, "LookupTXT": true,
 		"ParseAuthenticationRecords": true, "EvaluateDNSHealth": true, "AnalyzeReportEvidence": true,
 		"CorrelateReportEvidence": true, "ScoreThreatCandidates": true, "EnrichThreatCandidates": true,
-		"CorrelatePhishingIntelligence": true, "EvaluateJurisdictionContext": true,
+		"CollectDNSPerspectives": true, "CollectSourceActivity": true, "NormalizePhishingIntelligenceSnapshot": true,
+		"CorrelatePhishingIntelligence": true, "EvaluateJurisdictionContext": true, "ResolveCampaignConfiguration": true,
+		"CorrelateCampaignReportEvidence": true,
 	}
 
 	for _, filename := range files {
@@ -236,9 +243,10 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 	}
 }
 
-func BenchmarkPhase13NativeAnalysisOutputs(b *testing.B) {
+func BenchmarkPhase17NativeAnalysisOutputs(b *testing.B) {
 	health, evidence, correlation, threats, enrichment, jurisdiction := analysisOutputTestResults(b)
-	for _, fixture := range phase13AnalysisFixtures(health, evidence, correlation, threats, enrichment, jurisdiction) {
+	configuration, snapshot, authentication, perspectives, activity, phishing := additionalAnalysisOutputTestResults(b, threats, enrichment, evidence)
+	for _, fixture := range phase17AnalysisFixtures(configuration, snapshot, authentication, health, perspectives, evidence, correlation, threats, enrichment, activity, phishing, jurisdiction) {
 		b.Run(string(fixture.mode), func(b *testing.B) {
 			b.ReportAllocs()
 			for range b.N {
@@ -250,17 +258,35 @@ func BenchmarkPhase13NativeAnalysisOutputs(b *testing.B) {
 	}
 }
 
-func phase13AnalysisFixtures(
+func phase17AnalysisFixtures(
+	configuration ConfigurationValidationResult,
+	snapshot DNSSnapshot,
+	authentication DNSAuthenticationResult,
 	health DNSHealthResult,
+	perspectives DNSPerspectiveResult,
 	evidence ReportEvidenceResult,
 	correlation DNSReportCorrelationResult,
 	threats ThreatCandidateResult,
 	enrichment SourceEnrichmentResult,
+	activity SourceActivityResult,
+	phishing PhishingIntelligenceResult,
 	jurisdiction JurisdictionContextResult,
 ) []analysisOutputFixture {
 	return []analysisOutputFixture{
+		{AnalysisModeConfigurationValidation, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteConfigurationValidationOutput(writer, configuration, format, options)
+		}},
+		{AnalysisModeDNSSnapshot, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteDNSSnapshotOutput(writer, snapshot, format, options)
+		}},
+		{AnalysisModeDNSAuthentication, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteDNSAuthenticationOutput(writer, authentication, format, options)
+		}},
 		{AnalysisModeDNSHealth, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 			return WriteDNSHealthOutput(writer, health, format, options)
+		}},
+		{AnalysisModeDNSPerspectives, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteDNSPerspectivesOutput(writer, perspectives, format, options)
 		}},
 		{AnalysisModeReportEvidence, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 			return WriteReportEvidenceOutput(writer, evidence, format, options)
@@ -274,13 +300,19 @@ func phase13AnalysisFixtures(
 		{AnalysisModeSourceEnrichment, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 			return WriteSourceEnrichmentOutput(writer, enrichment, format, options)
 		}},
+		{AnalysisModeSourceActivity, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WriteSourceActivityOutput(writer, activity, format, options)
+		}},
+		{AnalysisModePhishingIntelligence, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
+			return WritePhishingIntelligenceOutput(writer, phishing, format, options)
+		}},
 		{AnalysisModeJurisdictionContext, func(writer io.Writer, format AnalysisOutputFormat, options AnalysisOutputOptions) error {
 			return WriteJurisdictionContextOutput(writer, jurisdiction, format, options)
 		}},
 	}
 }
 
-func phase13ExchangeSamples(t testing.TB, threats ThreatCandidateResult, enrichment SourceEnrichmentResult) []phase13ExportSample {
+func phase17ExchangeSamples(t testing.TB, threats ThreatCandidateResult, enrichment SourceEnrichmentResult) []phase17ExportSample {
 	t.Helper()
 	candidates := threats.Candidates()
 	if len(candidates) != 1 || !candidates[0].ReviewEligible || candidates[0].PromotionEligible {
@@ -289,7 +321,7 @@ func phase13ExchangeSamples(t testing.TB, threats ThreatCandidateResult, enrichm
 	candidate := candidates[0]
 
 	bundle, err := BuildSTIXBundle(threats, &enrichment, STIXExportOptions{
-		Producer: STIXProducer{Name: "Phase 13 synthetic SOC", CreatedAt: time.Unix(10, 0).UTC()},
+		Producer: STIXProducer{Name: "Phase 17 synthetic SOC", CreatedAt: time.Unix(10, 0).UTC()},
 		TLP:      STIXTLPAmber,
 	})
 	if err != nil {
@@ -321,7 +353,7 @@ func phase13ExchangeSamples(t testing.TB, threats ThreatCandidateResult, enrichm
 	misp, err := BuildMISPAttributePayloads(threats, MISPAttributeExportOptions{
 		Event: MISPEventReference{Identifier: "42"},
 		Capabilities: MISPInstanceCapabilities{
-			ContractVersion:   "phase13-synthetic-2.5",
+			ContractVersion:   "phase17-synthetic-2.5",
 			AttributeMappings: []MISPAttributeMapping{mapping},
 		},
 		Selections: []MISPAttributeSelection{{CandidateID: candidate.ID, Mapping: mapping}},
@@ -348,7 +380,7 @@ func phase13ExchangeSamples(t testing.TB, threats ThreatCandidateResult, enrichm
 	if !reflect.DeepEqual(candidates, threats.Candidates()) {
 		t.Fatal("exchange builders mutated the completed threat candidates")
 	}
-	return []phase13ExportSample{
+	return []phase17ExportSample{
 		{
 			Name: "stix_2_1", NativeType: "observed-data", CandidateIDs: []AnalysisID{candidate.ID},
 			ThreatCandidateDigest: threats.Digest(), ReviewOnly: true, SubmissionPerformed: false,

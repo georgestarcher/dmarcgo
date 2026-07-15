@@ -26,7 +26,8 @@ it never causes another stage to run.
 | What activity did a selected third-party service report for reviewed addresses? | `CollectSourceActivity` | Completed candidates, explicit selection, and caller provider | Only the supplied provider; never the subject IP |
 | Does caller-owned phishing intelligence contain the same exact source or DMARC domain role? | `NormalizePhishingIntelligenceSnapshot`, then `CorrelatePhishingIntelligence` | Completed candidates, matching report evidence, and offline snapshots | None |
 | Does completed enrichment match a versioned jurisdiction policy? | `EvaluateJurisdictionContext` | Completed enrichment and explicit policy | None |
-| How do I serialize one completed analysis mode? | Its `Write*Output` function | One completed result | Supplied writer only |
+| How do I build one common automation/agent envelope? | `BuildAnalysisOutput` or a report-helper builder | One completed result | None |
+| How do I serialize one completed native analysis mode? | Its `Write*Output` function | One completed result | Supplied writer only |
 | How do I exchange reviewed observations? | STIX, ThreatConnect, MISP, or ThreatStream builder | Explicit selections and required target contract | None; submission stays caller-owned |
 
 If two rows answer different questions, run them separately and retain both
@@ -50,7 +51,8 @@ threat candidates + explicit selection/provider -> source activity
 threat candidates + matching report evidence + offline snapshots -> phishing intelligence
 source enrichment + explicit policy -> jurisdiction context
 
-any one completed analysis result -> native JSON, JSONL, or CSV
+any one completed analysis result -> common automation/agent envelope
+completed native analysis result -> native JSON, JSONL, or CSV
 completed threat candidates (+ optional matching enrichment) -> STIX
 explicit reviewed selections -> ThreatConnect, MISP, or ThreatStream payloads
 ```
@@ -61,23 +63,29 @@ immutable evidence chain produced it.
 
 ## Reference workflow and samples
 
-The Phase 13 integration fixture is intentionally synthetic. It uses reserved
+The Phase 17 integration fixture is intentionally synthetic. It uses reserved
 documentation addresses and domains, two aggregate-report observations, a
 current DNS snapshot, one review-eligible unknown source, offline enrichment,
 and a versioned jurisdiction-policy evaluation. No live report, organization,
 source address, contact, credential, or vendor contract is included.
 
 The exact generated sample is
-[`testdata/golden/phase13_workflow_samples.json`](../testdata/golden/phase13_workflow_samples.json).
+[`testdata/golden/phase17_workflow_samples.json`](../testdata/golden/phase17_workflow_samples.json).
 It contains a real JSONL metadata record for every native analysis mode:
 
 | Mode | Important sample evidence | JSONL records that may follow |
 | --- | --- | --- |
+| `configuration_validation` | Configuration evaluation state and value-safe diagnostics | diagnostic |
+| `dns_snapshot` | Explicit owner-name observations, TTL/negative-cache evidence, resolver provenance, and diagnostics | observation, diagnostic |
+| `dns_authentication_records` | Parsed SPF, DKIM, and DMARC semantics linked to snapshot evidence | record set, diagnostic |
 | `dns_health` | Portfolio score, maturity, evidence coverage, scoring profile, and DNS observation time | record, domain, entity, finding, provider context |
+| `dns_perspectives` | Explicit selected names, remote-perspective outcomes, agreement, and supplemental findings | query, finding, diagnostic |
 | `report_evidence` | Reports, messages, pass/fail combinations, dispositions, reporter diversity, and report bounds | report, observation, diagnostic |
 | `dns_report_correlation` | Separate DNS/report times, inventory, thresholds, stream totals, and classifications | inventory, stream, finding |
 | `threat_candidates` | Scoring profile, candidate totals, severity distribution, exclusions, and review eligibility | candidate |
 | `source_enrichment` | Completion state, candidate statuses, and ASN totals | candidate, ASN, diagnostic |
+| `source_activity` | Explicit selection, third-party activity status, freshness, time relationship, and diagnostics | record, finding, diagnostic |
+| `phishing_intelligence` | Offline snapshot provenance, exact-match status, disagreements, and findings | source, candidate, match, finding |
 | `jurisdiction_context` | Policy provenance, policy state, candidate states, and optional priority totals | candidate, finding |
 
 The same sample records the standards/vendor transformations derived from the
@@ -117,8 +125,8 @@ The integration gate preserves these operational distinctions:
 8. **Optional phishing intelligence:** normalize caller-owned snapshots and
    compare exact source IPs and domain roles offline. Preserve time, provider
    state, and collisions without changing a candidate decision.
-9. **Independent output:** write one completed mode as JSON, JSONL, or CSV
-   without creating a combined sparse result.
+9. **Independent output:** build one common envelope or write one completed
+   native mode as JSON, JSONL, or CSV without creating a combined sparse result.
 10. **Native exchange:** derive STIX and selected vendor payloads from the same
    reviewed candidate without changing its score, confidence, eligibility, or
    promotion state.
@@ -178,15 +186,15 @@ source into an IOC merely because onboarding was incomplete.
 
 ## Output selection
 
-Use the common `OutputEnvelope` for the current report validation, summary,
-rows, and source-review modes when automation or an AI consumer needs grounded
-findings and actions. Use a native mode writer for complete organization
-analysis data. Use a standards/vendor builder only when the target contract and
-review selections are explicit.
+Use the common `OutputEnvelope` for report helpers and every completed v2
+organization-analysis, source-context, and campaign result when automation or
+an AI consumer needs grounded findings and actions. Use a native mode writer
+for complete organization analysis data. Use a standards/vendor builder only
+when the target contract and review selections are explicit.
 
 | Boundary | Version discovery | Privacy behavior |
 | --- | --- | --- |
-| Common envelope | `OutputSchemaVersions`, `OutputSchemaForVersion` | Explicit public, operational, or restricted redaction plus bounded collections |
+| Common envelope | `OutputSchemaVersions`, `OutputSchemaForVersion`, `OutputDataSchemaID`, `OutputDataSchema`, `OutputModeDescriptors` | Explicit public, operational, or restricted redaction plus bounded data, findings, and evidence |
 | Native analysis output | `AnalysisOutputDescriptorForMode`, `AnalysisOutputSchema` | Explicit public, operational, or restricted redaction; JSONL/CSV stream records |
 | STIX | `STIXEvidenceExtensionSchema` | Operational and unredacted; use markings and caller minimization |
 | ThreatConnect, MISP, ThreatStream | Builder-specific mapping/source versions | Operational and unredacted; target authorization and transport are caller-owned |
@@ -202,6 +210,11 @@ source, dates, infrastructure, factors, digests, and exact classification labels
 and supplies only neutral routing metadata. Its fixed
 `suspicious-message-received` template ID may select approved employee text;
 neither the route nor privileged state should be copied into that text.
+
+The complete mode/profile/detail/redaction matrix, deterministic truncation
+rules, mode-isolation metadata, data-schema discovery, prompt-injection
+boundary, and versioning policy are in
+[Cross-mode automation and agent output](output-contract.md).
 
 ## AI and hostile-input boundary
 
@@ -257,7 +270,7 @@ new version even when the JSON shape is unchanged.
 
 ## Release-quality checks
 
-`make workflow-check` runs the Phase 13 and Phase 14 integration and isolation gates.
+`make workflow-check` runs the Phase 13, Phase 14, and Phase 17 integration and isolation gates.
 `make campaign-check` runs the Phase 14 configuration, source, evidence,
 classification, aggregate, output, schema, example, security, and resource-limit
 gate.
@@ -272,5 +285,5 @@ The workflow sample is generated only from synthetic data. Regenerate it after
 intentional contract changes with:
 
 ```shell
-DMARCGO_UPDATE_PHASE13_GOLDEN=1 go test -run '^TestPhase13CompletedWorkflowSamples$' .
+DMARCGO_UPDATE_PHASE17_GOLDEN=1 go test -run '^TestPhase17CompletedWorkflowSamples$' .
 ```

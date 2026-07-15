@@ -58,11 +58,25 @@ func TestOutputEnvelopeImplementsResultWithoutChangingMetadata(t *testing.T) {
 
 func TestCurrentOutputModesUseCanonicalAnalysisModes(t *testing.T) {
 	want := []AnalysisMode{
+		AnalysisModeConfigurationValidation,
+		AnalysisModeDNSSnapshot,
+		AnalysisModeDNSAuthentication,
+		AnalysisModeDNSHealth,
+		AnalysisModeDNSPerspectives,
 		AnalysisModeReportValidation,
 		AnalysisModeReportSummary,
 		AnalysisModeAggregateSummary,
 		AnalysisModeReportRows,
 		AnalysisModeSourceReview,
+		AnalysisModeReportEvidence,
+		AnalysisModeDNSReportCorrelation,
+		AnalysisModeThreatCandidates,
+		AnalysisModeSourceEnrichment,
+		AnalysisModeSourceActivity,
+		AnalysisModePhishingIntelligence,
+		AnalysisModeJurisdictionContext,
+		AnalysisModeCampaignValidation,
+		AnalysisModeCampaignClassification,
 	}
 	got := SupportedOutputModes()
 	if len(got) != len(want) {

@@ -218,8 +218,8 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want dashboard-ready top lists | `dmarcgo.TopSources`, `dmarcgo.TopUnauthenticatedSources`, or `dmarcgo.TopCounts` | Returns sorted top-N slices without storage or scoring policy. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
-| You want versioned automation or AI-agent output | `dmarcgo.BuildReportSummaryOutput(summary, options)` | Produces a self-describing envelope with findings, evidence, actions, provenance, redaction, and truncation metadata. |
-| You want native JSON, JSONL, or CSV for a completed analysis mode | `dmarcgo.WriteDNSHealthOutput`, `WriteReportEvidenceOutput`, `WriteDNSReportCorrelationOutput`, `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or `WriteJurisdictionContextOutput` | Serializes one immutable result without rerunning analysis or performing I/O beyond the supplied writer. |
+| You want versioned automation or AI-agent output for any completed v2 mode | `dmarcgo.BuildAnalysisOutput(completed, options)` or the report-specific builders | Produces a self-describing envelope with a strict mode data schema, findings, evidence, actions, provenance, redaction, and truncation metadata without rerunning work. |
+| You want native JSON, JSONL, or CSV for a completed analysis mode | The mode-specific writers from `WriteConfigurationValidationOutput` through `WriteJurisdictionContextOutput` | Serializes one of the twelve immutable analysis results without rerunning analysis or performing I/O beyond the supplied writer. |
 | You have strict versioned organization YAML | `dmarcgo.LoadPortfolioYAML(data)` | Rejects unknown and secret-bearing fields and performs no DNS or report access. |
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
@@ -264,8 +264,9 @@ sister-organization configuration, privacy boundaries, and release checks.
 
 Use the output builders when results will be consumed by workflow engines,
 AI summarizers, or other systems that need a stable, self-describing contract.
-The current schema supports report validation, report summaries, aggregate
-summaries, flattened rows, and source review.
+The common schema covers the report helpers plus every completed v2
+organization-analysis, source-context, and campaign result. Use
+`BuildAnalysisOutput` for completed values implementing `OutputResult`.
 
 Output choices are orthogonal:
 
@@ -280,10 +281,15 @@ Output choices are orthogonal:
 - `OutputRedactionRestricted` retains the complete current mode data.
 - `MaxItems` bounds each named collection independently. The envelope reports
   total and returned counts for every collection under `truncation.collections`.
+- `MaxFindings` bounds severity-prioritized findings and `MaxEvidence` bounds
+  the combined evidence retained per returned finding. Truncation totals include
+  evidence attached to omitted findings.
 
 Profiles change representation only. They never load reports, rerun analysis,
 perform DNS lookups, or access the network. Pass already computed values to the
-appropriate builder.
+appropriate builder. When a caller supplies a distinct reproducible envelope
+generation time, `evaluation.evaluated_at` still preserves the completed
+result's timestamp.
 
 ```go
 package main
@@ -328,15 +334,32 @@ Use these mode-specific builders:
 | `report_rows` | `BuildReportRowsOutput` | `[]FeatureRow` |
 | `source_review` | `BuildSourceReviewOutput` | `SourceReview` |
 
+Use `BuildAnalysisOutput(completed, options)` for
+`ConfigurationValidationResult`, `DNSSnapshot`, `DNSAuthenticationResult`,
+`DNSHealthResult`, `DNSPerspectiveResult`, `ReportEvidenceResult`,
+`DNSReportCorrelationResult`, `ThreatCandidateResult`,
+`SourceEnrichmentResult`, `SourceActivityResult`,
+`PhishingIntelligenceResult`, `JurisdictionContextResult`,
+`CampaignConfigurationSnapshot`, `CampaignClassificationResult`, and
+`CampaignReportCorrelationResult`. Every envelope includes a `data_schema`
+identifier. Discover or retrieve its schema with `OutputDataSchemaID` and
+`OutputDataSchema`; profile selection never reruns the completed mode. Summary
+and failed envelopes identify their deliberately empty payload with
+`OutputEmptyDataSchemaID`.
+
 Use `BuildFailureOutput` when loading, parsing, or another prerequisite failed
 before a mode could be evaluated. Failed envelopes use `status: "failed"`,
 `evaluation.state: "not_evaluated"`, and stable error codes and categories. Use
 `OutputMessageForError` to classify wrapped loader errors without copying path
 context or raw error text into the envelope.
 
+The complete mode/profile/detail/redaction matrix, isolation contract,
+campaign disclosure boundary, truncation priority, and schema-evolution rules
+are in [Cross-mode automation and agent output](docs/output-contract.md).
+
 ### Native analysis outputs
 
-The six completed organization-analysis modes also have independent native
+The twelve completed organization-analysis modes also have independent native
 contracts. These are not sparse variants of one union object. Each JSON
 document has its own embedded schema and complete typed collections; JSONL and
 CSV emit a metadata record followed by deterministic mode records.
@@ -364,11 +387,17 @@ func main() {}
 
 | Mode | Writer | JSONL record types | Useful CSV fields |
 | --- | --- | --- | --- |
+| `configuration_validation` | `WriteConfigurationValidationOutput` | `metadata`, `diagnostic` | code, severity, path |
+| `dns_snapshot` | `WriteDNSSnapshotOutput` | `metadata`, `observation`, `diagnostic` | owner name, status, resolver, answer source, attempts |
+| `dns_authentication_records` | `WriteDNSAuthenticationOutput` | `metadata`, `record_set`, `diagnostic` | owner name, record type/status, observation status, resolver |
 | `dns_health` | `WriteDNSHealthOutput` | `metadata`, `record`, `domain`, `entity`, `finding`, `provider_context` | entity, domain, record type/status, score, grade, severity |
+| `dns_perspectives` | `WriteDNSPerspectivesOutput` | `metadata`, `query`, `finding`, `diagnostic` | owner name, outcome, perspective and snapshot agreement |
 | `report_evidence` | `WriteReportEvidenceOutput` | `metadata`, `report`, `observation`, `diagnostic` | reporter, target/author domain, source IP, disposition, messages, combined outcome |
 | `dns_report_correlation` | `WriteDNSReportCorrelationOutput` | `metadata`, `inventory`, `stream`, `finding` | scope, source/auth identities, messages, classification, severity |
 | `threat_candidates` | `WriteThreatCandidatesOutput` | `metadata`, `candidate` | source IP, score, confidence, severity, eligibility, recommended usage |
 | `source_enrichment` | `WriteSourceEnrichmentOutput` | `metadata`, `candidate`, `asn`, `diagnostic` | source IP, status, score, ASN, country, organization |
+| `source_activity` | `WriteSourceActivityOutput` | `metadata`, `record`, `finding`, `diagnostic` | source IP, status, activity, freshness, time relationship |
+| `phishing_intelligence` | `WritePhishingIntelligenceOutput` | `metadata`, `source`, `candidate`, `match`, `finding` | source IP, candidate status, exact-match role and type |
 | `jurisdiction_context` | `WriteJurisdictionContextOutput` | `metadata`, `candidate`, `finding` | source IP, status, tier, countries, categories, review-priority adjustment |
 
 Every JSONL line carries `schema`, `schema_version`, `mode`, `generated_at`,
@@ -406,11 +435,12 @@ but removes invalid raw report values and free-form enrichment provider text.
 `OutputRedactionRestricted` retains the complete result inside the full trust
 boundary. Encoding never mutates the source result.
 
-Raw TXT records are intentionally not part of these six completed analysis
-results: DNS health carries evidence references, parsed status, scores, and
-findings rather than copying the upstream snapshot's record values. The native
-redactor also drops reserved raw/TXT fields before operational or public output
-so a later reviewed schema extension cannot expose them accidentally.
+Raw TXT values are retained only by the explicit DNS snapshot and authentication
+record modes. Downstream DNS health carries evidence references, parsed status,
+scores, and findings rather than copying the upstream snapshot's record values.
+The native redactor also drops reserved raw/TXT fields before operational or
+public output so a later reviewed schema extension cannot expose them
+accidentally.
 
 Native output is data, not instructions. Treat all retained report, catalog,
 DNS, enrichment, and policy strings as untrusted when feeding a model. No
@@ -422,10 +452,10 @@ The older `WriteFeaturesJSONL`, `WriteFeaturesCSV`, and `FeatureCSVHeaders`
 remain the intentionally simple flattened `report.Rows()` export. The
 `report_rows` common-envelope builder maps that same record-level use case.
 They do not serialize report-evidence, DNS-health, correlation, candidate,
-enrichment, or jurisdiction result contracts. `WriteOutputJSON` and
-`WriteOutputJSONL` remain the automation/agent common envelope for current
-report modes; later common-envelope expansion is separate from these native
-mode contracts.
+enrichment, activity, phishing-intelligence, or jurisdiction result contracts.
+`WriteOutputJSON` and `WriteOutputJSONL` serialize the common envelope for all
+supported completed v2 modes. Native mode contracts remain independently
+discoverable for consumers that prefer their complete typed shape.
 
 ```json
 {
@@ -436,7 +466,7 @@ mode contracts.
   "detail": "summary",
   "generated_at": "2026-07-11T12:00:00Z",
   "status": "completed",
-  "evaluation": {"state": "evaluated"},
+  "evaluation": {"state": "evaluated", "evaluated_at": "2026-07-11T12:00:00Z"},
   "scope": {"target_domains": ["example.test"]},
   "input": {"report_count": 1, "record_count": 2, "message_count": 27},
   "summary": {
@@ -490,10 +520,10 @@ Do not publish public output when that correlation risk is unacceptable.
 
 These examples use synthetic, documentation-safe values. Real reports can expose source IPs, domains, reporter metadata, and authentication behavior.
 
-The generated Phase 13 sample contains one real JSONL metadata record for every
+The generated Phase 17 sample contains one real JSONL metadata record for every
 native organization-analysis mode and identifies the STIX, ThreatConnect, MISP,
 and ThreatStream payloads derived from the same reviewed candidate. See
-[`testdata/golden/phase13_workflow_samples.json`](testdata/golden/phase13_workflow_samples.json).
+[`testdata/golden/phase17_workflow_samples.json`](testdata/golden/phase17_workflow_samples.json).
 
 ### Aggregate summary
 

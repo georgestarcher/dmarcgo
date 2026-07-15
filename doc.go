@@ -22,13 +22,23 @@
 // BuildAggregateSummaryOutput(), BuildValidationOutput(),
 // BuildReportRowsOutput(), BuildSourceReviewOutput(), and BuildFailureOutput()
 // create versioned, deterministic envelopes for automation and AI consumers.
+// BuildAnalysisOutput() extends the same envelope across completed organization,
+// DNS, report-evidence, correlation, source-context, jurisdiction, and campaign
+// results. OutputResult seals the accepted completed-result set. Every envelope
+// identifies its strict mode payload with DataSchema; use OutputDataSchemaID()
+// and OutputDataSchema() for discovery and validation. Summary and failed
+// envelopes use OutputEmptyDataSchemaID for their deliberately omitted data.
 // Output profiles change representation only; they never trigger parsing,
 // analysis, or network access. Use OutputSchemaForVersion() and
-// SupportedOutputModes() for contract discovery.
+// SupportedOutputModes() for common-envelope discovery and
+// OutputModeDescriptors() for required inputs and side-effect boundaries.
 //
-// WriteDNSHealthOutput(), WriteReportEvidenceOutput(),
+// WriteConfigurationValidationOutput(), WriteDNSSnapshotOutput(),
+// WriteDNSAuthenticationOutput(), WriteDNSHealthOutput(),
+// WriteDNSPerspectivesOutput(), WriteReportEvidenceOutput(),
 // WriteDNSReportCorrelationOutput(), WriteThreatCandidatesOutput(),
-// WriteSourceEnrichmentOutput(), and WriteJurisdictionContextOutput() provide
+// WriteSourceEnrichmentOutput(), WriteSourceActivityOutput(),
+// WritePhishingIntelligenceOutput(), and WriteJurisdictionContextOutput() provide
 // independent native JSON, JSONL, and CSV contracts for completed analysis
 // results. They preserve result timestamps, stream JSONL/CSV records, apply an
 // explicit privacy profile without mutation, and perform no upstream work.

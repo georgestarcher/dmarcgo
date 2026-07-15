@@ -1,0 +1,810 @@
+{
+  "$defs": {
+    "DNSPerspectiveAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "fragments": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "fragments_available": {
+          "type": "boolean"
+        },
+        "joined": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "fragments_available",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "query_id": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "outcome",
+        "query_id",
+        "severity"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "explanation": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "query_id": {
+          "type": "string"
+        },
+        "recommendation": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "evidence_ids",
+        "explanation",
+        "id",
+        "query_id",
+        "recommendation",
+        "sensitivity",
+        "severity",
+        "title"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_fingerprint": {
+          "type": "string"
+        },
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveAnswer"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "perspective": {
+          "type": "string"
+        },
+        "perspective_id": {
+          "type": "string"
+        },
+        "provider_status": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answers",
+        "id",
+        "outcome",
+        "perspective_id",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveOutcomeCount": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "type": "string"
+        },
+        "queries": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outcome",
+        "queries"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "collected_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "dataset": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "reference_id": {
+          "type": "string"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "collected_at",
+        "dataset",
+        "provider",
+        "sensitivity"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveQueryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "failed_perspectives": {
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "no_answer_perspectives": {
+          "type": "integer"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveObservation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "perspective_agreement": {
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/DNSPerspectiveProvenance"
+        },
+        "query": {
+          "$ref": "#/$defs/DNSPerspectiveQuery"
+        },
+        "retry_after": {
+          "$ref": "#/$defs/DNSPerspectiveRetryAfter"
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/DNSPerspectiveSnapshotReference"
+        },
+        "snapshot_agreement": {
+          "type": "string"
+        },
+        "successful_perspectives": {
+          "type": "integer"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "failed_perspectives",
+        "id",
+        "no_answer_perspectives",
+        "observations",
+        "outcome",
+        "perspective_agreement",
+        "provenance",
+        "query",
+        "retry_after",
+        "sensitivity",
+        "snapshot",
+        "snapshot_agreement",
+        "successful_perspectives",
+        "truncated"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveRetryAfter": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "capped": {
+          "type": "boolean"
+        },
+        "seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "available",
+        "capped"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveSnapshotReference": {
+      "additionalProperties": false,
+      "properties": {
+        "answer_fingerprint": {
+          "type": "string"
+        },
+        "observation_name": {
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/DNSRecordReference"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "sensitivity": {
+          "type": "string"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_name",
+        "observed_at",
+        "references",
+        "sensitivity",
+        "snapshot_digest",
+        "status"
+      ],
+      "type": "object"
+    },
+    "DNSPerspectiveSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "failed_perspectives": {
+          "type": "integer"
+        },
+        "findings": {
+          "type": "integer"
+        },
+        "no_answer_perspectives": {
+          "type": "integer"
+        },
+        "outcomes": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveOutcomeCount"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "perspectives": {
+          "type": "integer"
+        },
+        "queries": {
+          "type": "integer"
+        },
+        "successful_perspectives": {
+          "type": "integer"
+        },
+        "truncated_queries": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "failed_perspectives",
+        "findings",
+        "no_answer_perspectives",
+        "outcomes",
+        "perspectives",
+        "queries",
+        "successful_perspectives",
+        "truncated_queries"
+      ],
+      "type": "object"
+    },
+    "DNSRecordReference": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain",
+        "entity_id",
+        "type"
+      ],
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "RedactionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "operational_fields_changed": {
+          "type": "boolean"
+        },
+        "profile": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        }
+      },
+      "required": [
+        "operational_fields_changed",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "ResultMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "type": "string"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract_version",
+        "evaluation",
+        "generated_at",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "csv_record": {
+      "additionalProperties": false,
+      "properties": {
+        "data_json": {
+          "type": "string"
+        },
+        "dns_record_type": {
+          "type": "string"
+        },
+        "generated_at": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_perspectives"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "perspective_agreement": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json#/$defs/csv_record"
+        },
+        "schema_version": {
+          "const": "1"
+        },
+        "snapshot_agreement": {
+          "type": "string"
+        },
+        "successful_perspectives": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "name",
+        "dns_record_type",
+        "outcome",
+        "successful_perspectives",
+        "perspective_agreement",
+        "snapshot_agreement",
+        "data_json"
+      ],
+      "type": "object"
+    },
+    "dnsPerspectivesOutputMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/DNSPerspectiveSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "metadata",
+        "portfolio_digest",
+        "snapshot_digest",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    },
+    "envelope_data": {
+      "additionalProperties": false,
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveDiagnostic"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveFinding"
+          },
+          "type": "array"
+        },
+        "portfolio_digest": {
+          "type": "string"
+        },
+        "queries": {
+          "items": {
+            "$ref": "#/$defs/DNSPerspectiveQueryResult"
+          },
+          "type": "array"
+        },
+        "snapshot_digest": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/DNSPerspectiveSummary"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "complete",
+        "diagnostics",
+        "findings",
+        "portfolio_digest",
+        "queries",
+        "snapshot_digest",
+        "summary",
+        "version"
+      ],
+      "type": "object"
+    },
+    "jsonl_record": {
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/dnsPerspectivesOutputMetadata"
+            },
+            "record_type": {
+              "const": "metadata"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSPerspectiveQueryResult"
+            },
+            "record_type": {
+              "const": "query"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSPerspectiveFinding"
+            },
+            "record_type": {
+              "const": "finding"
+            }
+          }
+        },
+        {
+          "properties": {
+            "data": {
+              "$ref": "#/$defs/DNSPerspectiveDiagnostic"
+            },
+            "record_type": {
+              "const": "diagnostic"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "data": {
+          "type": "object"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "mode": {
+          "const": "dns_perspectives"
+        },
+        "record_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "record_type": {
+          "type": "string"
+        },
+        "redaction": {
+          "enum": [
+            "public",
+            "operational",
+            "restricted"
+          ]
+        },
+        "result_digest": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "schema": {
+          "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json#/$defs/jsonl_record"
+        },
+        "schema_version": {
+          "const": "1"
+        }
+      },
+      "required": [
+        "schema",
+        "schema_version",
+        "mode",
+        "generated_at",
+        "result_digest",
+        "redaction",
+        "record_type",
+        "record_id",
+        "data"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "complete": {
+      "type": "boolean"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/DNSPerspectiveDiagnostic"
+      },
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/DNSPerspectiveFinding"
+      },
+      "type": "array"
+    },
+    "metadata": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ResultMetadata"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "dns_perspectives"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "mode": {
+      "const": "dns_perspectives"
+    },
+    "portfolio_digest": {
+      "type": "string"
+    },
+    "profile": {
+      "const": "native"
+    },
+    "queries": {
+      "items": {
+        "$ref": "#/$defs/DNSPerspectiveQueryResult"
+      },
+      "type": "array"
+    },
+    "redaction": {
+      "$ref": "#/$defs/RedactionMetadata"
+    },
+    "result_digest": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "schema": {
+      "const": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/analysis/dns_perspectives/v1.json"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "snapshot_digest": {
+      "type": "string"
+    },
+    "summary": {
+      "$ref": "#/$defs/DNSPerspectiveSummary"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "complete",
+    "diagnostics",
+    "findings",
+    "metadata",
+    "mode",
+    "portfolio_digest",
+    "profile",
+    "queries",
+    "redaction",
+    "result_digest",
+    "schema",
+    "schema_version",
+    "snapshot_digest",
+    "summary",
+    "version"
+  ],
+  "title": "dmarcgo native dns perspectives output v1",
+  "type": "object"
+}

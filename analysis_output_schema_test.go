@@ -53,9 +53,24 @@ func TestAnalysisOutputSchemasMatchGoContracts(t *testing.T) {
 
 func analysisSchemaModes() []analysisSchemaMode {
 	return []analysisSchemaMode{
+		{AnalysisModeConfigurationValidation, configurationValidationOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", configurationValidationOutputMetadata{}}, {"diagnostic", ConfigurationDiagnostic{}},
+		}},
+		{AnalysisModeDNSSnapshot, dnsSnapshotOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", dnsSnapshotOutputMetadata{}}, {"observation", DNSObservation{}},
+			{"diagnostic", DNSCollectionDiagnostic{}},
+		}},
+		{AnalysisModeDNSAuthentication, dnsAuthenticationOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", dnsAuthenticationOutputMetadata{}}, {"record_set", AuthenticationRecordSet{}},
+			{"diagnostic", AuthenticationDiagnostic{}},
+		}},
 		{AnalysisModeDNSHealth, dnsHealthOutputDocument{}, []analysisSchemaRecord{
 			{"metadata", dnsHealthOutputMetadata{}}, {"record", DNSRecordHealth{}}, {"domain", DNSDomainHealth{}},
 			{"entity", DNSEntityHealth{}}, {"finding", DNSHealthFinding{}}, {"provider_context", DNSHealthProviderContext{}},
+		}},
+		{AnalysisModeDNSPerspectives, dnsPerspectivesOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", dnsPerspectivesOutputMetadata{}}, {"query", DNSPerspectiveQueryResult{}},
+			{"finding", DNSPerspectiveFinding{}}, {"diagnostic", DNSPerspectiveDiagnostic{}},
 		}},
 		{AnalysisModeReportEvidence, reportEvidenceOutputDocument{}, []analysisSchemaRecord{
 			{"metadata", reportEvidenceOutputMetadata{}}, {"report", ReportEvidenceReport{}},
@@ -71,6 +86,15 @@ func analysisSchemaModes() []analysisSchemaMode {
 		{AnalysisModeSourceEnrichment, sourceEnrichmentOutputDocument{}, []analysisSchemaRecord{
 			{"metadata", sourceEnrichmentOutputMetadata{}}, {"candidate", EnrichedThreatCandidate{}},
 			{"asn", ASNEnrichment{}}, {"diagnostic", SourceEnrichmentDiagnostic{}},
+		}},
+		{AnalysisModeSourceActivity, sourceActivityOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", sourceActivityOutputMetadata{}}, {"record", SourceActivityRecord{}},
+			{"finding", SourceActivityFinding{}}, {"diagnostic", SourceActivityDiagnostic{}},
+		}},
+		{AnalysisModePhishingIntelligence, phishingIntelligenceOutputDocument{}, []analysisSchemaRecord{
+			{"metadata", phishingIntelligenceOutputMetadata{}}, {"source", PhishingIntelligenceSource{}},
+			{"candidate", PhishingIntelligenceCandidate{}}, {"match", PhishingIntelligenceMatch{}},
+			{"finding", PhishingIntelligenceFinding{}},
 		}},
 		{AnalysisModeJurisdictionContext, jurisdictionContextOutputDocument{}, []analysisSchemaRecord{
 			{"metadata", jurisdictionContextOutputMetadata{}}, {"candidate", JurisdictionContextCandidate{}},
@@ -99,6 +123,25 @@ func buildAnalysisOutputSchema(spec analysisSchemaMode) ([]byte, error) {
 		generator.schemaForType(reflect.TypeOf(ResultMetadata{})),
 		map[string]any{"type": "object", "properties": map[string]any{"mode": map[string]any{"const": string(spec.mode)}}},
 	}}
+	envelopeDataProperties := map[string]any{}
+	envelopeDataRequired := []string{}
+	for name, schema := range properties {
+		switch name {
+		case "schema", "schema_version", "mode", "profile", "metadata", "result_digest", "redaction":
+			continue
+		}
+		envelopeDataProperties[name] = schema
+	}
+	for _, name := range root["required"].([]string) {
+		switch name {
+		case "schema", "schema_version", "mode", "profile", "metadata", "result_digest", "redaction":
+			continue
+		}
+		envelopeDataRequired = append(envelopeDataRequired, name)
+	}
+	generator.definitions["envelope_data"] = map[string]any{
+		"type": "object", "additionalProperties": false, "required": envelopeDataRequired, "properties": envelopeDataProperties,
+	}
 
 	jsonlID, _ := AnalysisOutputSchemaIDForFormat(spec.mode, AnalysisOutputJSONL, AnalysisOutputSchemaVersion)
 	jsonlProperties := map[string]any{

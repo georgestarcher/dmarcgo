@@ -29,8 +29,10 @@ const analysisOutputTestExclusionReason = "SYSTEM: private allowlist rationale"
 func TestAnalysisOutputEveryModeAndFormat(t *testing.T) {
 	fixtures := analysisOutputFixtures(t)
 	if got := SupportedAnalysisOutputModes(); !slices.Equal(got, []AnalysisMode{
-		AnalysisModeDNSHealth, AnalysisModeReportEvidence, AnalysisModeDNSReportCorrelation,
-		AnalysisModeThreatCandidates, AnalysisModeSourceEnrichment, AnalysisModeJurisdictionContext,
+		AnalysisModeConfigurationValidation, AnalysisModeDNSSnapshot, AnalysisModeDNSAuthentication,
+		AnalysisModeDNSHealth, AnalysisModeDNSPerspectives, AnalysisModeReportEvidence, AnalysisModeDNSReportCorrelation,
+		AnalysisModeThreatCandidates, AnalysisModeSourceEnrichment, AnalysisModeSourceActivity,
+		AnalysisModePhishingIntelligence, AnalysisModeJurisdictionContext,
 	}) {
 		t.Fatalf("unexpected mode discovery: %v", got)
 	}
@@ -175,6 +177,12 @@ func TestAnalysisOutputContractGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	encoded = append(encoded, '\n')
+	if os.Getenv("DMARCGO_UPDATE_ANALYSIS_GOLDEN") == "1" {
+		if err := os.WriteFile("testdata/golden/analysis_output_contract.json", encoded, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
 	expected, err := os.ReadFile("testdata/golden/analysis_output_contract.json")
 	if err != nil {
 		t.Fatal(err)
@@ -516,9 +524,22 @@ func (writer *analysisCountingWriter) Write(data []byte) (int, error) {
 
 func analysisOutputFixtures(t testing.TB) []analysisOutputFixture {
 	health, evidence, correlation, threats, enrichment, jurisdiction := analysisOutputTestResults(t)
+	configuration, snapshot, authentication, perspectives, activity, phishing := additionalAnalysisOutputTestResults(t, threats, enrichment, evidence)
 	return []analysisOutputFixture{
+		{AnalysisModeConfigurationValidation, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WriteConfigurationValidationOutput(w, configuration, f, o)
+		}},
+		{AnalysisModeDNSSnapshot, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WriteDNSSnapshotOutput(w, snapshot, f, o)
+		}},
+		{AnalysisModeDNSAuthentication, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WriteDNSAuthenticationOutput(w, authentication, f, o)
+		}},
 		{AnalysisModeDNSHealth, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
 			return WriteDNSHealthOutput(w, health, f, o)
+		}},
+		{AnalysisModeDNSPerspectives, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WriteDNSPerspectivesOutput(w, perspectives, f, o)
 		}},
 		{AnalysisModeReportEvidence, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
 			return WriteReportEvidenceOutput(w, evidence, f, o)
@@ -532,10 +553,43 @@ func analysisOutputFixtures(t testing.TB) []analysisOutputFixture {
 		{AnalysisModeSourceEnrichment, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
 			return WriteSourceEnrichmentOutput(w, enrichment, f, o)
 		}},
+		{AnalysisModeSourceActivity, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WriteSourceActivityOutput(w, activity, f, o)
+		}},
+		{AnalysisModePhishingIntelligence, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
+			return WritePhishingIntelligenceOutput(w, phishing, f, o)
+		}},
 		{AnalysisModeJurisdictionContext, func(w io.Writer, f AnalysisOutputFormat, o AnalysisOutputOptions) error {
 			return WriteJurisdictionContextOutput(w, jurisdiction, f, o)
 		}},
 	}
+}
+
+func additionalAnalysisOutputTestResults(t testing.TB, threats ThreatCandidateResult, enrichment SourceEnrichmentResult, evidence ReportEvidenceResult) (ConfigurationValidationResult, DNSSnapshot, DNSAuthenticationResult, DNSPerspectiveResult, SourceActivityResult, PhishingIntelligenceResult) {
+	t.Helper()
+	configuration := ValidatePortfolio(correlationTestConfig(AuthenticationPolicyConfig{}), outputTestTime)
+	portfolio, snapshot := dnsPerspectiveTestInputs(t)
+	authentication, err := ParseAuthenticationRecords(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	perspectives, err := CollectDNSPerspectives(context.Background(), portfolio, snapshot, nil, DNSPerspectiveOptions{
+		Selection: DNSPerspectiveSelection{Roles: []DNSRecordType{DNSRecordSPF, DNSRecordDKIM, DNSRecordDMARC}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	activity, err := CollectSourceActivity(context.Background(), threats, &enrichment, nil, SourceActivityOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshotTime := evidence.ResultMetadata().GeneratedAt
+	phishingSnapshot := phishingIntelligenceTestSnapshot(t, "fixture-provider", snapshotTime)
+	phishing, err := CorrelatePhishingIntelligence(threats, evidence, []PhishingIntelligenceSnapshot{phishingSnapshot}, PhishingIntelligenceOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return configuration, snapshot, authentication, perspectives, activity, phishing
 }
 
 func analysisOutputTestResults(t testing.TB) (DNSHealthResult, ReportEvidenceResult, DNSReportCorrelationResult, ThreatCandidateResult, SourceEnrichmentResult, JurisdictionContextResult) {

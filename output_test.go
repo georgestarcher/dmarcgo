@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -619,7 +620,13 @@ func TestOutputDetailAndFailureSemantics(t *testing.T) {
 		t.Fatal("report-row builder mutated caller input")
 	}
 
-	failure, err := BuildFailureOutput(OutputModeReportValidation, OutputScope{}, OutputInput{}, []OutputMessage{{Code: "report.malformed_xml", Category: "malformed_xml", Message: "invalid XML"}}, OutputOptions{GeneratedAt: outputTestTime})
+	scope := OutputScope{
+		OrganizationID: "organization-1",
+		EntityIDs:      []string{"ENTITY-B", "entity-a", "entity-a"},
+		BusinessUnits:  []string{"Operations", "Security"},
+		TargetDomains:  []string{"sub.example.com", "example.com"},
+	}
+	failure, err := BuildFailureOutput(OutputModeReportValidation, scope, OutputInput{}, []OutputMessage{{Code: "report.malformed_xml", Category: "malformed_xml", Message: "invalid XML"}}, OutputOptions{GeneratedAt: outputTestTime})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -631,6 +638,12 @@ func TestOutputDetailAndFailureSemantics(t *testing.T) {
 	}
 	if failure.Evaluation.EvaluatedAt != nil {
 		t.Fatalf("failed output invented an evaluation time: %+v", failure.Evaluation)
+	}
+	if failure.Scope.OrganizationID != scope.OrganizationID ||
+		!slices.Equal(failure.Scope.EntityIDs, []string{"entity-a", "entity-b"}) ||
+		!slices.Equal(failure.Scope.BusinessUnits, []string{"operations", "security"}) ||
+		!slices.Equal(failure.Scope.TargetDomains, []string{"example.com", "sub.example.com"}) {
+		t.Fatalf("failed output did not preserve normalized scope: %+v", failure.Scope)
 	}
 	validateOutputDataAgainstSchema(t, failure)
 	if _, err := BuildFailureOutput("unsupported", OutputScope{}, OutputInput{}, failure.Errors, OutputOptions{}); !errors.Is(err, ErrInvalidOutputOptions) {

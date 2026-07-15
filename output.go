@@ -539,7 +539,7 @@ func BuildFailureOutput(mode OutputMode, scope OutputScope, input OutputInput, o
 			return OutputEnvelope{}, fmt.Errorf("%w: failed output errors require code and category", ErrInvalidOutputOptions)
 		}
 	}
-	out := baseOutput(mode, OutputScope{TargetDomains: compactSortedStrings(scope.TargetDomains)}, input, options)
+	out := baseOutput(mode, scope, input, options)
 	out.Status = OutputStatusFailed
 	out.Evaluation = OutputEvaluation{State: OutputEvaluationNotEvaluated, Reason: "The requested analysis did not complete."}
 	out.Summary = OutputSummary{Headline: "The requested analysis did not complete.", Severity: FindingSeverityHigh, Confidence: FindingConfidenceHigh}
@@ -622,12 +622,8 @@ func normalizeOutputOptionValues(options OutputOptions) (OutputOptions, error) {
 }
 
 func baseOutput(mode OutputMode, scope OutputScope, input OutputInput, options OutputOptions) OutputEnvelope {
-	if scope.EntityIDs == nil {
-		scope.EntityIDs = []string{}
-	}
-	if scope.BusinessUnits == nil {
-		scope.BusinessUnits = []string{}
-	}
+	scope.EntityIDs = compactSortedStrings(scope.EntityIDs)
+	scope.BusinessUnits = compactSortedStrings(scope.BusinessUnits)
 	scope.TargetDomains = compactSortedStrings(scope.TargetDomains)
 	if input.Artifacts == nil {
 		input.Artifacts = []OutputInputArtifact{}

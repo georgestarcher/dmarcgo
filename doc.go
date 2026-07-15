@@ -5,6 +5,11 @@
 // namespace, the historical dmarc.org aggregate-report namespace, and the RFC
 // 9990 namespace.
 //
+// New applications should start with the repository's organization-adoption
+// and consumer-agent guides, choose the narrowest workflow that answers the
+// application question, and keep orchestration, storage, credentials, review,
+// submission, and enforcement outside this package.
+//
 // Supported inputs are gzip XML, gzip-compressed tar, zip, tar, zlib, and raw
 // XML payloads containing DMARC aggregate report data. Use LoadFile(),
 // FileReport.LoadFile(), LoadBytes(), or LoadReader() to deserialize report

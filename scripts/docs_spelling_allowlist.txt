@@ -1,0 +1,3 @@
+# One intentional misspelling per line. Keep this list narrow and
+# case-insensitive. The list is intentionally empty until a repository term
+# genuinely needs an exception to scripts/check_docs.py's curated regressions.

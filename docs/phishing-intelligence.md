@@ -221,10 +221,10 @@ not convert a relation into actor attribution.
 
 ## Output boundary
 
-`PhishingIntelligenceResult` is ready for the later cross-mode output work. The
-current native and agent output writers do not serialize it. Output integration,
-schema publication, public/operational/restricted redaction, and writer-failure
-tests belong to the Phase 17 output-contract issue. Existing output generation
-never loads or correlates an intelligence snapshot. Current snapshot and result
-accessors expose restricted operational data; callers must not treat direct
-generic JSON encoding as a disclosure-safe output path.
+`BuildAnalysisOutput` serializes a completed `PhishingIntelligenceResult` into
+the common automation/agent envelope, and `WritePhishingIntelligenceOutput`
+writes its native JSON, JSONL, or CSV contract. Both paths support explicit
+public, operational, or restricted redaction and never load, retrieve, or
+correlate an intelligence snapshot during serialization. Direct generic JSON
+encoding of result accessors is restricted operational data and is not a
+disclosure-safe output path.

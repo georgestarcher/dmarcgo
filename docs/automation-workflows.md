@@ -63,7 +63,7 @@ immutable evidence chain produced it.
 
 ## Reference workflow and samples
 
-The Phase 17 integration fixture is intentionally synthetic. It uses reserved
+The cross-mode integration fixture is intentionally synthetic. It uses reserved
 documentation addresses and domains, two aggregate-report observations, a
 current DNS snapshot, one review-eligible unknown source, offline enrichment,
 and a versioned jurisdiction-policy evaluation. No live report, organization,
@@ -145,7 +145,7 @@ The integration gate preserves these operational distinctions:
     unverifiable exact message time and never enable high-confidence individual
     authorization or automatic disposition.
 
-The individual feature tests own the detailed variants. Phase 13 adds the
+The individual feature tests own the detailed variants. The cross-mode gate adds the
 cross-mode evidence-chain and static dependency tests without duplicating each
 predecessor's full test matrix.
 
@@ -270,16 +270,18 @@ new version even when the JSON shape is unchanged.
 
 ## Release-quality checks
 
-`make workflow-check` runs the Phase 13, Phase 14, and Phase 17 integration and isolation gates.
-`make campaign-check` runs the Phase 14 configuration, source, evidence,
+`make workflow-check` runs the report, campaign, and cross-mode integration and
+isolation gates.
+`make campaign-check` runs the configuration, source, evidence,
 classification, aggregate, output, schema, example, security, and resource-limit
 gate.
-`make phishing-intelligence-check` runs the Phase 16 offline normalization,
+`make phishing-intelligence-check` runs the offline normalization,
 correlation, security-boundary, and example gate.
+`make docs-check` validates the documentation graph, runnable examples, public
+configuration fixtures, wiki source, spelling regressions, and sample privacy.
 `make ci` additionally runs formatting, module verification, vet, static
-analysis, vulnerability checks, README compilation in an isolated external
-module, schema/output checks, unit and race tests, coverage, fuzz smoke tests,
-benchmark smoke tests, and the build.
+analysis, vulnerability checks, schema/output checks, unit and race tests,
+coverage, fuzz smoke tests, benchmark smoke tests, and the build.
 
 The workflow sample is generated only from synthetic data. Regenerate it after
 intentional contract changes with:

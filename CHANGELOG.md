@@ -9,6 +9,13 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- A final organization-adoption documentation layer with audience-specific
+  reading paths, reference architectures, a complete mode/side-effect matrix,
+  portfolio and campaign field references, production ownership and
+  troubleshooting guidance, a self-contained consumer-agent decision tree,
+  validated minimal and multi-organization synthetic configurations, and a
+  `make docs-check` gate for examples, fixtures, wiki source, internal links,
+  formatting, curated spelling regressions, and public-sample privacy markers.
 - A strict common automation and AI-agent envelope for every completed v2
   analysis, source-context, and campaign mode, with sealed completed-result
   inputs, discoverable per-mode data schemas, explicit mode-isolation

@@ -1,0 +1,19 @@
+schema_version: 1
+organization:
+  id: example-organization
+  name: Example Organization
+expected_senders:
+  - id: hosted-mail
+    name: Hosted Mail
+    provider: documented-provider
+    require_either: true
+entities:
+  - id: primary
+    name: Primary Organization
+    domains:
+      - name: example.test
+        records:
+          spf: [example.test]
+          dkim: [selector1._domainkey.example.test]
+          dmarc: [_dmarc.example.test]
+        expected_senders: [hosted-mail]

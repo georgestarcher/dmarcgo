@@ -41,7 +41,17 @@ scheduler, dashboard, reputation service, or automatic enforcement system.
 ## Repository documentation
 
 Use the [documentation index](https://github.com/georgestarcher/dmarcgo/blob/main/docs/README.md)
-to find the authoritative guide for each workflow. Start with the
+to find the authoritative guide for each workflow. Application developers can
+start with the
+[organization adoption guide](https://github.com/georgestarcher/dmarcgo/blob/main/docs/adoption-guide.md),
+and AI coding assistants can use the self-contained
+[consumer-agent guide](https://github.com/georgestarcher/dmarcgo/blob/main/docs/consumer-agent-guide.md).
+Exact fields are in the
+[configuration reference](https://github.com/georgestarcher/dmarcgo/blob/main/docs/configuration-reference.md),
+while production ownership and symptom-driven recovery are in
+[operations and troubleshooting](https://github.com/georgestarcher/dmarcgo/blob/main/docs/operations-and-troubleshooting.md).
+
+Also see the
 [README](https://github.com/georgestarcher/dmarcgo/blob/main/README.md) and
 [Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2)
 for installation and API discovery. Maintainers should follow the

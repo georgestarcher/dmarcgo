@@ -1,5 +1,10 @@
 ### dmarcgo wiki
 
+- [Organization adoption guide](https://github.com/georgestarcher/dmarcgo/blob/main/docs/adoption-guide.md)
+- [Consumer-agent guide](https://github.com/georgestarcher/dmarcgo/blob/main/docs/consumer-agent-guide.md)
+- [Configuration reference](https://github.com/georgestarcher/dmarcgo/blob/main/docs/configuration-reference.md)
+- [Operations and troubleshooting](https://github.com/georgestarcher/dmarcgo/blob/main/docs/operations-and-troubleshooting.md)
+
 - [Home](Home)
 - [Domain portfolio and DNS monitoring](Domain-Portfolio-and-DNS-Monitoring)
 - [DMARC report ingestion and reporting](DMARC-Report-Ingestion-and-Reporting)

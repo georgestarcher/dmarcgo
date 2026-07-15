@@ -1,0 +1,109 @@
+schema_version: 1
+organization:
+  id: example-holdings
+  name: Example Holdings
+  owner: security-platform
+  tags: [production]
+owners:
+  - id: security-platform
+    name: Security Platform
+    contact: security@example.test
+  - id: messaging
+    name: Messaging Engineering
+    contact: messaging@example.test
+  - id: subsidiary-messaging
+    name: Subsidiary Messaging
+    contact: subsidiary-messaging@example.test
+policies:
+  - id: aligned-mail
+    require_either: true
+  - id: signed-mail
+    require_dkim: true
+expected_senders:
+  - id: hosted-mail
+    name: Hosted Mail
+    provider: documented-provider
+    owner: messaging
+    policy: aligned-mail
+  - id: marketing-mail
+    name: Marketing Mail
+    provider: documented-marketing-provider
+    owner: messaging
+    policy: signed-mail
+  - id: self-hosted-alerts
+    name: Self-hosted Alert Relay
+    owner: security-platform
+    require_dkim: true
+    allowed_selectors: [alerts-2026]
+entities:
+  - id: corporate
+    name: Corporate
+    owner: messaging
+    tags: [central]
+    domains:
+      - name: example.test
+        include_subdomains: true
+        policy: aligned-mail
+        records:
+          spf: [example.test]
+          dkim: [selector1._domainkey.example.test]
+          dmarc: [_dmarc.example.test]
+        expected_senders: [hosted-mail]
+      - name: marketing.example.test
+        parent: example.test
+        policy: signed-mail
+        records:
+          spf: [marketing.example.test]
+          dkim: [marketing1._domainkey.marketing.example.test]
+          dmarc: [_dmarc.marketing.example.test]
+        expected_senders: [marketing-mail]
+        inheritance:
+          expected_senders: replace
+      - name: alerts.example.test
+        parent: example.test
+        policy: signed-mail
+        records:
+          spf: [alerts.example.test]
+          dkim: [alerts-2026._domainkey.alerts.example.test]
+          dmarc: [_dmarc.alerts.example.test]
+        expected_senders: [self-hosted-alerts]
+        inheritance:
+          expected_senders: replace
+  - id: subsidiary
+    name: Example Subsidiary
+    owner: subsidiary-messaging
+    domains:
+      - name: subsidiary.example.test
+        records:
+          spf: [subsidiary.example.test]
+          dkim: [selector1._domainkey.subsidiary.example.test]
+          dmarc: [_dmarc.subsidiary.example.test]
+        expected_senders: [hosted-mail]
+        exclusions:
+          - id: approved-selector-transition
+            owner: subsidiary-messaging
+            reason: Synthetic selector transition window
+            scope: record
+            target: selector1._domainkey.subsidiary.example.test
+            created_at: 2026-07-01T00:00:00Z
+            expires_at: 2026-08-01T00:00:00Z
+  - id: acquired-unit
+    name: Acquired Unit
+    parent: corporate
+    tags: [migration]
+    domains:
+      - name: acquired-example.test
+        records:
+          spf: [acquired-example.test]
+          dkim: [acquired1._domainkey.acquired-example.test]
+          dmarc: [_dmarc.acquired-example.test]
+        expected_senders: [hosted-mail]
+  - id: external-reference
+    name: External Reference
+    membership: reference
+    domains:
+      - name: reference-example.test
+        records:
+          spf: [reference-example.test]
+          dkim: [selector1._domainkey.reference-example.test]
+          dmarc: [_dmarc.reference-example.test]

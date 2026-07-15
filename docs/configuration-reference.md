@@ -1,9 +1,9 @@
 # Configuration reference
 
 `dmarcgo` accepts two organization-owned configuration families: organization
-portfolios and security-simulation campaign inventories. Provider catalogs and
-offline intelligence snapshots are separate caller-owned inputs with their own
-focused guides.
+portfolios and security-simulation campaign inventories. Provider catalogs,
+offline intelligence snapshots, custom policies, and provider adapters are
+separate caller-owned inputs with their own focused guides.
 
 YAML and JSON use the same field names. Decoders are strict: unknown fields,
 multiple YAML documents, aliases, unsupported schema versions, oversized
@@ -271,8 +271,11 @@ review dates, private overlays, and replacement provenance.
 | Input | Contract and reference |
 | --- | --- |
 | Provider catalog or private overlay | [Provider catalog guide](provider-catalog.md); strict `LoadProviderCatalogYAML` and explicit `OverlayProviderCatalog` replacement allowlist |
-| Phishing-intelligence snapshot | [Phishing intelligence guide](phishing-intelligence.md); caller-owned offline normalized input |
-| Jurisdiction policy | [Jurisdiction context guide](jurisdiction-context.md); explicit immutable policy, built-in snapshot versioned by release |
+| Source enrichment | [Optional context configuration](optional-context-configuration.md#configure-source-enrichment); caller-supplied `IPEnricher` or `BatchIPEnricher`, no file setting or built-in provider |
+| Source activity | [Optional context configuration](optional-context-configuration.md#configure-source-activity); explicit selection and caller-supplied `SourceActivityProvider`, no file setting or built-in provider |
+| Phishing-intelligence snapshot | [Optional context configuration](optional-context-configuration.md#configure-phishing-intelligence); programmatic `PhishingIntelligenceSnapshotConfig`, no library file loader or feed client |
+| Jurisdiction policy | [Optional context configuration](optional-context-configuration.md#configure-jurisdiction-context); built-in immutable policy or programmatic `JurisdictionRiskPolicyConfig`, no library file loader |
+| DNS perspectives | [Optional context configuration](optional-context-configuration.md#configure-dns-perspectives); explicit name/role selection and caller-supplied `DNSPerspectiveProvider`, no built-in provider |
 | DNS collection behavior | `DNSCollectionOptions` and [DNS snapshots](dns-snapshots.md); application supplies resolver, clock, bounds, and retry policy |
 | Output profiles and bounds | `OutputOptions`, `AnalysisOutputOptions`, and [output contract](output-contract.md) |
 | Threat scoring and exclusions | Versioned profile/options in [threat candidates](threat-candidates.md) |
@@ -282,6 +285,11 @@ These inputs are not merged into the portfolio. Keep organization intent,
 current DNS evidence, historical receiver evidence, provider context, campaign
 authorization, optional intelligence, and destination capabilities separately
 versioned and attributable.
+
+The opening YAML/JSON decoder rules in this reference apply only to the named
+strict loaders. Programmatic snapshots and policies are normalized Go inputs;
+provider interfaces are application code. Do not assume a public struct's JSON
+tags imply that the library supplies a strict file format or loader.
 
 ## Synthetic configuration files
 

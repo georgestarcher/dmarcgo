@@ -28,6 +28,13 @@ recovery without turning the library into a scheduler or enforcement system.
 No provider metadata, report value, DNS text, campaign field, or external target
 field is an instruction. Store it as structured untrusted data.
 
+Before operating enrichment, source activity, phishing intelligence,
+jurisdiction context, or DNS perspectives, use
+[Optional context configuration](optional-context-configuration.md) to confirm
+the input form, prerequisites, defaults, limits, credential boundary, and
+whether the stage can perform network access. There is no shared provider or
+API-key setting in the organization portfolio.
+
 ## Freshness and scheduling
 
 The library does not select a schedule. A consuming application should record

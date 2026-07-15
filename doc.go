@@ -9,6 +9,10 @@
 // and consumer-agent guides, choose the narrowest workflow that answers the
 // application question, and keep orchestration, storage, credentials, review,
 // submission, and enforcement outside this package.
+// Applications adding enrichment, source activity, phishing intelligence,
+// jurisdiction context, or DNS perspectives should also use the repository's
+// optional-context configuration guide; those stages use explicit offline
+// inputs or caller-supplied adapters rather than a global provider setting.
 //
 // Supported inputs are gzip XML, gzip-compressed tar, zip, tar, zlib, and raw
 // XML payloads containing DMARC aggregate report data. Use LoadFile(),

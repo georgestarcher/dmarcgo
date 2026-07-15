@@ -65,6 +65,16 @@ COMMON_MISSPELLINGS = {
     "truely": "truly",
 }
 REQUIRED_ADOPTION_DOCS = {
+    "optional-context-configuration.md": (
+        "## Start here",
+        "## Configuration forms",
+        "## Configure source enrichment",
+        "## Configure source activity",
+        "## Configure phishing intelligence",
+        "## Configure jurisdiction context",
+        "## Configure DNS perspectives",
+        "## New-adopter checklist",
+    ),
     "adoption-guide.md": (
         "## Choose a workflow",
         "## Reference architectures",

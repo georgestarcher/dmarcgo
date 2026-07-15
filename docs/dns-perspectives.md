@@ -11,6 +11,12 @@ currently return the same answer set for these exact monitored names?” Do not
 use it to decide that a record is broken, to measure a country-wide outage, or
 to infer exact DNS propagation timing.
 
+New adopters can compare this provider interface with the other optional
+context forms in
+[optional context configuration](optional-context-configuration.md). DNS
+perspectives disclose selected record names; they are not source-IP enrichment
+and are never enabled by a portfolio alone.
+
 ## Explicit workflow
 
 ```text

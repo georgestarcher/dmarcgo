@@ -14,6 +14,11 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - When behavior or public API changes, update the authoritative feature guide
   first, then the adoption/configuration/operations/consumer-agent layer and
   relevant wiki navigation in the same pull request.
+- New adopters configuring enrichment, source activity, phishing intelligence,
+  jurisdiction context, or DNS perspectives should begin with
+  `docs/optional-context-configuration.md`. Keep its field, default, hard-limit,
+  input-form, credential, and built-in-provider statements synchronized with
+  the public Go API and the authoritative feature guides.
 - Never copy a private portfolio, provider overlay, report corpus, campaign
   inventory, source address, credential, contact, or local path into public
   documentation or examples.
@@ -184,6 +189,9 @@ tests used by the cross-mode integration gate.
 26. Collect optional source activity only for an explicit candidate/IP selection through a caller-supplied third-party provider; never contact the subject IP or treat absence as proof of safety.
 27. Normalize caller-owned phishing intelligence offline and correlate it only through exact source-IP and exact DMARC domain-role equality; keep retrieval, parsing, licensing, refresh, storage, and removal policy caller-owned.
 28. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
+    The complete new-adopter setup path for these optional stages and DNS
+    perspectives is `docs/optional-context-configuration.md`; no portfolio
+    setting supplies credentials or enables a provider.
 29. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
 30. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
 31. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.

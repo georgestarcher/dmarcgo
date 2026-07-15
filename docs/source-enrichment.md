@@ -10,6 +10,12 @@ nil enricher returns a deterministic `source_enrichment` result with
 `evaluation.state: not_evaluated`; it does not consult a clock or initiate any
 network activity.
 
+New adopters should begin with
+[optional context configuration](optional-context-configuration.md). It shows
+which values belong in `SourceEnrichmentOptions`, which `IPMetadata` fields an
+adapter supplies, how stable errors map to result states, and where credentials
+and network policy remain application-owned.
+
 ## Security boundary
 
 Observed source IPs may belong to hostile infrastructure. An `IPEnricher`

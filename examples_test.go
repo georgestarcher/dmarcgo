@@ -669,6 +669,42 @@ func ExampleCollectSourceActivity() {
 	// Output: status=success observed=true score=35 promotion=false
 }
 
+// ExampleNormalizeJurisdictionRiskPolicy demonstrates a complete synthetic
+// custom policy. Applications own the policy source, review, storage, and
+// interpretation; normalization performs no I/O.
+func ExampleNormalizeJurisdictionRiskPolicy() {
+	effectiveAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	asOf := time.Date(2026, time.July, 15, 0, 0, 0, 0, time.UTC)
+	expiresAt := time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC)
+	policy, err := NormalizeJurisdictionRiskPolicy(JurisdictionRiskPolicyConfig{
+		ID:          "organization-review",
+		Version:     "2026-07-15",
+		Name:        "Organization Review Context",
+		Description: "Synthetic organization-specific review context.",
+		EffectiveAt: effectiveAt,
+		AsOf:        asOf,
+		ExpiresAt:   &expiresAt,
+		Sources: []JurisdictionRiskPolicySource{{
+			Title: "Synthetic organization policy",
+			URI:   "https://policy.example.test/jurisdiction",
+		}},
+		Entries: []JurisdictionRiskPolicyEntry{{
+			CountryCode:              "CA",
+			Tier:                     JurisdictionRiskTier("organization_review_context"),
+			Categories:               []JurisdictionCategoryCode{"organization_policy"},
+			Reasons:                  []JurisdictionReasonCode{"manual_review"},
+			ReviewPriorityAdjustment: 2,
+		}},
+		MaxReviewPriorityAdjustment: 2,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("policy=%s version=%s entries=%d max_adjustment=%d\n",
+		policy.ID(), policy.Version(), len(policy.Entries()), policy.MaxReviewPriorityAdjustment())
+	// Output: policy=organization-review version=2026-07-15 entries=1 max_adjustment=2
+}
+
 // ExampleEvaluateJurisdictionContext demonstrates explicit, offline review
 // context after source enrichment. A match is not malicious attribution or an
 // automatic-action authorization.

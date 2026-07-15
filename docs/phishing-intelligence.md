@@ -7,6 +7,12 @@ intelligence. The feature is provider neutral. It does not download feeds,
 query a service, contact a source address, or turn an intelligence relation
 into a malicious verdict.
 
+New adopters should begin with
+[optional context configuration](optional-context-configuration.md). It makes
+the programmatic-only input model explicit and documents every snapshot,
+license, indicator, context, and correlation-option field. There is no library
+file loader, feed schema, credential setting, or provider client.
+
 ## Safe workflow
 
 1. Complete report-evidence normalization, DNS/report correlation, and

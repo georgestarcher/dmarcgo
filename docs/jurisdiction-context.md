@@ -11,6 +11,11 @@ or government affiliation of a sender or operator. A policy match is not a
 malicious verdict, compromise claim, sanctions determination, export-license
 decision, or authorization to block a source.
 
+New adopters should begin with
+[optional context configuration](optional-context-configuration.md). It covers
+the zero-configuration built-in policy path, every custom-policy input field,
+normalization limits, and the default-off evaluation option.
+
 ## Authoritative sources and built-in snapshot
 
 The built-in `us_export_control_inspired` policy version `2026-07-08` was

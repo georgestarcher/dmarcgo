@@ -2,6 +2,8 @@ package dmarcgo
 
 import (
 	"os"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +59,57 @@ func TestAdoptionDocumentationFixtures(t *testing.T) {
 				t.Fatalf("reference entities = %d, want %d", references, test.referenceEntities)
 			}
 		})
+	}
+}
+
+func TestOptionalContextConfigurationReference(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("docs/optional-context-configuration.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	types := []any{
+		SourceEnrichmentOptions{},
+		IPMetadata{},
+		IPMetadataAssertion{},
+		IPMetadataProvenance{},
+		IPMetadataConfidence{},
+		SourceActivitySelection{},
+		SourceActivityOptions{},
+		SourceActivityResponse{},
+		SourceActivityMetric{},
+		SourceActivityThreatFeed{},
+		SourceActivityNetworkAssertion{},
+		PhishingIntelligenceSnapshotConfig{},
+		PhishingIntelligenceLicense{},
+		PhishingIntelligenceIndicatorConfig{},
+		PhishingIntelligenceConfidence{},
+		PhishingIntelligenceContext{},
+		PhishingIntelligenceOptions{},
+		JurisdictionRiskPolicyConfig{},
+		JurisdictionRiskPolicySource{},
+		JurisdictionRiskPolicyEntry{},
+		JurisdictionContextOptions{},
+		DNSPerspectiveSelection{},
+		DNSPerspectiveOptions{},
+		DNSPerspectiveResponse{},
+		DNSPerspectiveProviderObservation{},
+		DNSPerspectiveAnswer{},
+	}
+	for _, value := range types {
+		typeOf := reflect.TypeOf(value)
+		for index := range typeOf.NumField() {
+			field := typeOf.Field(index)
+			if field.PkgPath != "" {
+				continue
+			}
+			plain := "`" + field.Name + "`"
+			qualified := "`" + typeOf.Name() + "." + field.Name + "`"
+			if !strings.Contains(text, plain) && !strings.Contains(text, qualified) {
+				t.Errorf("%s.%s is not documented", typeOf.Name(), field.Name)
+			}
+		}
 	}
 }

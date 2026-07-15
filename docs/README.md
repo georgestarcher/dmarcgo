@@ -10,7 +10,7 @@ authoritative, versioned sources for behavior.
 | --- | --- | --- |
 | New Go application developer | [Organization adoption](adoption-guide.md) | [Consumer-agent guide](consumer-agent-guide.md), then the selected feature guide |
 | Email or DNS administrator | [Configuration reference](configuration-reference.md) | [Portfolio configuration](portfolio-configuration.md), [DNS snapshots](dns-snapshots.md), and [DNS health](dns-health.md) |
-| SOC or security engineering | [Automation workflows](automation-workflows.md) | Correlation, threat-candidate, optional-context, and export guides |
+| SOC or security engineering | [Automation workflows](automation-workflows.md) | [Optional context configuration](optional-context-configuration.md), then correlation, threat-candidate, and export guides |
 | Security-awareness team | [Campaign correlation](campaign-correlation.md) | [Configuration reference](configuration-reference.md) and disclosure-safe output guidance |
 | Platform operator or reviewer | [Operations and troubleshooting](operations-and-troubleshooting.md) | [Analysis architecture](architecture.md) and [output contract](output-contract.md) |
 | AI coding assistant integrating the module | [Consumer-agent guide](consumer-agent-guide.md) | [Organization adoption](adoption-guide.md) and machine-readable schemas |
@@ -23,6 +23,7 @@ authoritative, versioned sources for behavior.
 | Look up exact portfolio and campaign fields | [Configuration reference](configuration-reference.md) |
 | Integrate from an AI coding assistant | [Consumer-agent guide](consumer-agent-guide.md) |
 | Operate, roll out, and troubleshoot an integration | [Operations and troubleshooting](operations-and-troubleshooting.md) |
+| Configure optional enrichment, activity, intelligence, jurisdiction, or DNS perspectives | [Optional context configuration](optional-context-configuration.md) |
 | Understand stage ownership and side effects | [Analysis architecture](architecture.md) |
 | Define organizations, domains, records, and expected senders | [Portfolio configuration](portfolio-configuration.md) |
 | Collect declared DNS evidence | [DNS snapshots](dns-snapshots.md) |

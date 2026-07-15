@@ -47,6 +47,13 @@ report evidence, correlation, candidate scoring, campaign classification,
 optional context, common output, native output, and defensive exports. Go runs
 those examples during `go test`.
 
+If optional context is the next step, read
+[Optional context configuration](optional-context-configuration.md) before
+writing integration code. It separates strict repository configuration from
+programmatic offline snapshots and caller-supplied network adapters, and lists
+the complete public fields, safe defaults, hard limits, and credential
+boundary. A portfolio does not activate enrichment or configure a provider.
+
 ## Reference architectures
 
 ### Small organization
@@ -178,6 +185,10 @@ redaction, schema, and deterministic truncation contracts.
 - [ ] The application uses the `/v2` module path and a supported Go version.
 - [ ] Each workflow starts from the smallest required input set.
 - [ ] DNS, campaign retrieval, enrichment, and source activity are explicit.
+- [ ] Every optional context stage uses the documented input form: strict file,
+      programmatic snapshot or policy, or caller-supplied adapter.
+- [ ] Provider credentials and endpoints remain in the application, not in a
+      portfolio, catalog, snapshot, result, or output.
 - [ ] No adapter contacts an observed source IP.
 - [ ] Portfolio and campaign files validate before operational use.
 - [ ] Collection time, report periods, and output time remain distinct.

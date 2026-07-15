@@ -9,6 +9,13 @@ and this project uses semantic versioning for public API changes.
 
 ### Added
 
+- New-adopter optional-context configuration guidance that distinguishes
+  strict files, programmatic offline snapshots and policies, and caller-supplied
+  provider interfaces; documents complete public fields, defaults, hard limits,
+  credential and network boundaries, outputs, and synthetic examples for
+  source enrichment, source activity, phishing intelligence, jurisdiction
+  context, and DNS perspectives; and adds a documentation contract test to
+  keep that surface synchronized.
 - A final organization-adoption documentation layer with audience-specific
   reading paths, reference architectures, a complete mode/side-effect matrix,
   portfolio and campaign field references, production ownership and

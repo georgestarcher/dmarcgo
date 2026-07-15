@@ -85,6 +85,15 @@ func TestNormalizePhishingIntelligenceSnapshotRejectsUnsafeAndUnsupportedData(t 
 	badTerms := phishingIntelligenceTestSnapshotConfig("fixture", now, valid)
 	badTerms.License.TermsURI = "http://fixture.example/terms"
 	cases = append(cases, badTerms)
+	invalidUTF8Terms := phishingIntelligenceTestSnapshotConfig("fixture", now, valid)
+	invalidUTF8Terms.License.TermsURI = "https://fixture.example/\xff"
+	cases = append(cases, invalidUTF8Terms)
+	controlCharacterTerms := phishingIntelligenceTestSnapshotConfig("fixture", now, valid)
+	controlCharacterTerms.License.TermsURI = "https://fixture.example/\x00terms"
+	cases = append(cases, controlCharacterTerms)
+	oversizedTerms := phishingIntelligenceTestSnapshotConfig("fixture", now, valid)
+	oversizedTerms.License.TermsURI = "https://fixture.example/" + strings.Repeat("x", maxPhishingIntelligenceTextBytes)
+	cases = append(cases, oversizedTerms)
 	futureAsOf := phishingIntelligenceTestSnapshotConfig("fixture", now, valid)
 	futureAsOf.AsOf = now.Add(time.Second)
 	cases = append(cases, futureAsOf)

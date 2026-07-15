@@ -556,7 +556,8 @@ func normalizePhishingIntelligenceLicense(value PhishingIntelligenceLicense) (Ph
 	}
 	value.Sensitivity = SensitivityRestricted
 	if value.Name == "" || !validPhishingIntelligenceText(value.Name) || !validPhishingIntelligenceUsage(value.CommercialUse) ||
-		!validPhishingIntelligenceUsage(value.Redistribution) || (value.TermsURI != "" && !validPhishingIntelligenceTermsURI(value.TermsURI)) {
+		!validPhishingIntelligenceUsage(value.Redistribution) || (value.TermsURI != "" &&
+		(!validPhishingIntelligenceText(value.TermsURI) || !validPhishingIntelligenceTermsURI(value.TermsURI))) {
 		return PhishingIntelligenceLicense{}, 0, ErrInvalidPhishingIntelligenceSnapshot
 	}
 	return value, len(value.Name) + len(value.TermsURI), nil

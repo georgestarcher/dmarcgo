@@ -147,6 +147,7 @@ func BuildAnalysisOutput(result OutputResult, options OutputOptions) (OutputEnve
 	setAnalysisDocumentRedaction(data, options.Redaction, dataChanged)
 
 	out := baseOutput(spec.mode, spec.scope, spec.input, options)
+	out.Redaction.OperationalFieldsChanged = dataChanged
 	out.DataSchema = spec.dataSchema
 	out.Evaluation = outputEvaluationFromMetadata(spec.metadata)
 	out.Data = data

@@ -247,6 +247,32 @@ func TestBuildAnalysisOutputUsesThreatCandidateConfidenceLevel(t *testing.T) {
 	}
 }
 
+func TestBuildAnalysisOutputPreservesStandardDetailRedactionState(t *testing.T) {
+	_, _, _, threats, _, _ := analysisOutputTestResults(t)
+	for _, redaction := range []OutputRedaction{OutputRedactionPublic, OutputRedactionOperational, OutputRedactionRestricted} {
+		t.Run(string(redaction), func(t *testing.T) {
+			output, err := BuildAnalysisOutput(threats, OutputOptions{
+				Detail: OutputDetailStandard, Redaction: redaction, GeneratedAt: outputTestTime,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !output.Redaction.OperationalFieldsChanged {
+				t.Fatalf("%s redaction metadata did not preserve the standard-detail change: envelope=%+v data=%#v", redaction, output.Redaction, output.Data)
+			}
+			payload, err := json.Marshal(output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Contains(payload, []byte(analysisOutputTestExclusionReason)) {
+				t.Fatalf("%s standard detail retained restricted exclusion text: %s", redaction, payload)
+			}
+			validateOutputAgainstSchema(t, compileOutputSchema(t), output)
+			validateOutputDataAgainstSchema(t, output)
+		})
+	}
+}
+
 func TestBuildAnalysisOutputPublicRedactionCoversOptionalSourceActivity(t *testing.T) {
 	const (
 		providerCanary = "provider-ignore-previous-instructions"

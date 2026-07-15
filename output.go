@@ -707,6 +707,10 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 			out.Findings[i].Explanation = ""
 		}
 	}
+	redactionChanged := out.Redaction.OperationalFieldsChanged
+	if data, ok := out.Data.(map[string]any); ok {
+		redactionChanged = redactionChanged || analysisDocumentRedactionChanged(data)
+	}
 	switch options.Redaction {
 	case OutputRedactionPublic:
 		before, err := json.Marshal(out)
@@ -721,13 +725,17 @@ func finalizeOutput(out OutputEnvelope, options OutputOptions) (OutputEnvelope, 
 		if err != nil {
 			return OutputEnvelope{}, fmt.Errorf("%w: %w: %v", ErrOutputRedaction, ErrOutputSerialization, err)
 		}
-		out.Redaction.OperationalFieldsChanged = !bytes.Equal(before, after)
+		out.Redaction.OperationalFieldsChanged = redactionChanged || !bytes.Equal(before, after)
 	case OutputRedactionOperational:
 		var err error
-		out, out.Redaction.OperationalFieldsChanged, err = removeRestrictedReportText(out)
+		var changed bool
+		out, changed, err = removeRestrictedReportText(out)
 		if err != nil {
 			return OutputEnvelope{}, err
 		}
+		out.Redaction.OperationalFieldsChanged = redactionChanged || changed
+	default:
+		out.Redaction.OperationalFieldsChanged = redactionChanged
 	}
 	if _, err := json.Marshal(out); err != nil {
 		if options.Redaction == OutputRedactionPublic {
@@ -1190,6 +1198,7 @@ func removeRestrictedReportText(out OutputEnvelope) (OutputEnvelope, bool, error
 		if len(data) == 0 {
 			return out, false, nil
 		}
+		previouslyChanged := analysisDocumentRedactionChanged(data)
 		value, changed, err := transformAnalysisOutputValue(data, OutputRedactionOperational)
 		if err != nil {
 			return OutputEnvelope{}, false, err
@@ -1198,7 +1207,8 @@ func removeRestrictedReportText(out OutputEnvelope) (OutputEnvelope, bool, error
 		if !ok {
 			return OutputEnvelope{}, false, fmt.Errorf("%w: unsupported transformed data type %T", ErrOutputRedaction, value)
 		}
-		setAnalysisDocumentRedaction(transformed, OutputRedactionOperational, changed || analysisDocumentRedactionChanged(data))
+		changed = changed || previouslyChanged
+		setAnalysisDocumentRedaction(transformed, OutputRedactionOperational, changed)
 		out.Data = transformed
 		return out, changed, nil
 	default:

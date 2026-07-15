@@ -2,6 +2,8 @@ package dmarcgo
 
 import (
 	"os"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +59,86 @@ func TestAdoptionDocumentationFixtures(t *testing.T) {
 				t.Fatalf("reference entities = %d, want %d", references, test.referenceEntities)
 			}
 		})
+	}
+}
+
+func TestOptionalContextConfigurationReference(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("docs/optional-context-configuration.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	types := []any{
+		SourceEnrichmentOptions{},
+		IPMetadata{},
+		IPMetadataAssertion{},
+		IPMetadataProvenance{},
+		IPMetadataConfidence{},
+		SourceActivitySelection{},
+		SourceActivityOptions{},
+		SourceActivityResponse{},
+		SourceActivityMetric{},
+		SourceActivityThreatFeed{},
+		SourceActivityNetworkAssertion{},
+		PhishingIntelligenceSnapshotConfig{},
+		PhishingIntelligenceLicense{},
+		PhishingIntelligenceIndicatorConfig{},
+		PhishingIntelligenceConfidence{},
+		PhishingIntelligenceContext{},
+		PhishingIntelligenceOptions{},
+		JurisdictionRiskPolicyConfig{},
+		JurisdictionRiskPolicySource{},
+		JurisdictionRiskPolicyEntry{},
+		JurisdictionContextOptions{},
+		DNSPerspectiveSelection{},
+		DNSPerspectiveOptions{},
+		DNSPerspectiveResponse{},
+		DNSPerspectiveProviderObservation{},
+		DNSPerspectiveAnswer{},
+	}
+	for _, value := range types {
+		typeOf := reflect.TypeOf(value)
+		for index := range typeOf.NumField() {
+			field := typeOf.Field(index)
+			if field.PkgPath != "" {
+				continue
+			}
+			plain := "`" + field.Name + "`"
+			qualified := "`" + typeOf.Name() + "." + field.Name + "`"
+			if !strings.Contains(text, plain) && !strings.Contains(text, qualified) {
+				t.Errorf("%s.%s is not documented", typeOf.Name(), field.Name)
+			}
+		}
+	}
+}
+
+func TestConsumerAgentGuideIncludesGuidedOnboarding(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("docs/consumer-agent-guide.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	required := []string{
+		"## Guided onboarding interaction",
+		"### 2. Build the domain inventory",
+		"complete SPF TXT owner names",
+		"complete DMARC TXT owner names",
+		"every known DKIM selector",
+		"confirmed/proposed/unknown fact table",
+		"exact preview of the TXT owner names",
+		"### 3. Add optional context only when it answers a question",
+		"application-owned secret reference",
+		"Never ask the user to paste a credential",
+		"explicit selection preview",
+		"### 4. Confirm the run and handoff",
+	}
+	for _, value := range required {
+		if !strings.Contains(text, value) {
+			t.Errorf("guided onboarding is missing %q", value)
+		}
 	}
 }

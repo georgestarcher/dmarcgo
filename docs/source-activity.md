@@ -8,6 +8,11 @@ attribution, or an enforcement decision.
 The stage is provider neutral. `dmarcgo` does not ship a DShield client,
 credentials, endpoint, scheduler, cache, or background updater.
 
+New adopters should begin with
+[optional context configuration](optional-context-configuration.md). It lists
+every selection, option, default, hard limit, response field, and stable error
+needed to construct a safe `SourceActivityProvider`.
+
 ## Safe workflow
 
 1. Complete report evidence, DNS/report correlation, and threat-candidate

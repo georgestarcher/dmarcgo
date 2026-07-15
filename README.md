@@ -24,11 +24,17 @@ schemas remain the versioned contracts.
 Building an application integration? Follow the
 [organization adoption guide](docs/adoption-guide.md). AI coding assistants can
 start with the self-contained
-[consumer-agent guide](docs/consumer-agent-guide.md). Exact portfolio and
-campaign fields are in the
+[consumer-agent guide](docs/consumer-agent-guide.md), including its guided flow
+for walking a user through domain inventory and optional enrichment. Exact
+portfolio and campaign fields are in the
 [configuration reference](docs/configuration-reference.md), and production
 ownership and failure handling are in
 [operations and troubleshooting](docs/operations-and-troubleshooting.md).
+To add enrichment, source activity, offline phishing intelligence,
+jurisdiction context, or remote DNS perspectives, use the
+[optional context configuration guide](docs/optional-context-configuration.md).
+It explains which features use programmatic inputs, which require a
+caller-supplied adapter, and why none are enabled by a portfolio setting.
 
 ## Install
 
@@ -136,7 +142,9 @@ action. See [Suspicious-source candidate scoring](docs/threat-candidates.md).
 Optional source IP and ASN enrichment is a separate, explicitly invoked stage.
 It accepts only a caller-supplied context-aware dependency, performs no built-in
 network or PTR lookups, and never contacts an observed source IP. See
-[Optional source enrichment](docs/source-enrichment.md).
+[Optional source enrichment](docs/source-enrichment.md). New adopters should
+start with [Optional context configuration](docs/optional-context-configuration.md)
+before implementing a provider adapter.
 
 Optional source-activity collection is a separate explicit branch for selected
 review-eligible candidate IPs. It calls only a caller-supplied third-party
@@ -151,6 +159,11 @@ DMARC domain roles while preserving time, provider state, terms, and collision
 limits. It ships no feed client or provider data, never changes scoring, and
 never authorizes action. See
 [Optional phishing-intelligence correlation](docs/phishing-intelligence.md).
+
+The optional context stages do not share a generic provider or API-key
+configuration. The application supplies each offline input or bounded adapter
+explicitly. See the [optional context configuration guide](docs/optional-context-configuration.md)
+for the complete field, default, limit, credential, and output boundaries.
 
 STIX 2.1 export is a pure final transformation of completed threat-candidate
 evidence and optional enrichment. It defaults to SCOs plus Observed Data;

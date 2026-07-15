@@ -179,6 +179,7 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 		"report_evidence.go",
 		"correlation.go",
 		"threat_candidates.go",
+		"phishing_intelligence.go",
 		"jurisdiction_context.go",
 		"analysis_output.go",
 		"analysis_output_modes.go",
@@ -201,7 +202,7 @@ func TestPhase13PureStagesCannotJumpUpstream(t *testing.T) {
 		"ParseBytes": true, "ParseReader": true, "CollectDNSSnapshot": true, "LookupTXT": true,
 		"ParseAuthenticationRecords": true, "EvaluateDNSHealth": true, "AnalyzeReportEvidence": true,
 		"CorrelateReportEvidence": true, "ScoreThreatCandidates": true, "EnrichThreatCandidates": true,
-		"EvaluateJurisdictionContext": true,
+		"CorrelatePhishingIntelligence": true, "EvaluateJurisdictionContext": true,
 	}
 
 	for _, filename := range files {

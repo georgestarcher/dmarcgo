@@ -56,6 +56,13 @@ and this project uses semantic versioning for public API changes.
   score or enforcement effects. Current DShield terms and API research plus the
   decision not to ship an adapter without a stable IPv6 response contract are
   documented.
+- Pure provider-neutral phishing-intelligence snapshot normalization and exact
+  correlation for review-eligible source IPs and DMARC domain roles, preserving
+  report-period overlap, freshness, provider state, disagreements, terms,
+  provenance, confidence, and non-matching context without score or enforcement
+  effects. Current OpenPhish feed, offline-database, format, false-positive,
+  and licensing research plus the decision not to ship a built-in adapter are
+  documented.
 - Standard-library and DNS-message resolver adapters. The DNS-message adapter
   preserves TTL, authoritative/recursive source, RCODE, CNAME path, SOA, and
   RFC 2308 negative-cache TTL evidence; limited adapters mark unavailable

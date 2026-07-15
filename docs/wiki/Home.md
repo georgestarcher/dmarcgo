@@ -30,6 +30,8 @@ scheduler, dashboard, reputation service, or automatic enforcement system.
   observed source IP.
 - Source-activity context is explicit per candidate, discloses selected IPs to
   a caller-chosen third party, and never changes scoring or authorizes action.
+- Phishing-intelligence correlation is offline over caller-owned snapshots,
+  uses exact identifiers only, and never retrieves a feed or changes scoring.
 - Authentication failure is review evidence, not proof of malicious activity.
 - Export builders create offline payloads; they do not submit, publish, block,
   or enforce.

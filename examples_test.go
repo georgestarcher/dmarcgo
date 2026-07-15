@@ -347,6 +347,41 @@ func ExampleScoreThreatCandidates() {
 	// Output: candidates=1 score=35 confidence=45 usage=review_only promotion=false
 }
 
+// ExampleCorrelatePhishingIntelligence demonstrates exact, offline correlation
+// with a caller-owned synthetic snapshot. A match does not change scoring or
+// authorize action.
+func ExampleCorrelatePhishingIntelligence() {
+	candidates, evidence, err := exampleThreatCandidatesAndEvidence()
+	if err != nil {
+		log.Fatal(err)
+	}
+	candidate := candidates.Candidates()[0]
+	firstSeen := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
+	lastSeen := time.Date(2021, 1, 3, 0, 0, 0, 0, time.UTC)
+	snapshot, err := NormalizePhishingIntelligenceSnapshot(PhishingIntelligenceSnapshotConfig{
+		Provider: "offline-example", Dataset: "synthetic-fixture-v1", SchemaVersion: "1",
+		CollectedAt: lastSeen, AsOf: lastSeen,
+		License: PhishingIntelligenceLicense{
+			Name: "synthetic fixture terms", CommercialUse: PhishingIntelligenceUsagePermitted,
+			Redistribution: PhishingIntelligenceUsagePermitted,
+		},
+		Indicators: []PhishingIntelligenceIndicatorConfig{{
+			Type: PhishingIntelligenceSourceIP, Value: candidate.SourceIP,
+			State: PhishingIntelligenceIndicatorActive, FirstSeen: &firstSeen, LastSeen: &lastSeen,
+		}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result, err := CorrelatePhishingIntelligence(candidates, evidence, []PhishingIntelligenceSnapshot{snapshot}, PhishingIntelligenceOptions{GeneratedAt: lastSeen})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("status=%s matches=%d score=%d promotion=%t\n",
+		result.Candidates()[0].Status, len(result.Matches()), candidate.Score, candidate.PromotionEligible)
+	// Output: status=match matches=1 score=35 promotion=false
+}
+
 // ExampleBuildSTIXBundle demonstrates the default observation-only STIX 2.1
 // export. Creating an Indicator requires an explicit promotion option.
 func ExampleBuildSTIXBundle() {
@@ -624,6 +659,11 @@ func ExampleEvaluateJurisdictionContext() {
 }
 
 func exampleThreatCandidates() (ThreatCandidateResult, error) {
+	result, _, err := exampleThreatCandidatesAndEvidence()
+	return result, err
+}
+
+func exampleThreatCandidatesAndEvidence() (ThreatCandidateResult, ReportEvidenceResult, error) {
 	portfolio, err := NormalizePortfolio(PortfolioConfig{
 		SchemaVersion: PortfolioSchemaVersion,
 		Organization:  OrganizationConfig{ID: "example-org"},
@@ -634,7 +674,7 @@ func exampleThreatCandidates() (ThreatCandidateResult, error) {
 		}}}},
 	})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	observedAt := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
 	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver{
@@ -642,37 +682,37 @@ func exampleThreatCandidates() (ThreatCandidateResult, error) {
 		"_dmarc.example.com": "v=DMARC1; p=reject; rua=mailto:reports@example.com",
 	}, DNSCollectionOptions{Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	authentication, err := ParseAuthenticationRecords(snapshot)
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	catalog, err := DefaultProviderCatalog()
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	health, err := EvaluateDNSHealth(portfolio, authentication, catalog, DNSHealthOptions{})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	report, err := ParseBytes([]byte(helperReportXML))
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	evidence, err := AnalyzeReportEvidence([]*AggregateReport{report}, ReportEvidenceOptions{GeneratedAt: observedAt})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	correlation, err := CorrelateReportEvidence(portfolio, health, evidence, DNSReportCorrelationOptions{})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
 	result, err := ScoreThreatCandidates(portfolio, evidence, correlation, ThreatCandidateOptions{})
 	if err != nil {
-		return ThreatCandidateResult{}, err
+		return ThreatCandidateResult{}, ReportEvidenceResult{}, err
 	}
-	return result, nil
+	return result, evidence, nil
 }
 
 // ExampleBuildReportSummaryOutput demonstrates agent-friendly structured output.

@@ -71,6 +71,8 @@ Version 2 is the supported API line. Import
 - Pure review-only source candidate scoring: `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)`
 - Explicit optional source enrichment: `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)`
 - Explicit optional source activity: `dmarcgo.CollectSourceActivity(ctx, threatCandidates, enrichment, provider, options)`
+- Pure offline phishing-intelligence snapshot: `dmarcgo.NormalizePhishingIntelligenceSnapshot(config)`
+- Pure offline phishing-intelligence correlation: `dmarcgo.CorrelatePhishingIntelligence(threatCandidates, reportEvidence, snapshots, options)`
 - Pure versioned jurisdiction context: `dmarcgo.EvaluateJurisdictionContext(enrichment, policy, options)`
 - Pure STIX 2.1 observed-data export: `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)`
 - Pure ThreatConnect v3 request encoding: `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)`
@@ -158,11 +160,13 @@ tests used by the Phase 13 integration gate.
 23. Select privileged or disclosure-safe campaign output explicitly. Keep restricted campaign details inside the campaign/SOC boundary and route neutral employee responses only through the fixed safe template identifier.
 24. Score neutral source-review candidates with `ScoreThreatCandidates`; select a versioned profile and keep expected-sender inclusion explicit.
 25. Enrich only when the application explicitly supplies an `IPEnricher`; keep provider choice, credentials, caching, retention, and network policy caller-owned.
-26. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
-27. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
-28. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
-29. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
-30. Encode explicitly selected candidates for Anomali ThreatStream only after the application supplies a versioned tenant capability for the exact direct-observable or reviewed-import endpoint, fields, values, encodings, limits, private review defaults, and response assumptions; keep discovery, credentials, HTTP, response parsing, polling, approval, retry, and submission caller-owned.
+26. Collect optional source activity only for an explicit candidate/IP selection through a caller-supplied third-party provider; never contact the subject IP or treat absence as proof of safety.
+27. Normalize caller-owned phishing intelligence offline and correlate it only through exact source-IP and exact DMARC domain-role equality; keep retrieval, parsing, licensing, refresh, storage, and removal policy caller-owned.
+28. Evaluate jurisdiction context only after enrichment; choose an explicit immutable policy, keep the optional priority adjustment default-off unless the application deliberately enables it, and display the attribution limitations with every match.
+29. Export completed threat candidates and optional matching enrichment with `BuildSTIXBundle`; keep the default as Observed Data and promote an Indicator only through explicit caller policy.
+30. Encode explicitly selected review candidates or enriched ASN rollups with `BuildThreatConnectIndicatorPayloads`; retain inactive/private defaults unless the application deliberately overrides them, and keep credentials, HTTP, duplicate handling, and submission caller-owned.
+31. Encode explicitly selected candidates for MISP only after the application supplies the target instance's exact type/category capabilities and an Event ID/UUID or complete Event definition; keep `to_ids` false and correlation disabled unless caller policy deliberately overrides them.
+32. Encode explicitly selected candidates for Anomali ThreatStream only after the application supplies a versioned tenant capability for the exact direct-observable or reviewed-import endpoint, fields, values, encodings, limits, private review defaults, and response assumptions; keep discovery, credentials, HTTP, response parsing, polling, approval, retry, and submission caller-owned.
 
 ## Normalized report evidence
 
@@ -309,6 +313,18 @@ tests used by the Phase 13 integration gate.
 - Source activity never changes threat score, confidence, severity, eligibility, exclusion, promotion, or recommended usage and never authorizes automatic action.
 - Provider values are untrusted structured data. Generated findings and diagnostics use fixed library text only.
 - Use synthetic committed fixtures. See `docs/source-activity.md` for the DShield research date, current first-party sources, disclosure boundary, and caller-adapter requirements.
+
+## Optional phishing-intelligence correlation
+
+- `NormalizePhishingIntelligenceSnapshot` accepts only mutable caller-owned offline data and returns an immutable, deterministic snapshot. It performs no download, file access, credential lookup, refresh, cache, clock lookup, or persistence.
+- `CorrelatePhishingIntelligence` consumes a completed `ThreatCandidateResult`, its matching `ReportEvidenceResult`, one or more normalized snapshots, and explicit options. It is pure and performs no network, DNS, enrichment, source-IP, or system-clock activity.
+- Version 1 supports exact canonical source IPs and exact canonical target, author, SPF, and DKIM domains. Never infer URLs from aggregate reports or match by suffix, substring, registrable domain, ASN, country, provider, brand, or sector.
+- Excluded and non-review-eligible candidates remain visible as not eligible and are not correlated. Intelligence context never bypasses expected-sender safeguards or candidate exclusions.
+- Preserve report-period overlap, missing time, snapshot freshness, active, withdrawn, expired, stale, future, unknown, and conflicting provider states. Never prefer one provider or treat an absent match as evidence of safety.
+- Provider, dataset, schema, license, category, reference, infrastructure, brand, and sector values are untrusted structured data. Findings and recommendations use fixed library text only.
+- The result never changes threat score, confidence, severity, review eligibility, exclusions, promotion, or recommended usage and never authorizes blocking, quarantine, submission, takedown, or another automatic action.
+- Feed retrieval, parsing, licensing, terms review, caching, refresh, storage, removal, and redistribution remain caller-owned. The library ships no OpenPhish client, data, parser, endpoint, or credential handling.
+- Use only synthetic committed fixtures. See `docs/phishing-intelligence.md` for current first-party OpenPhish research, licensing and schema limitations, exact-match semantics, collision risks, and the output boundary.
 
 ## Versioned jurisdiction context
 

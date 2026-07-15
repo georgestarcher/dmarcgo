@@ -23,6 +23,8 @@ it never causes another stage to run.
 | How do I route without disclosing an exercise? | `WriteCampaignClassificationOutput` with the disclosure-safe view | Completed campaign classification | Supplied writer only |
 | Which unexplained sources deserve review? | `ScoreThreatCandidates` | Portfolio plus completed evidence and correlation | None |
 | What ASN or coarse country context did my selected provider assert? | `EnrichThreatCandidates` | Completed candidates and explicit `IPEnricher` | Only the supplied enricher |
+| What activity did a selected third-party service report for reviewed addresses? | `CollectSourceActivity` | Completed candidates, explicit selection, and caller provider | Only the supplied provider; never the subject IP |
+| Does caller-owned phishing intelligence contain the same exact source or DMARC domain role? | `NormalizePhishingIntelligenceSnapshot`, then `CorrelatePhishingIntelligence` | Completed candidates, matching report evidence, and offline snapshots | None |
 | Does completed enrichment match a versioned jurisdiction policy? | `EvaluateJurisdictionContext` | Completed enrichment and explicit policy | None |
 | How do I serialize one completed analysis mode? | Its `Write*Output` function | One completed result | Supplied writer only |
 | How do I exchange reviewed observations? | STIX, ThreatConnect, MISP, or ThreatStream builder | Explicit selections and required target contract | None; submission stays caller-owned |
@@ -44,6 +46,8 @@ campaign classification -> privileged or disclosure-safe output
 portfolio + DNS health + report evidence -> correlation
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional explicit enricher -> source enrichment
+threat candidates + explicit selection/provider -> source activity
+threat candidates + matching report evidence + offline snapshots -> phishing intelligence
 source enrichment + explicit policy -> jurisdiction context
 
 any one completed analysis result -> native JSON, JSONL, or CSV
@@ -83,9 +87,11 @@ request bodies. `submission_performed` is false for every export because the
 library never submits them.
 
 Use the executable examples in `examples_test.go` for complete calls. They
-cover DNS health, optional DNS perspectives, report evidence, correlation, threat scoring, offline source
-enrichment, jurisdiction context, native output, STIX, ThreatConnect, MISP, and
-ThreatStream. Go's example test runner compiles and executes them in CI.
+cover DNS health, optional DNS perspectives, report evidence, correlation,
+threat scoring, offline source enrichment, selected source activity, offline
+phishing-intelligence correlation, jurisdiction context, native output, STIX,
+ThreatConnect, MISP, and ThreatStream. Go's example test runner compiles and
+executes them in CI.
 
 ## Required workflow scenarios
 
@@ -108,23 +114,26 @@ The integration gate preserves these operational distinctions:
    and apply the documented deduction and confidence cap.
 7. **Optional ASN enrichment:** call only a supplied provider for eligible,
    non-excluded candidates. Never contact the subject IP.
-8. **Independent output:** write one completed mode as JSON, JSONL, or CSV
+8. **Optional phishing intelligence:** normalize caller-owned snapshots and
+   compare exact source IPs and domain roles offline. Preserve time, provider
+   state, and collisions without changing a candidate decision.
+9. **Independent output:** write one completed mode as JSON, JSONL, or CSV
    without creating a combined sparse result.
-9. **Native exchange:** derive STIX and selected vendor payloads from the same
+10. **Native exchange:** derive STIX and selected vendor payloads from the same
    reviewed candidate without changing its score, confidence, eligibility, or
    promotion state.
-10. **Failures:** preserve cancellation, partial DNS evidence, unavailable
+11. **Failures:** preserve cancellation, partial DNS evidence, unavailable
     enrichment, stale or conflicting assertions, and writer errors in their
     documented stage. No serializer retries an earlier stage.
-11. **Authorized simulation:** require current organization authorization,
+12. **Authorized simulation:** require current organization authorization,
     campaign window, organization scope, identity, and a campaign-specific
     signal; domain, provider, URL, delivery exception, or source IP alone is
     insufficient.
-12. **Disclosure-safe routing:** derive a neutral routing record and fixed
+13. **Disclosure-safe routing:** derive a neutral routing record and fixed
     employee-response template from a completed classification without exposing
     campaign names, dates, infrastructure, exact state, or restricted workflow
     IDs.
-13. **Aggregate campaign review:** retain overlapping report periods as
+14. **Aggregate campaign review:** retain overlapping report periods as
     unverifiable exact message time and never enable high-confidence individual
     authorization or automatic disposition.
 
@@ -211,6 +220,8 @@ DNS change, or claim of compromise without separate caller authorization.
 - Inject collection clocks and set every generation time explicitly when
   reproducible bytes matter.
 - Report bounds describe receiver report periods, not exact message times.
+- Phishing-intelligence correlation preserves report bounds separately from
+  provider first/last-seen, snapshot as-of, and expiration times.
 - DNS observation time describes the supplied snapshot and must remain
   separate from historical report bounds.
 - A prior correlation result is used only when the caller deliberately supplies
@@ -234,9 +245,9 @@ conflicting, failed, timed-out, and canceled states supplied by that mode.
 
 The supported module line is `/v2`. In-memory analysis contracts, common
 envelope schemas, native analysis schemas, report-evidence persistence, scoring
-profiles, jurisdiction policies, STIX extensions, and vendor mappings are
-versioned independently. Persist the relevant version and result digest with
-every output.
+profiles, phishing-intelligence snapshots/results, jurisdiction policies, STIX
+extensions, and vendor mappings are versioned independently. Persist the
+relevant version and result digest with every output.
 
 There are no known consumers of the provisional pre-release organization
 analysis behavior. Tests validate the selected canonical v2 contracts rather
@@ -250,6 +261,8 @@ new version even when the JSON shape is unchanged.
 `make campaign-check` runs the Phase 14 configuration, source, evidence,
 classification, aggregate, output, schema, example, security, and resource-limit
 gate.
+`make phishing-intelligence-check` runs the Phase 16 offline normalization,
+correlation, security-boundary, and example gate.
 `make ci` additionally runs formatting, module verification, vet, static
 analysis, vulnerability checks, README compilation in an isolated external
 module, schema/output checks, unit and race tests, coverage, fuzz smoke tests,

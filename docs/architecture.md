@@ -20,6 +20,7 @@ completed campaign classification -> privileged or disclosure-safe output
 portfolio + report evidence + correlation -> threat candidates
 threat candidates + optional enrichment -> enriched candidates
 threat candidates + explicit selection/provider + optional matching enrichment -> source activity
+threat candidates + matching report evidence + caller-owned snapshots -> phishing intelligence
 enriched candidates + explicit jurisdiction policy -> jurisdiction context
 threat candidates + optional matching enrichment -> STIX 2.1 bundle
 explicit threat-candidate/ASN selections + optional matching enrichment -> ThreatConnect v3 request payloads
@@ -55,6 +56,7 @@ structure containing every possible input or output.
 | Suspicious-source candidates | `threat_candidates` | Candidate-scoring feature |
 | Optional enrichment | `source_enrichment` | Enrichment feature |
 | Optional source activity | `source_activity` | Source-activity feature |
+| Optional phishing intelligence | `phishing_intelligence`, `PhishingIntelligenceResult` | Phishing-intelligence feature |
 | Jurisdiction context | `jurisdiction_context` | Jurisdiction-context feature |
 | STIX 2.1 exchange | `STIXBundle` (standards-native, not an analysis mode) | STIX export feature |
 | ThreatConnect v3 exchange | `ThreatConnectIndicatorPayload` (vendor-native, not an analysis mode) | ThreatConnect export feature |
@@ -124,6 +126,16 @@ bounds, freshness, conflicts, truncation, rate limits, and partial failures. It
 does not mutate candidates, infer maliciousness or benignness, or contact the
 subject address. A nil provider and empty selection are deterministic
 no-network, no-clock paths. The library ships no DShield adapter.
+
+`PhishingIntelligenceResult` implements a separate pure offline correlation
+branch over completed threat candidates, their matching report evidence, and
+one or more normalized caller-owned snapshots. Only exact canonical source IP
+or exact target, author, SPF, and DKIM domain equality can create a relation.
+The result preserves report-period overlap, snapshot freshness, provider state,
+conflicts, terms metadata, provenance, and context without changing candidate
+scoring or authorization. Snapshot normalization and correlation have no
+side-effect dependency; feed retrieval, parsing, licensing, refresh, caching,
+storage, and removal remain application concerns.
 
 `JurisdictionContextResult` implements the following pure context stage. It
 consumes only a completed `SourceEnrichmentResult` and an explicit immutable
@@ -216,6 +228,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | Threat candidates | Supplied completed values only | No | No | No | Explainable scoring |
 | Source enrichment | No implicit reports | No | Explicit enricher only | Explicit | Bounded enrichment |
 | Source activity | No implicit reports | No | Explicit third-party provider only | No | Bounded selected-IP collection |
+| Phishing intelligence | Supplied completed values only | No | No | No | Pure exact-identifier correlation |
 | STIX export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | ThreatConnect export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
 | MISP export | Supplied completed values only | Writer supplied by caller | No | No | Pure transformation and validation |
@@ -311,6 +324,16 @@ failure, and fail-fast partial results remain explicit. Provider errors are
 converted to fixed diagnostics without copying their text. Stale and
 conflicting assertions remain visible, and ASN grouping retains every
 underlying source IP and assertion rather than selecting a preferred owner.
+
+`NormalizePhishingIntelligenceSnapshot` and
+`CorrelatePhishingIntelligence` are pure offline entry points. The first
+validates bounded caller-owned records into an immutable snapshot; the second
+requires matching threat-candidate and report-evidence digests and compares
+only exact canonical identifiers. Neither has a resolver, provider, feed,
+filesystem, environment, credential, subject-IP, or clock dependency.
+Provider-controlled strings remain untrusted structured data, and the result
+never changes score, confidence, severity, exclusions, eligibility, promotion,
+or recommended usage.
 
 `EvaluateJurisdictionContext` is the jurisdiction-context entry point. It has
 no resolver, provider, filesystem, environment, credential, or clock

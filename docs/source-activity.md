@@ -28,6 +28,9 @@ When expected-sender evidence was explicitly included upstream, source activity
 uses that completed scoring mode to distinguish an expected-sender-only
 candidate from a mixed expected/unattributed source; mixed sources remain
 eligible when their completed candidate is review eligible.
+`MaxQueries` counts only eligible, deduplicated source addresses that can reach
+the provider. Selected ineligible addresses remain visible in the result but do
+not consume the provider-query budget.
 
 ```go
 result, err := dmarcgo.CollectSourceActivity(
@@ -70,6 +73,8 @@ Normalized responses have separate typed collections for metrics, threat-feed
 memberships, and network assertions. They do not overload `IPMetadataAssertion`
 or use an untyped map. Field, item, total-text, query, concurrency, timeout, and
 retry-after limits are enforced again at the library boundary.
+Future timestamps in either the top-level activity window or a threat-feed
+membership window produce an explicit `future` freshness and record status.
 
 Provider, dataset, endpoint, reference, metric, feed, organization, and network
 strings are untrusted data. They remain structured fields and never enter

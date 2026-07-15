@@ -367,8 +367,8 @@ func CollectSourceActivity(ctx context.Context, candidates ThreatCandidateResult
 	if err != nil {
 		return SourceActivityResult{}, err
 	}
-	if len(plan) > options.MaxQueries {
-		return SourceActivityResult{}, fmt.Errorf("%w: selected source count exceeds the configured limit", ErrInvalidSourceActivityOptions)
+	if sourceActivityEligibleQueryCount(plan) > options.MaxQueries {
+		return SourceActivityResult{}, fmt.Errorf("%w: eligible source query count exceeds the configured limit", ErrInvalidSourceActivityOptions)
 	}
 	baseTime := candidates.ResultMetadata().GeneratedAt
 	if enrichment != nil && enrichment.ResultMetadata().GeneratedAt.After(baseTime) {
@@ -565,6 +565,16 @@ func sourceActivityEligible(candidate ThreatCandidate, includeExpectedSenders bo
 		return true
 	}
 	return candidate.ExpectedSenderFailureMessages < candidate.DualFailureMessages
+}
+
+func sourceActivityEligibleQueryCount(plan []sourceActivityPlanItem) int {
+	count := 0
+	for _, item := range plan {
+		if item.eligible {
+			count++
+		}
+	}
+	return count
 }
 
 type sourceActivityEnrichmentReference struct {
@@ -920,6 +930,13 @@ func sourceActivityFreshness(evidence SourceActivityEvidence, generatedAt time.T
 	for _, value := range []*time.Time{evidence.FirstSeen, evidence.LastSeen, evidence.UpdatedAt} {
 		if value != nil && value.After(generatedAt) {
 			return SourceActivityFreshnessFuture
+		}
+	}
+	for _, feed := range evidence.ThreatFeeds {
+		for _, value := range []*time.Time{feed.FirstSeen, feed.LastSeen} {
+			if value != nil && value.After(generatedAt) {
+				return SourceActivityFreshnessFuture
+			}
 		}
 	}
 	if evidence.ExpiresAt == nil {

@@ -117,8 +117,9 @@ func TestCollectSourceActivityQueriesOnlyExplicitEligibleDeduplicatedIPs(t *test
 		"192.0.2.30":    sourceActivityTestResponse(now),
 	}}
 	result, err := CollectSourceActivity(context.Background(), candidates, nil, provider, SourceActivityOptions{
-		Selection: SourceActivitySelection{CandidateIDs: []AnalysisID{duplicate.ID}, SourceIPs: []string{"198.51.100.20", "192.0.2.30"}},
-		Clock:     ClockFunc(func() time.Time { return now }),
+		Selection:  SourceActivitySelection{CandidateIDs: []AnalysisID{duplicate.ID}, SourceIPs: []string{"198.51.100.20", "192.0.2.30"}},
+		MaxQueries: 1,
+		Clock:      ClockFunc(func() time.Time { return now }),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -298,6 +299,24 @@ func TestCollectSourceActivityRateLimitStaleFutureConflictAndPromptBoundary(t *t
 	futureResult, err := CollectSourceActivity(context.Background(), candidates, nil, provider, SourceActivityOptions{Selection: selection, Clock: ClockFunc(func() time.Time { return now })})
 	if err != nil || futureResult.Records()[0].Status != SourceActivityFuture || futureResult.Diagnostics()[0].Code != "source_activity.future" {
 		t.Fatalf("future error=%v records=%+v diagnostics=%+v", err, futureResult.Records(), futureResult.Diagnostics())
+	}
+
+	for _, test := range []struct {
+		name string
+		feed SourceActivityThreatFeed
+	}{
+		{name: "first seen", feed: SourceActivityThreatFeed{Name: "fixture-feed", FirstSeen: &future}},
+		{name: "last seen", feed: SourceActivityThreatFeed{Name: "fixture-feed", LastSeen: &future}},
+	} {
+		t.Run("future feed "+test.name, func(t *testing.T) {
+			response := sourceActivityTestResponse(now)
+			response.ThreatFeeds = []SourceActivityThreatFeed{test.feed}
+			provider := &sourceActivityFixtureProvider{responses: map[string]SourceActivityResponse{"198.51.100.20": response}}
+			result, err := CollectSourceActivity(context.Background(), candidates, nil, provider, SourceActivityOptions{Selection: selection, Clock: ClockFunc(func() time.Time { return now })})
+			if err != nil || result.Records()[0].Status != SourceActivityFuture || result.Records()[0].Evidence.Freshness != SourceActivityFreshnessFuture || len(result.Diagnostics()) != 1 || result.Diagnostics()[0].Code != "source_activity.future" {
+				t.Fatalf("future feed error=%v records=%+v diagnostics=%+v", err, result.Records(), result.Diagnostics())
+			}
+		})
 	}
 }
 

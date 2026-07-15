@@ -592,6 +592,29 @@ func TestCampaignDisclosureSafeEnvelopesOmitPrivilegedDigests(t *testing.T) {
 	}
 }
 
+func TestCampaignReportOutputFindingsRemainLowConfidence(t *testing.T) {
+	_, _, report := outputCampaignTestResults()
+	report.observations = []CampaignReportObservationClassification{{
+		ObservationID: "observation-1", ReportEvidenceID: "report-1", ClassificationDigest: "classification-1",
+		FindingIDs: []FindingID{"finding-1"}, Records: []CampaignClassificationRecord{}, Sensitivity: SensitivityRestricted,
+	}}
+	for _, redaction := range []OutputRedaction{OutputRedactionPublic, OutputRedactionOperational, OutputRedactionRestricted} {
+		t.Run(string(redaction), func(t *testing.T) {
+			output, err := BuildAnalysisOutput(report, OutputOptions{
+				Profile: OutputProfileAgent, Detail: OutputDetailFull, Redaction: redaction, GeneratedAt: outputTestTime,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(output.Findings) != 1 || output.Findings[0].Confidence != FindingConfidenceLow {
+				t.Fatalf("%s aggregate campaign findings = %+v", redaction, output.Findings)
+			}
+			validateOutputAgainstSchema(t, compileOutputSchema(t), output)
+			validateOutputDataAgainstSchema(t, output)
+		})
+	}
+}
+
 func TestPhase17CrossModeOutputIsolation(t *testing.T) {
 	for _, descriptor := range OutputModeDescriptors() {
 		if descriptor.Serialization != noOutputEffects || descriptor.Analysis.SubjectIPContact {

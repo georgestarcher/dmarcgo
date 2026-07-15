@@ -390,8 +390,8 @@ func campaignReportEnvelopeSpec(result CampaignReportCorrelationResult, redactio
 	metadata := result.ResultMetadata()
 	observations, diagnostics := result.Observations(), result.Diagnostics()
 	var data any
+	var findings []any
 	digest := result.Digest()
-	findings := anySlice(observations)
 	artifacts := []OutputInputArtifact{}
 	if redaction == OutputRedactionRestricted {
 		data = campaignReportPrivilegedData{
@@ -402,6 +402,7 @@ func campaignReportEnvelopeSpec(result CampaignReportCorrelationResult, redactio
 			{Type: "campaign_snapshot", Digest: result.SnapshotDigest(), State: EvaluationStateEvaluated, Sensitivity: SensitivityRestricted},
 			{Type: "report_evidence", Digest: result.ReportEvidenceDigest(), State: EvaluationStateEvaluated, Sensitivity: SensitivityOperational},
 		}
+		findings = campaignReportPrivilegedFindings(observations)
 	} else {
 		disclosure := campaignReportDisclosureData{
 			View: CampaignOutputDisclosureSafe, EvidenceKind: "aggregate_report", Version: result.Version(), ObservationCount: len(observations),
@@ -420,6 +421,17 @@ func campaignReportEnvelopeSpec(result CampaignReportCorrelationResult, redactio
 		findings: findings, diagnostics: anySlice(diagnostics), input: OutputInput{RecordCount: len(observations), Artifacts: artifacts},
 		limitations: []string{"Aggregate report periods are not exact message times and cannot prove that an individual message belonged to a campaign."},
 	}, nil
+}
+
+func campaignReportPrivilegedFindings(observations []CampaignReportObservationClassification) []any {
+	result := make([]any, len(observations))
+	for index, observation := range observations {
+		result[index] = struct {
+			CampaignReportObservationClassification
+			Confidence FindingConfidence `json:"confidence"`
+		}{CampaignReportObservationClassification: observation, Confidence: FindingConfidenceLow}
+	}
+	return result
 }
 
 func campaignReportDisclosureFindings(observations []CampaignReportObservationClassification) []any {

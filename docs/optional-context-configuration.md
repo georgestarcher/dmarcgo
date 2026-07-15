@@ -25,6 +25,28 @@ If the requirement is only to recognize a documented SPF dependency, use the
 [provider catalog](provider-catalog.md). Provider recognition is configuration
 context, not source enrichment, sender authorization, or reputation.
 
+## Agent-assisted setup
+
+An AI coding assistant can walk a new user through this configuration, but it
+must first separate domain inventory from optional context. Follow the
+[guided onboarding interaction](consumer-agent-guide.md#guided-onboarding-interaction):
+
+1. build and validate a portfolio from user-confirmed domain, SPF, DMARC, DKIM,
+   expected-sender, ownership, and membership facts;
+2. preview and confirm any DNS owner names before collection;
+3. complete report evidence, correlation, and threat-candidate scoring when
+   source context is actually needed;
+4. ask which optional question the user wants answered and select only the
+   matching offline input or provider interface; and
+5. preview disclosed values, bounds, secret references, and output recipients
+   before invoking a network-backed adapter.
+
+The assistant should deliver a starter portfolio, a confirmed/proposed/unknown
+fact table, validation results, an adapter or snapshot skeleton where needed,
+synthetic tests, and an explicit run plan. It must not ask for pasted secrets,
+invent DKIM selectors or provider semantics, hide missing facts, or contact a
+subject source IP.
+
 ## Configuration forms
 
 `dmarcgo` uses three deliberately different configuration forms:

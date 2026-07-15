@@ -113,3 +113,32 @@ func TestOptionalContextConfigurationReference(t *testing.T) {
 		}
 	}
 }
+
+func TestConsumerAgentGuideIncludesGuidedOnboarding(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("docs/consumer-agent-guide.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	required := []string{
+		"## Guided onboarding interaction",
+		"### 2. Build the domain inventory",
+		"complete SPF TXT owner names",
+		"complete DMARC TXT owner names",
+		"every known DKIM selector",
+		"confirmed/proposed/unknown fact table",
+		"exact preview of the TXT owner names",
+		"### 3. Add optional context only when it answers a question",
+		"application-owned secret reference",
+		"Never ask the user to paste a credential",
+		"explicit selection preview",
+		"### 4. Confirm the run and handoff",
+	}
+	for _, value := range required {
+		if !strings.Contains(text, value) {
+			t.Errorf("guided onboarding is missing %q", value)
+		}
+	}
+}

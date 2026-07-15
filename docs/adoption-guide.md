@@ -25,7 +25,10 @@ credentials, submit exports, or execute a defensive action.
 The [automation workflow guide](automation-workflows.md) gives the complete
 stage graph. The [consumer-agent guide](consumer-agent-guide.md) is a compact
 decision tree for an AI coding assistant integrating the module from another
-repository.
+repository. Its [guided onboarding interaction](consumer-agent-guide.md#guided-onboarding-interaction)
+walks a user from confirmed domain facts and a starter portfolio through an
+explicit enrichment choice, disclosure preview, validation plan, and safe
+handoff without requiring every detail up front.
 
 ## Fifteen-minute first integration
 

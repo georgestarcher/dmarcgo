@@ -8,6 +8,12 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
   with `docs/consumer-agent-guide.md`, then use `docs/adoption-guide.md` and the
   selected feature guide. That consumer guide is self-contained and does not
   grant permission to modify this repository.
+- When helping a new adopter interactively, follow the consumer guide's guided
+  onboarding flow. Ask for authoritative domain facts in small steps, label
+  proposed and unknown values, generate a validated starter portfolio and exact
+  DNS query preview, then configure only the optional context question the user
+  selected. Preview disclosed values and secret references before network work;
+  never request pasted credentials or invent selectors or provider semantics.
 - This `AGENTS.md` is the repository-maintainer contract. Its API summaries are
   maintained to review consumer-facing changes, while the repository guides,
   examples, schemas, and Go documentation are the public adoption contract.

@@ -24,8 +24,9 @@ schemas remain the versioned contracts.
 Building an application integration? Follow the
 [organization adoption guide](docs/adoption-guide.md). AI coding assistants can
 start with the self-contained
-[consumer-agent guide](docs/consumer-agent-guide.md). Exact portfolio and
-campaign fields are in the
+[consumer-agent guide](docs/consumer-agent-guide.md), including its guided flow
+for walking a user through domain inventory and optional enrichment. Exact
+portfolio and campaign fields are in the
 [configuration reference](docs/configuration-reference.md), and production
 ownership and failure handling are in
 [operations and troubleshooting](docs/operations-and-troubleshooting.md).

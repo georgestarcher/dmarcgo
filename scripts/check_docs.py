@@ -67,6 +67,7 @@ COMMON_MISSPELLINGS = {
 REQUIRED_ADOPTION_DOCS = {
     "optional-context-configuration.md": (
         "## Start here",
+        "## Agent-assisted setup",
         "## Configuration forms",
         "## Configure source enrichment",
         "## Configure source activity",
@@ -94,6 +95,7 @@ REQUIRED_ADOPTION_DOCS = {
     ),
     "consumer-agent-guide.md": (
         "## Integration decision tree",
+        "## Guided onboarding interaction",
         "## Prohibited shortcuts",
         "## Consumer integration checklist",
     ),

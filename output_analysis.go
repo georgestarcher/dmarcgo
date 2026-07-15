@@ -780,7 +780,7 @@ func collectOutputScope(value any, scope *OutputScope, depth int) {
 		for key, item := range typed {
 			switch key {
 			case "domain", "target_domain", "author_domain", "policy_domain", "portfolio_domain":
-				if text := outputString(item); text != "" {
+				if text := outputScopeString(item); text != "" {
 					scope.TargetDomains = append(scope.TargetDomains, text)
 				}
 			case "entity_id":
@@ -799,6 +799,17 @@ func collectOutputScope(value any, scope *OutputScope, depth int) {
 			collectOutputScope(item, scope, depth+1)
 		}
 	}
+}
+
+func outputScopeString(value any) string {
+	if text := outputString(value); text != "" {
+		return text
+	}
+	object, ok := value.(map[string]any)
+	if !ok {
+		return ""
+	}
+	return outputString(object["value"])
 }
 
 func limitOutputDataCollections(out *OutputEnvelope, maxItems int) {

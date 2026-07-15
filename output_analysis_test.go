@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -169,7 +170,7 @@ func TestBuildAnalysisOutputAcceptsPointersAndRejectsTypedNil(t *testing.T) {
 }
 
 func TestBuildAnalysisOutputInputCountsAndScopeUsePrimaryEvidence(t *testing.T) {
-	health, _, correlation, _, _, _ := analysisOutputTestResults(t)
+	health, evidence, correlation, _, _, _ := analysisOutputTestResults(t)
 	healthOutput, err := BuildAnalysisOutput(health, OutputOptions{GeneratedAt: outputTestTime, Redaction: OutputRedactionRestricted})
 	if err != nil {
 		t.Fatal(err)
@@ -191,6 +192,27 @@ func TestBuildAnalysisOutputInputCountsAndScopeUsePrimaryEvidence(t *testing.T) 
 		correlationOutput.Input.ReportCount != correlation.Summary().Reports ||
 		int64(correlationOutput.Input.MessageCount) != correlation.Summary().Messages {
 		t.Fatalf("correlation input counts = %+v, summary = %+v", correlationOutput.Input, correlation.Summary())
+	}
+
+	evidenceOutput, err := BuildAnalysisOutput(evidence, OutputOptions{GeneratedAt: outputTestTime, Redaction: OutputRedactionRestricted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(evidenceOutput.Scope.TargetDomains, "example.test") {
+		t.Fatalf("report-evidence target domains = %v", evidenceOutput.Scope.TargetDomains)
+	}
+}
+
+func TestOutputScopeFromDataUsesNormalizedDomainValues(t *testing.T) {
+	scope := outputScopeFromData(map[string]any{
+		"reports": []any{
+			map[string]any{"target_domain": map[string]any{"value": "target.example", "raw_value": "raw-target.example"}},
+			map[string]any{"author_domain": map[string]any{"value": "author.example"}},
+			map[string]any{"target_domain": map[string]any{"raw_value": "raw-only.example"}},
+		},
+	})
+	if !slices.Equal(scope.TargetDomains, []string{"author.example", "target.example"}) {
+		t.Fatalf("normalized scope target domains = %v", scope.TargetDomains)
 	}
 }
 

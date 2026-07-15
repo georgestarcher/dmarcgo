@@ -13,6 +13,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = ROOT / "docs"
 ALLOWLIST_PATH = ROOT / "scripts" / "docs_spelling_allowlist.txt"
+DEFAULT_PROVIDER_CATALOG_PATH = ROOT / "providers" / "default.yaml"
 REPOSITORY = "georgestarcher/dmarcgo"
 
 MARKDOWN_FILES = (
@@ -257,6 +258,24 @@ def domain_sample_candidate(domain: str) -> bool:
     return not (labels[-1] == "zip" and all(label.isdigit() for label in labels[:-1]))
 
 
+def reviewed_provider_domains(errors: list[str]) -> set[str]:
+    if not DEFAULT_PROVIDER_CATALOG_PATH.is_file():
+        report(errors, DEFAULT_PROVIDER_CATALOG_PATH, "reviewed provider catalog is missing")
+        return set()
+    domains: set[str] = set()
+    for line in DEFAULT_PROVIDER_CATALOG_PATH.read_text(encoding="utf-8").splitlines():
+        if line.startswith("    official_domains: "):
+            domains.update(domain.casefold() for domain in DOMAIN_RE.findall(line))
+            continue
+        if line.startswith("        - name: "):
+            value = line.split(":", maxsplit=1)[1].strip()
+            if DOMAIN_RE.fullmatch(value):
+                domains.add(value.casefold())
+    if not domains:
+        report(errors, DEFAULT_PROVIDER_CATALOG_PATH, "contains no reviewed provider DNS names")
+    return domains
+
+
 def documentation_sample_address(value: str) -> bool:
     try:
         network = ipaddress.ip_network(value, strict=False)
@@ -265,10 +284,12 @@ def documentation_sample_address(value: str) -> bool:
     return any(network.version == reserved.version and network.subnet_of(reserved) for reserved in DOCUMENTATION_NETWORKS)
 
 
-def sample_network_errors(text: str) -> list[str]:
+def sample_network_errors(text: str, allowed_domains: set[str] | None = None) -> list[str]:
     errors: list[str] = []
+    allowed = {domain.casefold().rstrip(".") for domain in allowed_domains or set()}
     for domain in DOMAIN_RE.findall(text):
-        if domain_sample_candidate(domain) and not reserved_sample_domain(domain):
+        normalized = domain.casefold().rstrip(".")
+        if domain_sample_candidate(domain) and not reserved_sample_domain(domain) and normalized not in allowed:
             errors.append(f"sample domain is not reserved for documentation: {domain}")
     for raw in IP_RE.findall(text):
         if not documentation_sample_address(raw):
@@ -304,7 +325,7 @@ def validate_markdown(errors: list[str], path: Path, allowed: set[str]) -> None:
             report(errors, path, f"contains {misspelling!r}; use {correction!r} or add an intentional exception to {ALLOWLIST_PATH.relative_to(ROOT)}")
 
 
-def validate_sample_safety(errors: list[str], path: Path) -> None:
+def validate_sample_safety(errors: list[str], path: Path, provider_domains: set[str]) -> None:
     text = path.read_text(encoding="utf-8")
     if SECRET_RE.search(text):
         report(errors, path, "contains a credential-shaped value")
@@ -313,8 +334,12 @@ def validate_sample_safety(errors: list[str], path: Path) -> None:
         if marker.casefold() in folded:
             report(errors, path, f"contains prohibited private marker {marker!r}")
 
-    network_text = go_strings_and_comments(text) if path.suffix == ".go" else text
-    for message in sample_network_errors(network_text):
+    is_go = path.suffix == ".go"
+    network_text = go_strings_and_comments(text) if is_go else text
+    # Only Go examples may demonstrate exact DNS names already reviewed in the
+    # embedded catalog. Portfolio/campaign fixtures remain fully synthetic.
+    allowed_domains = provider_domains if is_go else set()
+    for message in sample_network_errors(network_text, allowed_domains):
         report(errors, path, message)
 
 
@@ -351,10 +376,11 @@ def validate_configuration_reference(errors: list[str]) -> None:
 def main() -> int:
     errors: list[str] = []
     allowed = load_spelling_allowlist(errors)
+    provider_domains = reviewed_provider_domains(errors)
     for path in MARKDOWN_FILES:
         validate_markdown(errors, path, allowed)
     for path in PUBLIC_SAMPLE_FILES:
-        validate_sample_safety(errors, path)
+        validate_sample_safety(errors, path, provider_domains)
     validate_index(errors)
     validate_configuration_reference(errors)
 

@@ -592,6 +592,9 @@ make docs-check
 all Go examples, validates public configuration fixtures, checks the canonical
 wiki, checks exact internal links and anchors, applies the curated spelling
 regression list, and rejects private or credential-shaped public sample data.
+Go examples may use an exact public provider DNS name only when that name is
+derived from a reviewed DNS field in the embedded provider catalog; organization
+domains and all source addresses must remain reserved documentation values.
 Intentional spelling exceptions belong in
 `scripts/docs_spelling_allowlist.txt`, one literal word per line with a comment.
 

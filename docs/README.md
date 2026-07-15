@@ -66,7 +66,10 @@ all Go examples, loads the public portfolio and campaign fixtures through the
 strict APIs, validates the canonical wiki source, checks exact internal paths
 and Markdown anchors, rejects formatting and curated spelling regressions, and
 scans public samples for credential/private-data markers and non-reserved
-domains or addresses.
+domains or addresses. Go examples have one narrow exception: an exact public
+provider DNS name already present in a reviewed DNS field of the embedded
+provider catalog may demonstrate catalog matching. Organization domains and
+source addresses must still use reserved documentation values.
 
 Intentional spelling exceptions belong in
 [`scripts/docs_spelling_allowlist.txt`](../scripts/docs_spelling_allowlist.txt),

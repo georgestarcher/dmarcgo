@@ -894,8 +894,13 @@ func ExampleDefaultProviderCatalog() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("schema=%d providers=%t\n", catalog.SchemaVersion(), len(catalog.Providers()) > 0)
-	// Output: schema=1 providers=true
+	record, diagnostics := ParseSPFRecord("v=spf1 include:_spf.google.com -all")
+	if len(diagnostics) != 0 {
+		log.Fatal(diagnostics)
+	}
+	match, ok := catalog.MatchSPFRelationship(record.Relationships[0])
+	fmt.Printf("provider=%s context_only=%t matched=%t\n", match.ProviderID, match.ContextOnly, ok)
+	// Output: provider=google-workspace context_only=true matched=true
 }
 
 func ExampleParseDMARCPolicyRecord() {

@@ -53,6 +53,20 @@ class SampleNetworkTests(unittest.TestCase):
         self.assertIn("sample domain is not reserved for documentation: mail.public-domain.tld", errors)
         self.assertIn("sample address is not reserved documentation space: 100.64.0.1", errors)
 
+    def test_allows_only_explicit_reviewed_provider_domains(self) -> None:
+        allowed = {"_spf.google.com"}
+        self.assertEqual(check_docs.sample_network_errors("_spf.google.com", allowed), [])
+        errors = check_docs.sample_network_errors("mail.public-domain.tld", allowed)
+        self.assertEqual(errors, ["sample domain is not reserved for documentation: mail.public-domain.tld"])
+
+    def test_provider_domains_come_from_dns_fields_not_documentation_urls(self) -> None:
+        errors: list[str] = []
+        domains = check_docs.reviewed_provider_domains(errors)
+        self.assertEqual(errors, [])
+        self.assertIn("google.com", domains)
+        self.assertIn("_spf.google.com", domains)
+        self.assertNotIn("knowledge.workspace.google.com", domains)
+
     def test_go_identifiers_do_not_look_like_domains(self) -> None:
         source = "func example(value context.Context) { fmt.Println(value) }\n"
         retained = check_docs.go_strings_and_comments(source)

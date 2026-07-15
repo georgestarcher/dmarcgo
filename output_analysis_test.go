@@ -194,6 +194,37 @@ func TestBuildAnalysisOutputInputCountsAndScopeUsePrimaryEvidence(t *testing.T) 
 	}
 }
 
+func TestBuildAnalysisOutputUsesThreatCandidateConfidenceLevel(t *testing.T) {
+	_, _, _, threats, _, _ := analysisOutputTestResults(t)
+	candidates := threats.Candidates()
+	if len(candidates) == 0 {
+		t.Fatal("threat-candidate fixture is empty")
+	}
+	low := candidates[0]
+	low.ID = StableAnalysisID("candidate", "low-confidence")
+	low.Confidence = 10
+	low.ConfidenceLevel = FindingConfidenceLow
+	low.ReviewEligible = true
+	low.Excluded = false
+	high := low
+	high.ID = StableAnalysisID("candidate", "high-confidence")
+	high.Confidence = 90
+	high.ConfidenceLevel = FindingConfidenceHigh
+	threats.candidates = []ThreatCandidate{low, high}
+
+	output, err := BuildAnalysisOutput(threats, OutputOptions{GeneratedAt: outputTestTime, Redaction: OutputRedactionRestricted})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[FindingID]FindingConfidence{}
+	for _, finding := range output.Findings {
+		got[finding.ID] = finding.Confidence
+	}
+	if got[FindingID(low.ID)] != FindingConfidenceLow || got[FindingID(high.ID)] != FindingConfidenceHigh {
+		t.Fatalf("threat-candidate finding confidence = %+v", got)
+	}
+}
+
 func TestBuildAnalysisOutputPublicRedactionCoversOptionalSourceActivity(t *testing.T) {
 	const (
 		providerCanary = "provider-ignore-previous-instructions"

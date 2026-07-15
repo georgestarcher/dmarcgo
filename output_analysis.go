@@ -505,10 +505,7 @@ func outputFindingsForSpec(spec analysisEnvelopeSpec) []OutputFinding {
 			code = outputDefaultFindingCode(spec.mode)
 		}
 		severity := outputFindingSeverity(object["severity"])
-		confidence := FindingConfidence(outputString(object["confidence"]))
-		if !validOutputConfidence(confidence) {
-			confidence = FindingConfidenceMedium
-		}
+		confidence := outputFindingConfidence(object)
 		sensitivity := Sensitivity(outputString(object["sensitivity"]))
 		if !validOutputSensitivity(sensitivity) {
 			sensitivity = SensitivityOperational
@@ -582,6 +579,16 @@ func outputFindingSeverity(value any) FindingSeverity {
 	default:
 		return FindingSeverityMedium
 	}
+}
+
+func outputFindingConfidence(object map[string]any) FindingConfidence {
+	for _, field := range []string{"confidence", "confidence_level"} {
+		confidence := FindingConfidence(outputString(object[field]))
+		if validOutputConfidence(confidence) {
+			return confidence
+		}
+	}
+	return FindingConfidenceMedium
 }
 
 func outputEvidenceFields(spec analysisEnvelopeSpec, findingID FindingID, object map[string]any, fields []string) []OutputEvidence {

@@ -33,6 +33,13 @@ Collection, evaluation, correlation, enrichment, and encoding are separate
 stages. A stage consumes completed values from earlier stages. It does not
 silently recollect, reparse, or enrich them.
 
+XARF is intentionally absent from this pipeline. The current XARF v4.2.0
+`messaging/spam` schema requires per-message SMTP evidence that DMARC aggregate
+reports do not contain, and other XARF categories would overstate the result.
+Applications with independent incident evidence can use the first-party XARF
+implementation directly. See the
+[XARF v4 feasibility decision](xarf-feasibility.md).
+
 ## Result ownership
 
 Every independently callable mode owns a concrete result type. Result types

@@ -146,6 +146,10 @@ and this project uses semantic versioning for public API changes.
   generated per-mode metadata samples, static side-effect isolation checks,
   native-output benchmarks, first-user mode selection, and externally compiled
   application examples.
+- A pinned XARF v4.2.0 feasibility review documenting why DMARC aggregate
+  evidence cannot safely populate the message-specific SMTP contract, why no
+  XARF encoder is included, and when a caller with independently confirmed
+  per-message evidence should use the first-party XARF implementation instead.
 
 ### Changed
 

@@ -10,6 +10,10 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - It is not a CLI, mailbox ingester, scheduler, database layer, dashboard,
   generic IP-reputation engine, or automatic enforcement system.
 - It does not parse RFC 9991 DMARC failure/forensic reports. Those use a different ARF/MARF message format and can contain sensitive message data.
+- It does not build or send XARF abuse reports. XARF v4.2.0 SMTP reports
+  require per-message and connection evidence that aggregate reports do not
+  contain. Do not map threat-candidate score or optional intelligence to an
+  abuse allegation. See `docs/xarf-feasibility.md`.
 - It can explicitly collect reusable TXT evidence for record names already declared in a normalized organization portfolio. DNS collection is never implicit in report parsing or output generation.
 - It can optionally compare explicitly selected portfolio/snapshot TXT names
   through a caller-supplied remote DNS-perspective provider. That evidence is

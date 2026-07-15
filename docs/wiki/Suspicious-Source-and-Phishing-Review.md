@@ -25,16 +25,20 @@ exclusions.
 scanning, enrichment, storage, retries, clock lookup, or other source-IP
 activity. Optional enrichment and optional source-activity context are separate
 explicit stages and may use only caller-selected third-party services, never
-the subject IP.
+the subject IP. Phishing-intelligence correlation is a separate pure offline
+stage over caller-owned snapshots and performs no provider or source-IP lookup.
 
 ## Starting APIs
 
 1. `ScoreThreatCandidates`
 2. Optionally `EnrichThreatCandidates` with a caller-supplied safe dependency
 3. Optionally `CollectSourceActivity` for an explicit candidate/IP selection
-4. Optionally `EvaluateJurisdictionContext` with an immutable policy
-5. Inspect the immutable `SourceActivityResult` when that branch was requested
-6. `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or
+4. Optionally `NormalizePhishingIntelligenceSnapshot`, then
+   `CorrelatePhishingIntelligence` with the matching report evidence
+5. Optionally `EvaluateJurisdictionContext` with an immutable policy
+6. Inspect the immutable `SourceActivityResult` or
+   `PhishingIntelligenceResult` when those branches were requested
+7. `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, or
    `WriteJurisdictionContextOutput`
 
 ## Outputs
@@ -49,6 +53,13 @@ that an address is safe. Selecting it can disclose the source IP and a
 contact-bearing User-Agent to the provider.
 Current output writers do not serialize this result and never initiate its
 lookups; cross-mode output integration is a separate contract change.
+
+Phishing-intelligence context retains only exact source-IP and exact target,
+author, SPF, or DKIM domain relations from normalized caller-owned snapshots.
+It preserves time, provider state, provenance, terms, and conflicts; it never
+uses brand or infrastructure context to create a match, changes no score, and
+does not authorize action. Its current output integration is likewise deferred
+to the later cross-mode output work.
 
 ## What this does not prove
 
@@ -73,4 +84,5 @@ with a potentially adversarial source address out of the default path.
 - [Suspicious-source candidate scoring](https://github.com/georgestarcher/dmarcgo/blob/main/docs/threat-candidates.md)
 - [Optional source enrichment](https://github.com/georgestarcher/dmarcgo/blob/main/docs/source-enrichment.md)
 - [Optional source-activity context](https://github.com/georgestarcher/dmarcgo/blob/main/docs/source-activity.md)
+- [Optional phishing-intelligence correlation](https://github.com/georgestarcher/dmarcgo/blob/main/docs/phishing-intelligence.md)
 - [Jurisdiction context](https://github.com/georgestarcher/dmarcgo/blob/main/docs/jurisdiction-context.md)

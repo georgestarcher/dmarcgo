@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
 
 build:
 	go build ./...
@@ -76,6 +76,9 @@ source-enrichment-check:
 source-activity-check:
 	go test -run 'Test.*SourceActivity|TestCollectSourceActivity|ExampleCollectSourceActivity' ./...
 
+phishing-intelligence-check:
+	go test -run 'Test.*PhishingIntelligence|TestCorrelatePhishingIntelligence|ExampleCorrelatePhishingIntelligence' ./...
+
 jurisdiction-context-check:
 	go test -run 'Test.*Jurisdiction|TestEvaluateJurisdictionContext|ExampleEvaluateJurisdictionContext' ./...
 
@@ -148,6 +151,7 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzSourceEnrichmentMetadata -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzDNSPerspectiveResponseNormalization -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzSourceActivityResponseNormalization -fuzztime=5s -timeout=2m .
+	go test -run=^$$ -fuzz=FuzzNormalizePhishingIntelligenceSnapshot -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzJurisdictionRiskPolicyNormalization -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzAnalysisOutputSerialization -fuzztime=5s -timeout=2m .
 	go test -run=^$$ -fuzz=FuzzParseCampaignConfiguration -fuzztime=5s -timeout=2m .
@@ -155,9 +159,9 @@ fuzz-smoke:
 	go test -run=^$$ -fuzz=FuzzCampaignClassificationAndOutput -fuzztime=5s -timeout=2m .
 
 bench-smoke:
-	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkCollectDNSPerspectives|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkEvaluateJurisdictionContextLargeCandidateSet|BenchmarkNormalizeCampaignConfiguration|BenchmarkResolveCampaignConfigurationFragments|BenchmarkClassifyReportedMessageLargeInventory|BenchmarkBuildSTIXBundle|BenchmarkBuildThreatConnectIndicatorPayloads|BenchmarkBuildMISPAttributePayloads|BenchmarkBuildThreatStreamPayloads|BenchmarkPhase13NativeAnalysisOutputs' -benchtime=1x ./...
+	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkCollectDNSPerspectives|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkCorrelatePhishingIntelligence|BenchmarkEvaluateJurisdictionContextLargeCandidateSet|BenchmarkNormalizeCampaignConfiguration|BenchmarkResolveCampaignConfigurationFragments|BenchmarkClassifyReportedMessageLargeInventory|BenchmarkBuildSTIXBundle|BenchmarkBuildThreatConnectIndicatorPayloads|BenchmarkBuildMISPAttributePayloads|BenchmarkBuildThreatStreamPayloads|BenchmarkPhase13NativeAnalysisOutputs' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln readme-check wiki-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check jurisdiction-context-check campaign-check stix-check threatconnect-check misp-check threatstream-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln readme-check wiki-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check threatconnect-check misp-check threatstream-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

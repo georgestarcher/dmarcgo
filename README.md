@@ -127,6 +127,13 @@ authorizes action. The library ships no DShield adapter because bounded
 2026-07-14 compatibility research did not establish a stable IPv6 response
 contract. See [Optional source-activity context](docs/source-activity.md).
 
+Optional phishing-intelligence correlation is a pure offline branch. It
+normalizes caller-owned snapshots and compares exact source IPs and exact
+DMARC domain roles while preserving time, provider state, terms, and collision
+limits. It ships no feed client or provider data, never changes scoring, and
+never authorizes action. See
+[Optional phishing-intelligence correlation](docs/phishing-intelligence.md).
+
 STIX 2.1 export is a pure final transformation of completed threat-candidate
 evidence and optional enrichment. It defaults to SCOs plus Observed Data;
 Indicators require an explicit caller promotion. See
@@ -193,6 +200,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want explainable source-review candidates | `dmarcgo.ScoreThreatCandidates(portfolio, reportEvidence, correlation, options)` | Scores distinct normalized observations with versioned profiles, false-positive-sensitive confidence caps, and scoped exclusions; it performs no network access or malicious attribution. |
 | You explicitly want optional IP and ASN context | `dmarcgo.EnrichThreatCandidates(ctx, threatCandidates, enricher, options)` | Calls only the supplied dependency for review-eligible, non-excluded candidates; nil is a no-op, PTR is not implicit, and implementations must never contact the subject IP. |
 | You explicitly want optional source-activity context | `dmarcgo.CollectSourceActivity(ctx, threatCandidates, enrichment, provider, options)` | Queries only explicit candidate/IP selections through a caller-supplied third-party provider; empty selection and nil provider perform no lookup, and results never alter scoring or authorize action. |
+| You want offline phishing-intelligence context | `dmarcgo.NormalizePhishingIntelligenceSnapshot(config)`, then `dmarcgo.CorrelatePhishingIntelligence(threatCandidates, reportEvidence, snapshots, options)` | Purely compares exact canonical source IPs and DMARC domain roles from caller-owned snapshots; it performs no feed retrieval, URL inference, scoring change, or automatic action. |
 | You want standards-native STIX 2.1 observations | `dmarcgo.BuildSTIXBundle(threatCandidates, enrichment, options)` | Purely emits IP/ASN SCOs and Observed Data by default; Indicator promotion is explicit, markings and timestamps are caller-controlled, and no submission occurs. |
 | You want reviewed ThreatConnect v3 request bodies | `dmarcgo.BuildThreatConnectIndicatorPayloads(threatCandidates, enrichment, options)` | Purely encodes explicitly selected Address and enriched ASN requests; defaults are inactive/private, confidence and rating are opt-in, and the application owns submission. |
 | You want reviewed MISP Attribute or complete offline Event bodies | `dmarcgo.BuildMISPAttributePayloads(threatCandidates, options)` or `dmarcgo.BuildMISPEventPayload(threatCandidates, options)` | Requires explicit event context and target-instance type/category capabilities; Attributes default to `to_ids: false` with correlation disabled, and the application owns discovery, review, HTTP, and submission. |
@@ -239,6 +247,7 @@ runs another stage.
 | Review unexplained sources | portfolio + report evidence + correlation -> threat candidates | Enrichment or malicious attribution |
 | Add optional ASN/country context | threat candidates + explicit caller enricher -> enrichment -> optional jurisdiction policy | Built-in providers, PTR, or source-IP contact |
 | Add optional source-activity context | threat candidates + explicit selection + caller provider -> source activity | Broad reputation sweeps, source-IP contact, score changes, or automatic action |
+| Add optional phishing-intelligence context | threat candidates + matching report evidence + caller-owned snapshots -> phishing intelligence | Feed retrieval, URL inference, suffix matching, score changes, or automatic action |
 | Serialize one result | completed result -> its native JSON, JSONL, or CSV writer | Any upstream computation |
 | Build exchange payloads | explicit reviewed candidates -> STIX, ThreatConnect, MISP, or ThreatStream | Credentials, HTTP, submission, or enforcement |
 
@@ -1036,6 +1045,30 @@ authorize blocking or assert malicious ownership. The scoring stage performs no
 enrichment or network access. See
 [`docs/threat-candidates.md`](docs/threat-candidates.md) for the complete score,
 confidence, exclusion, and safety contract.
+
+## Optional phishing-intelligence correlation
+
+Use `NormalizePhishingIntelligenceSnapshot` to validate one caller-owned,
+offline provider snapshot, then pass one or more snapshots with the matching
+threat-candidate and report-evidence results to
+`CorrelatePhishingIntelligence`. Version 1 matches only exact canonical source
+IPs and exact canonical target, author, SPF, or DKIM domains. It does not use
+suffixes, substrings, ASN, country, infrastructure provider, brand, or sector
+as matching signals, and aggregate reports do not supply phishing URLs.
+
+Every relation retains its evidence role, report-period relationship,
+provider state, snapshot freshness, provenance, confidence, terms metadata,
+and context. Active, unknown, non-overlapping, withdrawn, expired, stale,
+future, and conflicting states remain distinct. Provider strings stay
+untrusted structured data and never enter generated guidance.
+
+The library does not retrieve, parse, cache, refresh, or redistribute a feed.
+The result does not change candidate score, confidence, severity, eligibility,
+exclusions, promotion, or recommended usage and never authorizes blocking or
+another automatic action. Current OpenPhish product, format, offline-database,
+false-positive, and licensing research—and the decision not to ship a built-in
+adapter—are documented in
+[`docs/phishing-intelligence.md`](docs/phishing-intelligence.md).
 
 ## STIX 2.1 observed-data export
 

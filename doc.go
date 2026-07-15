@@ -107,6 +107,15 @@
 // truncation, and retry metadata without changing any candidate decision. The
 // library ships no DShield adapter and never contacts the subject IP.
 //
+// NormalizePhishingIntelligenceSnapshot validates caller-owned offline
+// intelligence into an immutable, deterministic snapshot.
+// CorrelatePhishingIntelligence then performs a pure comparison with matching
+// completed threat-candidate and report-evidence results. Version 1 compares
+// only exact canonical source IPs and exact target, author, SPF, or DKIM
+// domains. It never infers URLs, retrieves a feed, matches context fields,
+// contacts a subject IP, changes candidate scoring, or authorizes action. Feed
+// parsing, licensing, refresh, storage, and redistribution remain caller-owned.
+//
 // EvaluateJurisdictionContext is the following pure, offline context stage. It
 // compares completed coarse country assertions with an explicit immutable
 // JurisdictionRiskPolicy, preserves conflicts and provenance, and emits only

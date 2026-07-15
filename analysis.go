@@ -37,6 +37,7 @@ const (
 	AnalysisModeThreatCandidates        AnalysisMode = "threat_candidates"
 	AnalysisModeSourceEnrichment        AnalysisMode = "source_enrichment"
 	AnalysisModeSourceActivity          AnalysisMode = "source_activity"
+	AnalysisModePhishingIntelligence    AnalysisMode = "phishing_intelligence"
 	AnalysisModeJurisdictionContext     AnalysisMode = "jurisdiction_context"
 	AnalysisModeCampaignValidation      AnalysisMode = "campaign_configuration_validation"
 	AnalysisModeCampaignClassification  AnalysisMode = "campaign_classification"

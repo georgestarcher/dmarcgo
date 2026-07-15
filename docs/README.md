@@ -11,6 +11,7 @@ authoritative, versioned sources for behavior.
 | Understand stage ownership and side effects | [Analysis architecture](architecture.md) |
 | Define organizations, domains, records, and expected senders | [Portfolio configuration](portfolio-configuration.md) |
 | Collect declared DNS evidence | [DNS snapshots](dns-snapshots.md) |
+| Compare selected names across optional remote resolver perspectives | [DNS perspectives](dns-perspectives.md) |
 | Parse SPF, DKIM, and DMARC records | [Authentication records](authentication-records.md) |
 | Evaluate DNS posture and maturity | [DNS health](dns-health.md) |
 | Add context-only provider recognition | [Provider catalog](provider-catalog.md) |

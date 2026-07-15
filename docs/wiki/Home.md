@@ -11,6 +11,7 @@ scheduler, dashboard, reputation service, or automatic enforcement system.
 | Question | Start here |
 | --- | --- |
 | What SPF, DKIM, and DMARC records do our domains publish now? | [Domain portfolio and DNS monitoring](Domain-Portfolio-and-DNS-Monitoring) |
+| Do selected authentication names look consistent from optional remote resolver perspectives? | [Domain portfolio and DNS monitoring](Domain-Portfolio-and-DNS-Monitoring) |
 | What did receivers observe in our aggregate reports? | [DMARC report ingestion and reporting](DMARC-Report-Ingestion-and-Reporting) |
 | Do current DNS and historical report evidence agree with declared senders? | [DNS and report correlation](DNS-and-Report-Correlation) |
 | Which unexplained source addresses deserve human review? | [Suspicious-source and phishing review](Suspicious-Source-and-Phishing-Review) |

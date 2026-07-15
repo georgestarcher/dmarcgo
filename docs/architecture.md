@@ -9,6 +9,7 @@ orchestrator may compose them, but composition is not the foundational API.
 
 ```text
 portfolio/configuration -> DNS collection -> DNS parsing -> DNS health
+portfolio + completed DNS snapshot + explicit selection/provider -> optional DNS perspectives
 provider catalog + parsed static SPF dependencies -> provider context
 reports -> normalized report evidence
 portfolio + DNS health + provider context + report evidence -> correlation
@@ -46,6 +47,7 @@ structure containing every possible input or output.
 | DNS collection | `dns_snapshot`, `DNSSnapshot` | DNS snapshot feature |
 | DNS record parsing | `dns_authentication_records`, `DNSAuthenticationResult` | Authentication-record feature |
 | DNS health | `dns_health` | DNS health feature |
+| Optional DNS perspectives | `dns_perspectives`, `DNSPerspectiveResult` | DNS-perspective feature |
 | Normalized report evidence | `report_evidence` | Report-evidence feature |
 | Expected/observed variance | `sender_variance`, correlation findings | Correlation feature |
 | DNS/report correlation | `dns_report_correlation`, `DNSReportCorrelationResult` | Correlation feature |
@@ -72,6 +74,17 @@ checked message counts, deterministic filtering/grouping, and a strict
 intermediate JSON persistence document. It deliberately does not attach
 portfolio entity or expected-sender identities; the correlation stage resolves
 those against the same evidence IDs.
+
+`DNSPerspectiveResult` implements an optional collection branch over a
+normalized portfolio and its matching completed DNS snapshot. The planner
+accepts an explicit owner-name or SPF/DKIM/DMARC role selection, deduplicates
+the already declared names, and emits TXT requests only. A caller-supplied
+`DNSPerspectiveProvider` owns the remote service and transport; the library
+provides no built-in provider. Results preserve terminal success, no-answer,
+failure, rate-limit, malformed, unavailable, and cancellation states plus
+supplemental answer-set and snapshot comparisons. They never feed back into or
+mutate DNS health. A nil provider is a deterministic no-clock, no-network
+not-evaluated branch.
 
 `DNSReportCorrelationResult` implements the pure correlation stage. It owns an
 effective inventory snapshot, deterministic observed streams, thresholds,
@@ -180,6 +193,7 @@ not hide calls to `time.Now` inside pure evaluation.
 | --- | ---: | ---: | ---: | ---: | --- |
 | Report parsing and analytics | Supplied report only | Only explicit load APIs | No | No | Parsing and report evaluation |
 | DNS snapshot collection | No | No | Explicit resolver only | No | Bounded DNS collection |
+| Optional DNS perspectives | No | No | Explicit perspective provider only | No | Bounded selected-name collection |
 | DNS parsing and health | No | No | No | No | Evaluation of supplied snapshot |
 | Report evidence | Supplied report/results only | No implicit loading | No | No | Evidence normalization |
 | Correlation and variance | Supplied completed values only | No | No | No | Correlation |
@@ -217,6 +231,14 @@ file is intentionally outside the pure-stage import audit; campaign
 configuration normalization, evidence normalization, matching, aggregate
 review, and output remain inside it. See
 [Security-simulation campaign correlation](campaign-correlation.md).
+
+The Phase 15 DNS-perspective gate uses synthetic provider fixtures and the
+ignored private portfolio record-name collection to prove explicit selection,
+TXT-only planning, deduplication, bounded concurrency, no retry, cancellation,
+partial failure, deterministic comparison, defensive copies, and isolation
+from DNS health. A skipped-by-default one-request DShield compatibility check
+is research instrumentation only; ordinary tests and CI perform no live
+lookup. See [Optional DNS perspective collection](dns-perspectives.md).
 
 The provider catalog is inert, versioned context rather than a collection
 stage. Catalog loading reads only caller-supplied bytes or the embedded file.

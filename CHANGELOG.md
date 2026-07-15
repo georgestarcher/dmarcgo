@@ -42,6 +42,13 @@ and this project uses semantic versioning for public API changes.
   retry and failure policies, shared-name deduplication, immutable evidence,
   deterministic timestamps, fragment-preserving TXT records, and structured
   diagnostics.
+- Explicit optional DNS-perspective collection for caller-selected,
+  portfolio-declared authentication TXT names, with a provider-neutral
+  interface, no-retry bounded disclosure, deterministic answer-set and trusted
+  snapshot comparison, partial-failure-safe immutable evidence, a nil-provider
+  no-op, and no DNS-health or maturity effects. Current DShield research and
+  the decision not to ship an adapter without usable authentication-owner TXT
+  behavior are documented.
 - Standard-library and DNS-message resolver adapters. The DNS-message adapter
   preserves TTL, authoritative/recursive source, RCODE, CNAME path, SOA, and
   RFC 2308 negative-cache TTL evidence; limited adapters mark unavailable

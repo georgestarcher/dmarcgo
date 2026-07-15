@@ -25,6 +25,24 @@ func (resolver exampleTXTResolver) LookupTXT(_ context.Context, name string) (TX
 	}, nil
 }
 
+type exampleDNSPerspectiveProvider map[string]string
+
+func (provider exampleDNSPerspectiveProvider) LookupDNSPerspective(ctx context.Context, query DNSPerspectiveQuery) (DNSPerspectiveResponse, error) {
+	select {
+	case <-ctx.Done():
+		return DNSPerspectiveResponse{}, ctx.Err()
+	default:
+	}
+	answer := DNSPerspectiveAnswer{Fragments: []string{provider[query.Name]}, FragmentsAvailable: true}
+	return DNSPerspectiveResponse{
+		Provider: "offline-example", Dataset: "embedded-fixture-v1",
+		Observations: []DNSPerspectiveProviderObservation{
+			{PerspectiveID: "resolver-a", Perspective: "fixture-a", Outcome: DNSPerspectiveSuccess, Answers: []DNSPerspectiveAnswer{answer}},
+			{PerspectiveID: "resolver-b", Perspective: "fixture-b", Outcome: DNSPerspectiveSuccess, Answers: []DNSPerspectiveAnswer{answer}},
+		},
+	}, nil
+}
+
 type exampleIPEnricher map[netip.Addr]IPMetadata
 
 func (enricher exampleIPEnricher) EnrichIP(ctx context.Context, ip netip.Addr) (IPMetadata, error) {
@@ -175,6 +193,47 @@ func ExampleEvaluateDNSHealth() {
 	}
 	fmt.Printf("score=%d grade=%s maturity=%s findings=%d\n", health.PortfolioScore().Value, health.PortfolioScore().Grade, health.PortfolioMaturity().Name, len(health.Findings()))
 	// Output: score=100 grade=A+ maturity=basic findings=0
+}
+
+// ExampleCollectDNSPerspectives demonstrates explicit, offline-fixture
+// resolver-consistency collection for selected portfolio record roles.
+func ExampleCollectDNSPerspectives() {
+	portfolio, err := NormalizePortfolio(PortfolioConfig{
+		SchemaVersion: PortfolioSchemaVersion,
+		Organization:  OrganizationConfig{ID: "example-org"},
+		Entities: []EntityConfig{{ID: "primary", Domains: []DomainConfig{{
+			Name: "example.test", Records: MonitoredRecordsConfig{
+				SPF:   []string{"example.test"},
+				DKIM:  []string{"primary._domainkey.example.test"},
+				DMARC: []string{"_dmarc.example.test"},
+			},
+		}}}},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	values := map[string]string{
+		"example.test":                    "v=spf1 -all",
+		"primary._domainkey.example.test": "v=DKIM1; k=ed25519; p=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+		"_dmarc.example.test":             "v=DMARC1; p=reject",
+	}
+	observedAt := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
+	snapshot, err := CollectDNSSnapshot(context.Background(), portfolio, exampleTXTResolver(values), DNSCollectionOptions{
+		Clock: ClockFunc(func() time.Time { return observedAt }), MaxAttempts: 1,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result, err := CollectDNSPerspectives(context.Background(), portfolio, snapshot, exampleDNSPerspectiveProvider(values), DNSPerspectiveOptions{
+		Selection: DNSPerspectiveSelection{Roles: []DNSRecordType{DNSRecordSPF, DNSRecordDKIM, DNSRecordDMARC}},
+		Clock:     ClockFunc(func() time.Time { return observedAt.Add(time.Minute) }),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	summary := result.Summary()
+	fmt.Printf("queries=%d successful_perspectives=%d findings=%d complete=%t\n", summary.Queries, summary.SuccessfulPerspectives, summary.Findings, result.Complete())
+	// Output: queries=3 successful_perspectives=6 findings=0 complete=true
 }
 
 // ExampleAnalyzeReportEvidence demonstrates reusable report-only evidence and

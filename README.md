@@ -75,6 +75,14 @@ DNS snapshot collection is an explicit, separate stage. It deduplicates the
 portfolio's monitored TXT owner names and records immutable evidence through a
 caller-selected resolver. See [DNS snapshot collection](docs/dns-snapshots.md).
 
+Optional DNS perspective collection is another explicit networked stage. It
+discloses only caller-selected, portfolio-declared SPF/DKIM/DMARC TXT names to a
+caller-supplied provider and returns supplemental resolver-consistency evidence
+without changing the trusted snapshot or DNS health. The library ships no
+DShield adapter because bounded 2026-07-14 research did not establish usable
+TXT support for authentication owner names. See
+[Optional DNS perspective collection](docs/dns-perspectives.md).
+
 Authentication-record parsing is the following side-effect-free stage. It
 parses supplied SPF, DKIM, and current RFC 9989 DMARC values without performing
 lookups, and preserves missing or unavailable evidence explicitly. See
@@ -196,6 +204,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
 | You want configuration diagnostics | `dmarcgo.ValidatePortfolio(config, generatedAt)` | Returns value-safe structured diagnostics without I/O. |
 | You want reusable DNS evidence for a portfolio | `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)` | Explicitly queries only configured TXT names; use `DNSMessageResolver` when TTL and authority evidence matter. |
+| You explicitly want remote resolver-consistency context | `dmarcgo.CollectDNSPerspectives(ctx, portfolio, snapshot, provider, options)` | Queries only explicitly selected portfolio/snapshot TXT names through a caller-supplied provider; nil is a no-op, there are no retries, and results never change DNS health or maturity. |
 | You want parsed SPF, DKIM, and DMARC semantics | `dmarcgo.ParseAuthenticationRecords(snapshot)` | Purely parses an existing snapshot; performs no DNS, report, filesystem, or time access. |
 | You want DNS-only authentication posture, maturity, and explainable scores | `dmarcgo.EvaluateDNSHealth(portfolio, authentication, providerCatalog, options)` | Purely evaluates completed values with independent SPF/DKIM/DMARC scores, grades, coverage, and context-only provider recognition. |
 | You need to validate one supplied record string | `dmarcgo.ParseSPFRecord`, `dmarcgo.ParseDKIMKeyRecord`, or `dmarcgo.ParseDMARCPolicyRecord` | Returns typed semantics plus value-safe diagnostics without I/O. |
@@ -213,6 +222,7 @@ runs another stage.
 | Goal | Workflow | What it does not require |
 | --- | --- | --- |
 | Current SPF, DKIM, and DMARC posture | portfolio -> DNS snapshot -> authentication parsing -> DNS health | Reports or enrichment |
+| Compare selected names across remote resolver perspectives | portfolio + completed DNS snapshot + explicit selection + caller provider -> DNS perspectives | Health-score changes, authoritative truth, broad discovery, or source-IP queries |
 | Historical receiver observations | parsed reports -> report evidence | DNS, portfolio, or enrichment |
 | Sender onboarding and drift review | portfolio + completed DNS health + report evidence -> correlation | New lookups or reparsing |
 | Review a reported message against authorized simulations | explicit campaign sources -> immutable snapshot; normalized message evidence + snapshot -> campaign classification | DNS, report parsing, body storage, or implicit source refresh |

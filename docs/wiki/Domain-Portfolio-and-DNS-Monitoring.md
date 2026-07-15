@@ -20,6 +20,9 @@ declared sender inventory?
   `_domainkey` names. Store names, never live TXT values or credentials.
 - An explicit `TXTResolver` selected by the application.
 - An explicit provider catalog and DNS-health options.
+- Optionally, an explicit `DNSPerspectiveProvider` and exact owner-name or
+  SPF/DKIM/DMARC role selection when remote resolver-consistency context is
+  authorized.
 
 ## Activity and side effects
 
@@ -27,19 +30,30 @@ Loading and normalizing the portfolio is offline. `CollectDNSSnapshot` is the
 only DNS collection stage and queries only normalized, declared owner names.
 Record parsing and health evaluation are pure operations over completed values.
 
+`CollectDNSPerspectives` is a separate optional networked branch. It discloses
+only the selected portfolio/snapshot TXT owner names to a caller-supplied
+provider. It does not discover names, retry, query source IPs, or change DNS
+health. The library ships no DShield adapter because current research did not
+establish usable authentication-owner TXT behavior.
+
 ## Starting APIs
 
 1. `LoadPortfolioYAML` or `NormalizePortfolio`
 2. `CollectDNSSnapshot`
 3. `ParseAuthenticationRecords`
 4. `EvaluateDNSHealth`
-5. `WriteDNSHealthOutput` when serialization is needed
+5. Optionally, `CollectDNSPerspectives` with an explicit disclosure selection
+6. `WriteDNSHealthOutput` when serialization is needed
 
 ## Outputs
 
 Immutable DNS evidence, parsed authentication-record semantics, independent
 SPF/DKIM/DMARC mechanism health, findings, coverage, scores, grades, categorical
 maturity, and entity/portfolio rollups.
+
+The optional perspective result adds answer-set agreement, disagreement, and
+incomplete-coverage context. It is not authoritative DNS evidence and does not
+alter those posture outputs.
 
 ## What this does not prove
 
@@ -63,6 +77,7 @@ historical report evidence only when the question requires observed mail flows.
 
 - [Portfolio configuration](https://github.com/georgestarcher/dmarcgo/blob/main/docs/portfolio-configuration.md)
 - [DNS snapshot collection](https://github.com/georgestarcher/dmarcgo/blob/main/docs/dns-snapshots.md)
+- [Optional DNS perspective collection](https://github.com/georgestarcher/dmarcgo/blob/main/docs/dns-perspectives.md)
 - [Authentication-record parsing](https://github.com/georgestarcher/dmarcgo/blob/main/docs/authentication-records.md)
 - [DNS authentication health](https://github.com/georgestarcher/dmarcgo/blob/main/docs/dns-health.md)
 - [Provider catalog](https://github.com/georgestarcher/dmarcgo/blob/main/docs/provider-catalog.md)

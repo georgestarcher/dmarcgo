@@ -36,6 +36,21 @@ jurisdiction context, or remote DNS perspectives, use the
 It explains which features use programmatic inputs, which require a
 caller-supplied adapter, and why none are enabled by a portfolio setting.
 
+For a first runnable integration, choose one short path before reading the API
+catalog:
+
+- [Portfolio YAML to current DNS health](docs/getting-started-domain-health.md)
+  uses the complete program under [`examples/go/domain-health`](examples/go/domain-health).
+- [Report directory to corpus evidence](docs/getting-started-report-directory.md)
+  uses the complete program under
+  [`examples/go/report-directory`](examples/go/report-directory), including
+  correct handling of unrelated files.
+
+Both examples are ordinary application code rather than a shipped CLI. They
+make input and output paths, network activity, redaction, and error handling
+visible so a person or coding agent can adapt them without inventing an
+orchestrator.
+
 ## Install
 
 From another Go module:

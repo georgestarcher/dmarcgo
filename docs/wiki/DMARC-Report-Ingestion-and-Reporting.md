@@ -52,12 +52,16 @@ behavior, and reporter contacts. Do not commit real corpora. Use
 
 ## Safe next steps
 
+Begin with the runnable
+[report-directory journey](https://github.com/georgestarcher/dmarcgo/blob/main/docs/getting-started-report-directory.md).
 Persist the immutable evidence with its metadata, keep report-period bounds
 distinct from exact event times, and introduce portfolio or DNS context only in
 the dedicated correlation stage.
 
 ## Authoritative references
 
+- [Runnable report-directory journey](https://github.com/georgestarcher/dmarcgo/blob/main/docs/getting-started-report-directory.md)
+- [Complete Go example](https://github.com/georgestarcher/dmarcgo/tree/main/examples/go/report-directory)
 - [README input and API guide](https://github.com/georgestarcher/dmarcgo/blob/main/README.md)
 - [Report evidence](https://github.com/georgestarcher/dmarcgo/blob/main/docs/report-evidence.md)
 - [Automation workflows](https://github.com/georgestarcher/dmarcgo/blob/main/docs/automation-workflows.md)

@@ -23,6 +23,20 @@ Before writing integration code, inspect the exact version selected in
 `go.mod`, the relevant exported options, and the schema discovery API for the
 chosen output. Do not copy an API name from a roadmap issue or older v1 example.
 
+Start from the compile-tested application that matches the user's first
+question:
+
+- [`examples/go/domain-health`](../examples/go/domain-health) for an
+  application-owned portfolio YAML and current DNS posture; or
+- [`examples/go/report-directory`](../examples/go/report-directory) for an
+  application-owned directory of aggregate-report artifacts.
+
+Walk through the linked
+[domain-health](getting-started-domain-health.md) or
+[report-directory](getting-started-report-directory.md) guide in order. Adapt
+the visible paths and destinations instead of inventing a global configuration
+file, hidden provider, or combined monitoring call.
+
 ## Integration decision tree
 
 1. If the input is one local report artifact, use `LoadFile`.
@@ -84,6 +98,10 @@ Also ask whether the scope is one organization, owned subsidiaries or business
 units, or reference-only sister organizations, and who controls DNS and the
 result destination. If the user only wants report summaries, explain that no
 portfolio or DNS setup is required.
+
+Once the goal is confirmed, point to the matching complete program under
+`examples/go` and explain which files the application owns, what network or
+filesystem activity the run will perform, and exactly where output will go.
 
 ### 2. Build the domain inventory
 

@@ -8,8 +8,8 @@ authoritative, versioned sources for behavior.
 
 | Audience | Start here | Continue with |
 | --- | --- | --- |
-| New Go application developer | [Organization adoption](adoption-guide.md) | [Consumer-agent guide](consumer-agent-guide.md), then the selected feature guide |
-| Email or DNS administrator | [Configuration reference](configuration-reference.md) | [Portfolio configuration](portfolio-configuration.md), [DNS snapshots](dns-snapshots.md), and [DNS health](dns-health.md) |
+| New Go application developer | [Domain portfolio to DNS health](getting-started-domain-health.md) or [report directory to evidence](getting-started-report-directory.md) | [Organization adoption](adoption-guide.md), then the selected feature guide |
+| Email or DNS administrator | [Domain portfolio to DNS health](getting-started-domain-health.md) | [Portfolio configuration](portfolio-configuration.md), [DNS snapshots](dns-snapshots.md), and [DNS health](dns-health.md) |
 | SOC or security engineering | [Automation workflows](automation-workflows.md) | [Optional context configuration](optional-context-configuration.md), then correlation, threat-candidate, and export guides |
 | Security-awareness team | [Campaign correlation](campaign-correlation.md) | [Configuration reference](configuration-reference.md) and disclosure-safe output guidance |
 | Platform operator or reviewer | [Operations and troubleshooting](operations-and-troubleshooting.md) | [Analysis architecture](architecture.md) and [output contract](output-contract.md) |
@@ -19,6 +19,8 @@ authoritative, versioned sources for behavior.
 
 | Goal | Authoritative guide |
 | --- | --- |
+| Run a portfolio YAML through current DNS health | [Getting started with a domain portfolio](getting-started-domain-health.md) |
+| Run a directory of aggregate reports through corpus analysis | [Getting started with a report directory](getting-started-report-directory.md) |
 | Adopt the complete library safely | [Organization adoption](adoption-guide.md) |
 | Look up exact portfolio and campaign fields | [Configuration reference](configuration-reference.md) |
 | Integrate from an AI coding assistant | [Consumer-agent guide](consumer-agent-guide.md) |

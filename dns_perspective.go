@@ -600,6 +600,9 @@ func normalizeDNSPerspectiveResponse(item dnsPerspectivePlanItem, response DNSPe
 		return DNSPerspectiveQueryResult{}, nil, nil, false, ErrInvalidDNSPerspectiveResponse
 	}
 	textBytes := len(response.Provider) + len(response.Dataset) + len(response.ReferenceID)
+	if textBytes > options.MaxTotalTextBytes {
+		return DNSPerspectiveQueryResult{}, nil, nil, false, ErrInvalidDNSPerspectiveResponse
+	}
 	retryAfter, err := normalizeDNSPerspectiveRetryAfter(response.RetryAfter, options.MaxRetryAfter)
 	if err != nil {
 		return DNSPerspectiveQueryResult{}, nil, nil, false, err
@@ -865,7 +868,7 @@ func dnsPerspectiveSnapshotAgreement(snapshot DNSPerspectiveSnapshotReference, o
 			return DNSPerspectiveAnswersDisagree
 		}
 	}
-	if success == 0 {
+	if success < 2 {
 		return DNSPerspectiveAgreementUnknown
 	}
 	return DNSPerspectiveAnswersAgree

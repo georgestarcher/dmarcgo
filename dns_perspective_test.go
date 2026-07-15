@@ -236,16 +236,26 @@ func TestCollectDNSPerspectivesCoverageStates(t *testing.T) {
 		wantNoAnswer      int
 		wantFailed        int
 		wantDiagnostics   int
+		wantFindings      int
 		wantNormalizedAns int
 	}{
 		{
-			name: "one successful perspective is not agreement",
+			name: "one successful matching perspective is not agreement",
 			observations: []DNSPerspectiveProviderObservation{{
 				PerspectiveID: "one", Outcome: DNSPerspectiveSuccess,
 				Answers: []DNSPerspectiveAnswer{{Joined: "synthetic-value"}, {Joined: "synthetic-value"}},
 			}},
 			wantOutcome: DNSPerspectiveSuccess, wantAgreement: DNSPerspectiveAgreementUnknown,
-			wantSnapshot: DNSPerspectiveAnswersAgree, wantSuccess: 1, wantNormalizedAns: 1,
+			wantSnapshot: DNSPerspectiveAgreementUnknown, wantSuccess: 1, wantNormalizedAns: 1,
+		},
+		{
+			name: "one successful mismatching perspective remains disagreement",
+			observations: []DNSPerspectiveProviderObservation{{
+				PerspectiveID: "one", Outcome: DNSPerspectiveSuccess,
+				Answers: []DNSPerspectiveAnswer{{Joined: "different-value"}},
+			}},
+			wantOutcome: DNSPerspectiveSuccess, wantAgreement: DNSPerspectiveAgreementUnknown,
+			wantSnapshot: DNSPerspectiveAnswersDisagree, wantSuccess: 1, wantFindings: 1, wantNormalizedAns: 1,
 		},
 		{
 			name: "no answer perspectives",
@@ -263,7 +273,7 @@ func TestCollectDNSPerspectivesCoverageStates(t *testing.T) {
 				{PerspectiveID: "two", Outcome: DNSPerspectiveFailed},
 			},
 			wantOutcome: DNSPerspectiveSuccess, wantAgreement: DNSPerspectiveAgreementUnknown,
-			wantSnapshot: DNSPerspectiveAnswersAgree, wantSuccess: 1, wantFailed: 1, wantDiagnostics: 1, wantNormalizedAns: 1,
+			wantSnapshot: DNSPerspectiveAgreementUnknown, wantSuccess: 1, wantFailed: 1, wantDiagnostics: 1, wantNormalizedAns: 1,
 		},
 		{
 			name:        "empty provider coverage is unavailable",
@@ -287,8 +297,8 @@ func TestCollectDNSPerspectivesCoverageStates(t *testing.T) {
 			if !result.Complete() || query.Outcome != test.wantOutcome || query.PerspectiveAgreement != test.wantAgreement ||
 				query.SnapshotAgreement != test.wantSnapshot || query.SuccessfulPerspectives != test.wantSuccess ||
 				query.NoAnswerPerspectives != test.wantNoAnswer || query.FailedPerspectives != test.wantFailed ||
-				len(result.Diagnostics()) != test.wantDiagnostics {
-				t.Fatalf("query=%+v diagnostics=%+v", query, result.Diagnostics())
+				len(result.Diagnostics()) != test.wantDiagnostics || len(result.Findings()) != test.wantFindings {
+				t.Fatalf("query=%+v diagnostics=%+v findings=%+v", query, result.Diagnostics(), result.Findings())
 			}
 			if test.wantNormalizedAns > 0 && len(query.Observations[0].Answers) != test.wantNormalizedAns {
 				t.Fatalf("normalized answers=%+v", query.Observations[0].Answers)
@@ -357,6 +367,9 @@ func TestCollectDNSPerspectivesRejectsMalformedProviderEvidence(t *testing.T) {
 			{PerspectiveID: "one", Outcome: DNSPerspectiveFailed, Answers: []DNSPerspectiveAnswer{{Joined: "value"}}},
 		}}},
 		{name: "control text", response: DNSPerspectiveResponse{Provider: "fixture\nattack", Dataset: "fixture"}},
+		{name: "metadata-only total text budget", response: DNSPerspectiveResponse{
+			Provider: "fixture", Dataset: "fixture", ReferenceID: "reference",
+		}, options: DNSPerspectiveOptions{MaxTextBytes: 64, MaxTotalTextBytes: 16}},
 		{name: "total text budget", response: DNSPerspectiveResponse{Provider: "fixture", Dataset: "fixture", Observations: []DNSPerspectiveProviderObservation{
 			{PerspectiveID: "one", Perspective: strings.Repeat("x", 32), Outcome: DNSPerspectiveNoAnswer},
 		}}, options: DNSPerspectiveOptions{MaxTextBytes: 64, MaxTotalTextBytes: 16}},

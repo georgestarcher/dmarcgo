@@ -38,9 +38,10 @@ or personal access token to pull-request workflows.
 
 ## Privacy review
 
-Wiki examples must remain synthetic. Never add real report contents, source IPs,
-private domains, record-name inventories, campaign details, contacts,
-credentials, local paths, or private provider overlays.
+Wiki examples remain synthetic by default. An explicitly owner-authorized
+point-in-time summary may identify the maintainer's domain, but never add raw
+report contents, source IPs, contacts, credentials, local paths, private
+configuration, or private provider overlays to the wiki.
 
 ## Authoritative references
 

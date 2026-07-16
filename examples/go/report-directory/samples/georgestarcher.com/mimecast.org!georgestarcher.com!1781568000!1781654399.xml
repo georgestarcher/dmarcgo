@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<feedback>
+  <report_metadata>
+    <org_name>Mimecast</org_name>
+    <email>no-reply@us-1.mimecastreport.com</email>
+    <extra_contact_info>https://community.mimecast.com/s/knowledge</extra_contact_info>
+    <report_id>a877f65e16f46789f8428d867e2393c86772449e2ae4711f7d0ec8bbc2447ea2</report_id>
+    <date_range>
+      <begin>1781568000</begin>
+      <end>1781654399</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>georgestarcher.com</domain>
+    <adkim>s</adkim>
+    <aspf>s</aspf>
+    <p>reject</p>
+    <sp>reject</sp>
+    <pct>100</pct>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>209.85.128.173</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>georgestarcher.com</header_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>georgestarcher.com</domain>
+        <selector>google</selector>
+        <result>pass</result>
+        <human_result/>
+      </dkim>
+      <spf>
+        <domain>georgestarcher.com</domain>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>

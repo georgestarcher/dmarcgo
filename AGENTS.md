@@ -27,7 +27,9 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
   the public Go API and the authoritative feature guides.
 - Never copy a private portfolio, provider overlay, report corpus, campaign
   inventory, source address, credential, contact, or local path into public
-  documentation or examples.
+  documentation or examples without the data owner's explicit, artifact-level
+  publication approval. Keep any approved exception minimal, documented beside
+  the artifact, and separate from deterministic test fixtures.
 
 ## Scope
 
@@ -59,9 +61,11 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 - Run `make wiki-check` after wiki edits. Pull requests validate source with
   read-only permissions; only trusted `main` or an explicit trusted manual run
   may publish.
-- Wiki pages and examples must remain synthetic. Never copy private portfolios,
-  record-name lists, report corpora, campaign inventories, source IPs,
-  credentials, contacts, local paths, or private provider overlays into them.
+- Wiki pages and examples remain synthetic by default. A point-in-time summary
+  of maintainer-owned public DNS or reports may identify the maintainer's domain
+  only with explicit publication approval; do not publish source IPs, report
+  contents, contacts, credentials, local paths, or private configuration in the
+  wiki.
 - Keep separate journeys separate. In particular, do not present DNS posture,
   historical report evidence, approved campaign classification, or suspicious
   source scoring as interchangeable verdicts.
@@ -87,9 +91,10 @@ For a first integration, inspect the complete copyable programs under
   directory, validates and deduplicates reports, summarizes the corpus, writes
   rows and normalized evidence, and demonstrates optional correlation.
 
-Use only synthetic committed fixtures. Private domains, record inventories,
-report corpora, and source IPs may be used for local compatibility testing but
-must not enter these public examples.
+Use only synthetic committed test fixtures. The explicitly owner-authorized
+mini corpus under `examples/go/report-directory/samples/georgestarcher.com` is
+a documentation sample, not test input or general permission to publish
+private domains, record inventories, report corpora, or source IPs.
 
 ## Choose the right API
 
@@ -529,7 +534,9 @@ tests used by the cross-mode integration gate.
 - Use `dmarcgo.WithMaxDecompressedBytes(n)` to raise or lower the limit.
 - Use `dmarcgo.WithMaxDecompressedBytes(-1)` only when the caller has another archive-bomb control.
 - Real DMARC reports can expose domains, source IPs, provider metadata, authentication behavior, and contact details.
-- Do not commit real report corpora. Use `testdata/fixtures` only for synthetic or anonymized fixtures.
+- Do not commit real report corpora without explicit artifact-level owner
+  approval. Keep an approved public sample minimal and outside `testdata`;
+  `testdata/fixtures` remains synthetic or anonymized only.
 - The repository intentionally ignores `test_dmarc_reports/`.
 - Parsing does not perform DNS lookups or network access.
 

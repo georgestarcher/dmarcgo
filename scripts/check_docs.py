@@ -55,6 +55,13 @@ PRIVATE_SAMPLE_MARKERS = (
     "private-test-domains",
     "private_test_domains",
 )
+OWNER_AUTHORIZED_PUBLIC_SAMPLES = frozenset(
+    {
+        ROOT / "examples/go/report-directory/samples/georgestarcher.com/google.com!georgestarcher.com!1783382400!1783468799.xml",
+        ROOT / "examples/go/report-directory/samples/georgestarcher.com/mimecast.org!georgestarcher.com!1781568000!1781654399.xml",
+        ROOT / "examples/go/report-directory/samples/georgestarcher.com/yahoo.com!georgestarcher.com!1781740800!1781827199.xml",
+    }
+)
 COMMON_MISSPELLINGS = {
     "adress": "address",
     "compatability": "compatibility",
@@ -364,6 +371,12 @@ def validate_sample_safety(errors: list[str], path: Path, provider_domains: set[
     for marker in PRIVATE_SAMPLE_MARKERS:
         if marker.casefold() in folded:
             report(errors, path, f"contains prohibited private marker {marker!r}")
+
+    # These exact three reports have artifact-level publication approval from
+    # the domain owner. Keep the exception path-specific so adding another file
+    # beside them still receives the normal reserved-domain/address checks.
+    if path in OWNER_AUTHORIZED_PUBLIC_SAMPLES:
+        return
 
     is_go = path.suffix == ".go"
     network_text = go_strings_and_comments(text) if is_go else text

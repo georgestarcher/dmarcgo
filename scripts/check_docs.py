@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import re
 import sys
@@ -55,13 +56,11 @@ PRIVATE_SAMPLE_MARKERS = (
     "private-test-domains",
     "private_test_domains",
 )
-OWNER_AUTHORIZED_PUBLIC_SAMPLES = frozenset(
-    {
-        ROOT / "examples/go/report-directory/samples/georgestarcher.com/google.com!georgestarcher.com!1783382400!1783468799.xml",
-        ROOT / "examples/go/report-directory/samples/georgestarcher.com/mimecast.org!georgestarcher.com!1781568000!1781654399.xml",
-        ROOT / "examples/go/report-directory/samples/georgestarcher.com/yahoo.com!georgestarcher.com!1781740800!1781827199.xml",
-    }
-)
+OWNER_AUTHORIZED_PUBLIC_SAMPLE_DIGESTS = {
+    ROOT / "examples/go/report-directory/samples/georgestarcher.com/google.com!georgestarcher.com!1783382400!1783468799.xml": "11cec898266fdb4cf3c0b4f3c0e577de04bc9ec2cd31197aff6b008f8b23d747",
+    ROOT / "examples/go/report-directory/samples/georgestarcher.com/mimecast.org!georgestarcher.com!1781568000!1781654399.xml": "abddb5dd83a846a558357f7e32b5102fe4edd6d2d8ef569a74dbf400fe70ea15",
+    ROOT / "examples/go/report-directory/samples/georgestarcher.com/yahoo.com!georgestarcher.com!1781740800!1781827199.xml": "fb2e40549165996b81efc6babcdc356b4465680bcb5a735ab60b42c9ad10af1b",
+}
 COMMON_MISSPELLINGS = {
     "adress": "address",
     "compatability": "compatibility",
@@ -363,8 +362,14 @@ def validate_markdown(errors: list[str], path: Path, allowed: set[str]) -> None:
             report(errors, path, f"contains {misspelling!r}; use {correction!r} or add an intentional exception to {ALLOWLIST_PATH.relative_to(ROOT)}")
 
 
+def owner_authorized_public_sample(path: Path, payload: bytes) -> bool:
+    expected = OWNER_AUTHORIZED_PUBLIC_SAMPLE_DIGESTS.get(path)
+    return expected is not None and hashlib.sha256(payload).hexdigest() == expected
+
+
 def validate_sample_safety(errors: list[str], path: Path, provider_domains: set[str]) -> None:
-    text = path.read_text(encoding="utf-8")
+    payload = path.read_bytes()
+    text = payload.decode("utf-8")
     if SECRET_RE.search(text):
         report(errors, path, "contains a credential-shaped value")
     folded = text.casefold()
@@ -372,10 +377,10 @@ def validate_sample_safety(errors: list[str], path: Path, provider_domains: set[
         if marker.casefold() in folded:
             report(errors, path, f"contains prohibited private marker {marker!r}")
 
-    # These exact three reports have artifact-level publication approval from
-    # the domain owner. Keep the exception path-specific so adding another file
-    # beside them still receives the normal reserved-domain/address checks.
-    if path in OWNER_AUTHORIZED_PUBLIC_SAMPLES:
+    # These exact three report contents have artifact-level publication approval
+    # from the domain owner. Both path and digest must match so replacement or
+    # adjacent files still receive the normal reserved-domain/address checks.
+    if owner_authorized_public_sample(path, payload):
         return
 
     is_go = path.suffix == ".go"

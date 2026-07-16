@@ -37,14 +37,16 @@ func example(value context.Context) {
 
 
 class SampleNetworkTests(unittest.TestCase):
-    def test_owner_authorized_sample_exception_is_exact(self) -> None:
+    def test_owner_authorized_sample_exception_requires_exact_content(self) -> None:
         approved = (
             check_docs.ROOT
             / "examples/go/report-directory/samples/georgestarcher.com/google.com!georgestarcher.com!1783382400!1783468799.xml"
         )
         adjacent = approved.with_name("another-real-report.xml")
-        self.assertIn(approved, check_docs.OWNER_AUTHORIZED_PUBLIC_SAMPLES)
-        self.assertNotIn(adjacent, check_docs.OWNER_AUTHORIZED_PUBLIC_SAMPLES)
+        payload = approved.read_bytes()
+        self.assertTrue(check_docs.owner_authorized_public_sample(approved, payload))
+        self.assertFalse(check_docs.owner_authorized_public_sample(approved, payload + b"\n"))
+        self.assertFalse(check_docs.owner_authorized_public_sample(adjacent, payload))
 
     def test_accepts_reserved_domains_and_documentation_addresses(self) -> None:
         sample = """

@@ -20,6 +20,8 @@ REPOSITORY = "georgestarcher/dmarcgo"
 MARKDOWN_FILES = (
     ROOT / "README.md",
     ROOT / "AGENTS.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "RELEASING.md",
     *(path for path in sorted(DOCS_ROOT.rglob("*.md"))),
 )
 PUBLIC_SAMPLE_FILES = (

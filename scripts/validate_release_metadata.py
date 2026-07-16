@@ -21,6 +21,22 @@ TAG_PATTERN = re.compile(
     rf"(?:-{SEMVER_PRERELEASE_IDENTIFIER}(?:\.{SEMVER_PRERELEASE_IDENTIFIER})*)?"
     rf"(?:\+{SEMVER_BUILD_IDENTIFIER}(?:\.{SEMVER_BUILD_IDENTIFIER})*)?$"
 )
+RELEASE_HEADING_PATTERN = re.compile(
+    r"^## \[([^]]+)\] - \d{4}-\d{2}-\d{2}$"
+)
+
+
+def newest_release_tag(changelog: str) -> str | None:
+    """Return the first dated changelog version as a v-prefixed tag."""
+    version = next(
+        (
+            match.group(1)
+            for line in changelog.splitlines()
+            if (match := RELEASE_HEADING_PATTERN.fullmatch(line))
+        ),
+        None,
+    )
+    return None if version is None else f"v{version}"
 
 
 def validate_release_metadata(tag: str, go_mod: str, changelog: str) -> list[str]:
@@ -61,16 +77,22 @@ def validate_release_metadata(tag: str, go_mod: str, changelog: str) -> list[str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tag", required=True, help="release tag including leading v")
+    parser.add_argument(
+        "--tag",
+        help="release tag including leading v; defaults to the newest dated changelog entry",
+    )
     parser.add_argument("--go-mod", default="go.mod", help="go.mod path")
     parser.add_argument("--changelog", default="CHANGELOG.md", help="changelog path")
     args = parser.parse_args()
 
-    errors = validate_release_metadata(
-        args.tag,
-        Path(args.go_mod).read_text(encoding="utf-8"),
-        Path(args.changelog).read_text(encoding="utf-8"),
-    )
+    go_mod = Path(args.go_mod).read_text(encoding="utf-8")
+    changelog = Path(args.changelog).read_text(encoding="utf-8")
+    tag = args.tag or newest_release_tag(changelog)
+    if tag is None:
+        print("no dated changelog release exists", file=sys.stderr)
+        return 1
+
+    errors = validate_release_metadata(tag, go_mod, changelog)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)

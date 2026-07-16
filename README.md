@@ -1639,6 +1639,8 @@ DMARC failure reports are separate. They are described by [RFC 9991](https://www
 - Read [SUPPORT.md](SUPPORT.md) before opening a usage or bug report.
 - Use the structured GitHub issue forms and never attach a live DMARC report.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for development and release checks.
+- Maintainers should follow [RELEASING.md](RELEASING.md) for the complete signed
+  tag, automated GitHub Release, Go-module publication, and recovery procedure.
 - Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 - Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 

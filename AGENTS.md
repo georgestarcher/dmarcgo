@@ -624,6 +624,17 @@ Documentation-only changes still run the complete documentation gate:
 make docs-check
 ```
 
+Maintainer releases follow `RELEASING.md`. Use the parameterized preflight
+target before tagging and the bounded public-channel check after publication:
+
+```shell
+make release-check VERSION=v3.0.1
+make post-release-check VERSION=v3.0.1
+```
+
+Never create a release tag from an unmerged branch, bypass signed annotated-tag
+verification, or move or reuse a tag after it has been pushed.
+
 `docs-check` compiles README snippets in an isolated consumer module, executes
 all Go examples, validates public configuration fixtures, checks the canonical
 wiki, checks exact internal links and anchors, applies the curated spelling

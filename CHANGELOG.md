@@ -7,6 +7,12 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+### Added
+
+- A repeatable maintainer release runbook, parameterized release preflight, and
+  bounded post-release verification for the GitHub Release, Go proxy, checksum
+  database, and pkg.go.dev.
+
 ## [3.0.0] - 2026-07-16
 
 Version 3 publishes the completed organization-posture, report-correlation,

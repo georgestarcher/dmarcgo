@@ -9,6 +9,29 @@ import validate_release_metadata
 
 
 class ReleaseMetadataTests(unittest.TestCase):
+    def test_derives_newest_dated_release_tag(self) -> None:
+        changelog = """# Changelog
+
+## Unreleased
+
+## [3.1.0] - 2026-08-01
+
+Notes.
+
+## [3.0.0] - 2026-07-16
+"""
+        self.assertEqual(
+            validate_release_metadata.newest_release_tag(changelog),
+            "v3.1.0",
+        )
+
+    def test_reports_no_release_tag_without_dated_entry(self) -> None:
+        self.assertIsNone(
+            validate_release_metadata.newest_release_tag(
+                "# Changelog\n\n## Unreleased\n"
+            )
+        )
+
     def test_accepts_v3_tag_module_and_dated_changelog(self) -> None:
         errors = validate_release_metadata.validate_release_metadata(
             "v3.0.0",

@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/georgestarcher/dmarcgo/v2/utilities"
+	"github.com/georgestarcher/dmarcgo/v3/utilities"
 )
 
 // ErrMalformedXML is wrapped when a payload is readable but cannot be parsed as

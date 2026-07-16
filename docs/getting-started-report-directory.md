@@ -28,7 +28,7 @@ into a small Go application, add `dmarcgo`, put aggregate XML, gzip, zip, tar,
 or zlib artifacts in `data/dmarc-reports`, and run:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo/v2@latest
+go get github.com/georgestarcher/dmarcgo/v3@latest
 go run . \
   -reports data/dmarc-reports \
   -evidence-output output/report-evidence.json \

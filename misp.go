@@ -943,8 +943,10 @@ func decodeMISPStrict(data []byte, destination any) error {
 	return nil
 }
 
-// UUIDv5 uses the standard URL namespace with a dmarcgo-specific name. These
-// UUIDs are stable correlation identifiers, not security tokens.
+// UUIDv5 uses the standard URL namespace with the dmarcgo-specific name first
+// published by the v2 implementation. The namespace remains frozen across Go
+// module-major migrations so repeated evidence retains its interoperability
+// key. These UUIDs are stable correlation identifiers, not security tokens.
 func mispAttributeUUID(eventIdentifier string, mapping MISPAttributeMapping, sourceIP string) string {
 	name := strings.Join([]string{
 		"https://github.com/georgestarcher/dmarcgo/v2/misp/attribute/" + MISPExportVersion,

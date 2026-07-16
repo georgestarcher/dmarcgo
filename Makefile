@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check docs-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check docs-check release-notes-check release-metadata-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
 
 build:
 	go build ./...
@@ -42,6 +42,10 @@ docs-check: readme-check wiki-check
 
 release-notes-check:
 	python3 scripts/extract_changelog.py >/dev/null
+
+release-metadata-check:
+	python3 scripts/validate_release_metadata_test.py
+	python3 scripts/validate_release_metadata.py --tag v3.0.0
 
 api-check:
 	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange|TestBuildReportSummaryOutput|TestOutput|TestSourceReviewOutput|TestReportRowsOutput|TestAnalysisOutput' ./...
@@ -168,7 +172,7 @@ fuzz-smoke:
 bench-smoke:
 	go test -run=^$$ -bench='BenchmarkLoadBytes|BenchmarkSummary|BenchmarkUnauthenticatedSources|BenchmarkNormalizePortfolio|BenchmarkCollectDNSSnapshotSharedPortfolio|BenchmarkCollectDNSPerspectives|BenchmarkParseAuthenticationRecords|BenchmarkEvaluateDNSHealthLargePortfolio|BenchmarkAnalyzeReportEvidence|BenchmarkCorrelateReportEvidence|BenchmarkScoreThreatCandidatesLargeSourceSet|BenchmarkEnrichThreatCandidatesLargeCandidateSet|BenchmarkCorrelatePhishingIntelligence|BenchmarkEvaluateJurisdictionContextLargeCandidateSet|BenchmarkNormalizeCampaignConfiguration|BenchmarkResolveCampaignConfigurationFragments|BenchmarkClassifyReportedMessageLargeInventory|BenchmarkBuildSTIXBundle|BenchmarkBuildThreatConnectIndicatorPayloads|BenchmarkBuildMISPAttributePayloads|BenchmarkBuildThreatStreamPayloads|BenchmarkPhase17NativeAnalysisOutputs' -benchtime=1x ./...
 
-ci: format-check mod-verify mod-verify-local lint vuln docs-check release-notes-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check threatconnect-check misp-check threatstream-check test race cover-check fuzz-smoke bench-smoke build
+ci: format-check mod-verify mod-verify-local lint vuln docs-check release-notes-check release-metadata-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check threatconnect-check misp-check threatstream-check test race cover-check fuzz-smoke bench-smoke build
 
 clean:
 	go clean

@@ -57,7 +57,7 @@ Copy [`examples/go/domain-health/main.go`](../examples/go/domain-health/main.go)
 into a small Go application, add `dmarcgo`, and run it:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo/v2@latest
+go get github.com/georgestarcher/dmarcgo/v3@latest
 go run . \
   -portfolio config/dmarcgo/portfolio.yaml \
   -native-output output/dns-health.json \

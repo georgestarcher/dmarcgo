@@ -75,11 +75,12 @@ This repository is a Go library for parsing and analyzing DMARC aggregate report
 Use the Go module normally:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo/v2@latest
+go get github.com/georgestarcher/dmarcgo/v3@latest
 ```
 
-Version 2 is the supported API line. Import
-`github.com/georgestarcher/dmarcgo/v2`; the historical v1 API is not maintained.
+Version 3 is the supported API line. Import
+`github.com/georgestarcher/dmarcgo/v3`; the historical v1 and v2 APIs are not
+maintained.
 
 For a first integration, inspect the complete copyable programs under
 `examples/go` before assembling calls from the API catalog:
@@ -131,7 +132,7 @@ private domains, record inventories, report corpora, or source IPs.
 - Pure tenant-native Anomali ThreatStream encoding: `dmarcgo.BuildThreatStreamPayloads(threatCandidates, options)`
 - JSON Lines output: `dmarcgo.WriteFeaturesJSONL(writer, report.Rows())`
 - CSV output: `dmarcgo.WriteFeaturesCSV(writer, report.Rows())`
-- Agent/automation output for one completed v2 result: `dmarcgo.BuildAnalysisOutput(result, options)`
+- Agent/automation output for one completed v3 result: `dmarcgo.BuildAnalysisOutput(result, options)`
 - Agent/automation report output: `dmarcgo.BuildReportSummaryOutput(report.Summary(), options)`
 - Native analysis JSON/JSONL/CSV: the mode-specific `WriteConfigurationValidationOutput`, `WriteDNSSnapshotOutput`, `WriteDNSAuthenticationOutput`, `WriteDNSHealthOutput`, `WriteDNSPerspectivesOutput`, `WriteReportEvidenceOutput`, `WriteDNSReportCorrelationOutput`, `WriteThreatCandidatesOutput`, `WriteSourceEnrichmentOutput`, `WriteSourceActivityOutput`, `WritePhishingIntelligenceOutput`, and `WriteJurisdictionContextOutput` functions
 - Explicit portfolio DNS snapshot: `dmarcgo.CollectDNSSnapshot(ctx, portfolio, resolver, options)`
@@ -511,7 +512,7 @@ tests used by the cross-mode integration gate.
 - `BuildValidationOutput`, `BuildReportSummaryOutput`, `BuildAggregateSummaryOutput`, `BuildReportRowsOutput`, and `BuildSourceReviewOutput` accept already computed values and do not perform network access or additional analysis. Create validation input with `report.ValidationResult(mode, generatedAt)`. Use `OutputMessageForError` plus `BuildFailureOutput` when a prerequisite failed before evaluation.
 - `BuildAnalysisOutput` accepts only the sealed `OutputResult` set of completed organization, DNS, report-evidence, correlation, source-context, jurisdiction, and campaign results. It uses the completed result timestamp when `GeneratedAt` is unset and never consults the system clock or reruns upstream work.
 - `WriteOutputJSONL` emits one complete self-describing envelope per line.
-- Every common envelope declares a strict `data_schema`. Summary-detail and failed envelopes use `OutputEmptyDataSchemaID`; completed standard/full envelopes use the selected mode schema. Use `OutputDataSchemaID` and `OutputDataSchema` to discover mode payloads, and use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or `schemas/output/v1.json` to discover and validate the envelope.
+- Every common envelope declares a strict `data_schema`. Summary-detail and failed envelopes use `OutputEmptyDataSchemaID`; completed standard/full envelopes use the selected mode schema. Use `OutputDataSchemaID` and `OutputDataSchema` to discover mode payloads, and use `OutputSchemaForVersion`, `OutputSchemaVersions`, `SupportedOutputModes`, or the current `schemas/output/v2.json` to discover and validate the envelope. The exact v2.1.0 envelope remains available as immutable `schemas/output/v1.json`.
 - Use `OutputModeDescriptors` to inspect required completed inputs and the explicit no-side-effect serialization boundary. Output selection never opens reports, queries DNS, calls a provider, enriches a source, resolves campaign configuration, or contacts a subject IP.
 - Native analysis writers serialize completed immutable values only. JSON emits
   one mode-specific document; JSONL/CSV stream a metadata record and each

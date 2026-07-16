@@ -7,6 +7,36 @@ and this project uses semantic versioning for public API changes.
 
 ## Unreleased
 
+## [3.0.0] - 2026-07-16
+
+Version 3 publishes the completed organization-posture, report-correlation,
+source-context, campaign, output, export, wiki, and adoption feature pack. The
+capabilities are additive, but the release is a new Go major version because
+the finalized API is not source-compatible with v2.1.0.
+
+### Migration from v2.1
+
+- Change module requirements and imports from
+  `github.com/georgestarcher/dmarcgo/v2` to
+  `github.com/georgestarcher/dmarcgo/v3`.
+- Construct a completed `ReportValidationResult` with
+  `report.ValidationResult(mode, generatedAt)` and pass it to
+  `BuildValidationOutput(result, options)`. The v2 form that accepted a report
+  and findings was removed so serialization cannot rerun validation.
+- `OutputAction.Code`, `OutputFinding.Code`, `OutputFinding.ActionCodes`,
+  `OutputEvidence.Provenance`, `OutputEvidence.Sensitivity`,
+  `OutputMessage.Code`, and `OutputProvenance.ID` now use their exported named
+  string types. Convert caller-owned strings explicitly when constructing these
+  values programmatically; their JSON spellings are unchanged.
+- `OutputInput` is no longer comparable because it owns artifact and coverage
+  slices. Compare its fields or serialized value instead of using `==` or as a
+  map key.
+- Common automation envelopes now declare schema version `2`. The exact schema
+  v1 published with v2.1.0 remains embedded and discoverable through
+  `OutputSchemaForVersion("1")`; mode-specific, campaign, persistence, scoring,
+  policy, STIX, and vendor contract versions remain independent of the Go
+  module major version.
+
 ### Added
 
 - New-adopter optional-context configuration guidance that distinguishes
@@ -25,7 +55,7 @@ and this project uses semantic versioning for public API changes.
   validated minimal and multi-organization synthetic configurations, and a
   `make docs-check` gate for examples, fixtures, wiki source, internal links,
   formatting, curated spelling regressions, and public-sample privacy markers.
-- A strict common automation and AI-agent envelope for every completed v2
+- A strict common automation and AI-agent envelope for every completed v3
   analysis, source-context, and campaign mode, with sealed completed-result
   inputs, discoverable per-mode data schemas, explicit mode-isolation
   descriptors, bounded deterministic findings and evidence, campaign-safe

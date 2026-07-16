@@ -14,7 +14,7 @@ import (
 	"sort"
 	"time"
 
-	dmarcgo "github.com/georgestarcher/dmarcgo/v2"
+	dmarcgo "github.com/georgestarcher/dmarcgo/v3"
 )
 
 type runOptions struct {

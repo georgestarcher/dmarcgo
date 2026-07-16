@@ -222,8 +222,9 @@ result digest, and relevant non-restricted upstream artifact digests with every
 output. Disclosure-safe campaign output deliberately omits privileged artifact
 digests.
 
-The v2 contract was finalized without a pre-v2 compatibility layer because no
-known external consumer depended on the provisional shapes.
+The v3 contract deliberately replaces the provisional v2 Go API because no
+known external consumer depended on those shapes. The released envelope schema
+v1 remains discoverable and immutable; v3 output uses envelope schema v2.
 
 ## Standards and vendor boundaries
 

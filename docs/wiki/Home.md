@@ -1,6 +1,6 @@
 # dmarcgo project wiki
 
-> **Navigation guide, not a versioned contract.** This wiki tracks the current `dmarcgo` v2 line. The repository's Go documentation, schemas, and focused guides are authoritative.
+> **Navigation guide, not a versioned contract.** This wiki tracks the current `dmarcgo` v3 line. The repository's Go documentation, schemas, and focused guides are authoritative.
 
 `dmarcgo` is a Go library for parsing DMARC aggregate reports and performing
 explicit, independently callable analysis stages. It is not a mailbox ingester,
@@ -53,6 +53,6 @@ while production ownership and symptom-driven recovery are in
 
 Also see the
 [README](https://github.com/georgestarcher/dmarcgo/blob/main/README.md) and
-[Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2)
+[Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3)
 for installation and API discovery. Maintainers should follow the
 [wiki maintenance workflow](Wiki-Maintenance).

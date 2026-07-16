@@ -2,9 +2,12 @@ package dmarcgo
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -158,8 +161,21 @@ func TestOutputOptionsAndSchema(t *testing.T) {
 		t.Fatalf("unexpected schema id: %v", schema["$id"])
 	}
 	versions := OutputSchemaVersions()
-	if len(versions) != 1 || versions[0] != OutputSchemaVersion {
+	if !slices.Equal(versions, []string{"1", OutputSchemaVersion}) {
 		t.Fatalf("unexpected schema versions: %v", versions)
+	}
+	legacySchema, err := OutputSchemaForVersion("1")
+	if err != nil {
+		t.Fatalf("legacy schema lookup failed: %v", err)
+	}
+	legacyDigest := sha256.Sum256(legacySchema)
+	if got := hex.EncodeToString(legacyDigest[:]); got != "b40d55756482b7d0346edb8a918428eb1d953778a561c03b4892fbdd43aae377" {
+		t.Fatalf("released schema v1 changed: %s", got)
+	}
+	legacySchema[0] = 'x'
+	freshLegacy, err := OutputSchemaForVersion("1")
+	if err != nil || freshLegacy[0] == 'x' {
+		t.Fatalf("legacy schema was not a defensive copy: %v", err)
 	}
 	copySchema, err := OutputSchemaForVersion(OutputSchemaVersion)
 	if err != nil || !bytes.Equal(copySchema, OutputSchema()) {
@@ -185,6 +201,30 @@ func TestOutputOptionsAndSchema(t *testing.T) {
 	}
 	if _, err := OutputDataSchemaID(OutputMode("unsupported"), OutputDataSchemaVersion); !errors.Is(err, ErrUnsupportedOutputSchema) {
 		t.Fatalf("unexpected unsupported data-schema error: %v", err)
+	}
+}
+
+func TestREADMECommonEnvelopeSampleValidates(t *testing.T) {
+	readme, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := "```json\n{\n  \"schema\": \"" + OutputSchemaID + "\""
+	start := bytes.Index(readme, []byte(marker))
+	if start < 0 {
+		t.Fatal("README common-envelope JSON sample is missing")
+	}
+	payload := readme[start+len("```json\n"):]
+	end := bytes.Index(payload, []byte("\n```"))
+	if end < 0 {
+		t.Fatal("README common-envelope JSON sample is unterminated")
+	}
+	value, err := jsonschema.UnmarshalJSON(bytes.NewReader(payload[:end]))
+	if err != nil {
+		t.Fatalf("README common-envelope JSON is invalid: %v", err)
+	}
+	if err := compileOutputSchema(t).Validate(value); err != nil {
+		t.Fatalf("README common-envelope sample does not validate: %v", err)
 	}
 }
 

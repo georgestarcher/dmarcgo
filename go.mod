@@ -1,4 +1,4 @@
-module github.com/georgestarcher/dmarcgo/v2
+module github.com/georgestarcher/dmarcgo/v3
 
 go 1.25.0
 

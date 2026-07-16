@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/georgestarcher/dmarcgo/v2/utilities"
+	"github.com/georgestarcher/dmarcgo/v3/utilities"
 )
 
 func TestLoadReport(t *testing.T) {

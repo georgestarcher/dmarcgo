@@ -25,6 +25,21 @@ All export builders are pure. They perform no HTTP, credentials, destination
 discovery, duplicate search, capability lookup, publication, polling, retry,
 or subject-IP access.
 
+## Encoder versus service client
+
+These are local encoders, not authenticated service integrations:
+
+| Output | What `dmarcgo` produces | Secret used by `dmarcgo` | What the application must supply before submission |
+| --- | --- | --- | --- |
+| STIX 2.1 | A local standards-native bundle | None | A chosen destination, markings and sharing policy, authenticated transport if applicable, review, and response handling |
+| ThreatConnect v3 | Local Indicator request bodies for explicit selections | None | Base URL, credentials, permissions, duplicate and update policy, HTTP client, review, submission, and audit storage |
+| MISP | Local Attribute request bodies or a complete offline Event body | None | Instance capabilities, target Event context where required, base URL, API key, warning-list and duplicate policy, review, submission, and response handling |
+| Anomali ThreatStream | Local request bodies under a caller-declared tenant capability | None | Validated tenant contract, base URL, credentials, endpoint and type selections, HTTP client, review, polling where required, and audit storage |
+
+Encoder success proves only that the local payload satisfies the selected
+builder contract. Never place destination credentials in a capability object,
+payload, portfolio, evidence result, or reusable documentation fixture.
+
 ## Starting APIs
 
 - `BuildSTIXBundle`

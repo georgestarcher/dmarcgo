@@ -28,6 +28,24 @@ explicit stages and may use only caller-selected third-party services, never
 the subject IP. Phishing-intelligence correlation is a separate pure offline
 stage over caller-owned snapshots and performs no provider or source-IP lookup.
 
+## Service requirements at a glance
+
+Here, support means that `dmarcgo` accepts normalized offline evidence or calls
+a provider interface supplied by the application. The library does not include
+a general enrichment service, provider account setup, or API-key setting.
+
+| Optional capability | Included by `dmarcgo` | Account or API key | Disclosure during the library call |
+| --- | --- | --- | --- |
+| ASN, network, organization, or country enrichment | Provider-neutral enrichment interfaces and normalized results | Provider dependent; the application keeps any secret in its adapter | Offline datasets disclose nothing; a network adapter may send eligible candidate IPs only to its allowlisted third party |
+| DShield source activity | Provider-neutral source-activity contract; no DShield adapter | Research dated 2026-07-14 found no API authentication requirement, but a contact-bearing User-Agent was required; recheck current terms | Only explicitly selected eligible candidate IPs and the adapter's User-Agent |
+| OpenPhish intelligence | Offline snapshot normalization and exact-value correlation; no client, downloader, or parser | Product dependent; licensed database and account access remain application-owned | None during `dmarcgo` normalization or correlation |
+| Jurisdiction context | Built-in offline versioned policy or caller-normalized policy | None | None |
+
+The authoritative
+[provider and service requirements](https://github.com/georgestarcher/dmarcgo/blob/main/docs/optional-context-configuration.md#provider-and-service-requirements)
+also cover DNS perspectives, the static SPF provider catalog, credentials,
+licensing, response bounds, and application-owned operational duties.
+
 ## Starting APIs
 
 1. `ScoreThreatCandidates`

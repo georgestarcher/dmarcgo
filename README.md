@@ -34,7 +34,11 @@ To add enrichment, source activity, offline phishing intelligence,
 jurisdiction context, or remote DNS perspectives, use the
 [optional context configuration guide](docs/optional-context-configuration.md).
 It explains which features use programmatic inputs, which require a
-caller-supplied adapter, and why none are enabled by a portfolio setting.
+caller-supplied adapter, and why none are enabled by a portfolio setting. Its
+[provider and service requirements](docs/optional-context-configuration.md#provider-and-service-requirements)
+table identifies what is actually built in, whether an account or secret is
+needed, what data leaves the application, and which licensing or operational
+requirements remain caller-owned.
 
 For a first runnable integration, choose one short path before reading the API
 catalog:

@@ -25,6 +25,28 @@ If the requirement is only to recognize a documented SPF dependency, use the
 [provider catalog](provider-catalog.md). Provider recognition is configuration
 context, not source enrichment, sender authorization, or reputation.
 
+## Provider and service requirements
+
+In this guide, **supported** means that `dmarcgo` can validate caller-owned
+offline data or invoke a caller-supplied Go interface. It does not mean the
+library includes a vendor client, account setup, credential storage, or a
+submission workflow. Review this table before choosing an optional stage:
+
+| Service or capability | What `dmarcgo` includes | Account or secret requirement | Values disclosed by the library call | Additional application responsibility |
+| --- | --- | --- | --- | --- |
+| Generic ASN, network, organization, or country enrichment | `IPEnricher` and `BatchIPEnricher` interfaces plus normalized results; no provider client | Determined by the caller-selected offline dataset or third-party service; keep any key or token in the adapter | None for an offline lookup; a network adapter may disclose only eligible candidate IPs to its allowlisted third party | Validate the provider contract, bound responses, implement caching and retention, and never contact the subject IP |
+| DShield source activity | A provider-neutral `SourceActivityProvider` contract and documented conservative mapping; no DShield adapter | First-party material reviewed 2026-07-14 said no API authentication was required, but required a contact-bearing User-Agent; recheck before deployment | Only explicitly selected, review-eligible candidate IPs and the adapter's contact-bearing User-Agent | Honor `429` and `Retry-After`, prefer bulk feeds for large sets, and review current license, attribution, caching, and address-family behavior |
+| DShield DNS perspectives | A provider-neutral `DNSPerspectiveProvider` contract; no DShield adapter | No service requirement is asserted because current research did not establish usable TXT behavior for authentication owner names | A caller adapter may disclose only explicitly selected portfolio-declared TXT names and their trusted-snapshot answers | Independently validate the live service contract before writing an adapter; never treat a remote answer as authoritative or allow it to change DNS health |
+| OpenPhish intelligence | Offline `PhishingIntelligenceSnapshotConfig` normalization and exact-value correlation; no downloader, parser, endpoint, feed, or database client | Product dependent; the documented offline database requires a valid production or trial license, and feed/account access remains caller-owned | None during normalization or correlation; retrieval occurs outside `dmarcgo` | Review the current product schema, account-access method, license, refresh, removal, storage, and redistribution terms before mapping data |
+| Jurisdiction context | A versioned built-in offline policy and support for caller-normalized immutable policies | None | None | Review policy sources and attribution limitations; country context is not nationality, actor identity, legal advice, or a threat verdict |
+| SPF provider catalog | Reviewed embedded static metadata and an explicit private-overlay mechanism | None | None | Use it only to explain documented SPF dependencies; recognition never authorizes a sender or supplies reputation |
+
+Defensive-platform support is also offline. STIX, ThreatConnect, MISP, and
+Anomali ThreatStream builders create local payloads but do not authenticate or
+submit them. See the
+[defensive-export service boundary](wiki/Defensive-Exports.md#encoder-versus-service-client)
+before configuring a destination.
+
 ## Agent-assisted setup
 
 An AI coding assistant can walk a new user through this configuration, but it

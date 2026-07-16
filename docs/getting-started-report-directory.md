@@ -78,6 +78,35 @@ One bad file does not erase successful results, but it must remain visible in
 the application's ingestion inventory. Likewise, a duplicate or invalid count
 must not silently become new zero-message evidence.
 
+### Try the included owner-authorized mini corpus
+
+From a clone of this repository, a newcomer can run the same program over
+three real point-in-time reports published with the domain owner's permission:
+
+```shell
+go run ./examples/go/report-directory \
+  -reports examples/go/report-directory/samples/georgestarcher.com \
+  -evidence-output output/report-evidence.json \
+  -jsonl-output output/report-rows.jsonl \
+  -csv-output output/report-rows.csv \
+  -agent-output output/report-evidence-agent.json
+```
+
+That command currently produces:
+
+```text
+Files: 3; loaded: 3; skipped: 0; duplicates removed: 0
+First successfully loaded report: records=1 messages=1 validation_findings=0
+Corpus: reports=3 messages=3 pass=2 fail=1 rejected=1 sources=3 reporters=3
+Review context: unauthenticated_sources=1 compatibility_findings=0 filename_findings=0 evidence_diagnostics=0
+Outputs: evidence=output/report-evidence.json rows_jsonl=output/report-rows.jsonl rows_csv=output/report-rows.csv agent=output/report-evidence-agent.json
+```
+
+The mini corpus is deliberately separate from deterministic synthetic test
+fixtures. Read its
+[`README`](../examples/go/report-directory/samples/README.md)
+before reusing it or publishing reports for another domain.
+
 ## 2. Read the result
 
 - **Report periods** are receiver-supplied begin and end bounds, not exact
@@ -98,6 +127,52 @@ Real report output contains domains, source IPs, reporters, authentication
 identities, selectors, dispositions, report periods, and provenance. Treat
 native output as operational data. Choose public redaction before sending a
 common envelope outside that trust boundary.
+
+### Inspect source behavior
+
+The first run already contains a source-oriented view; DNS and enrichment are
+not required. Grouping normalized observations by source can show:
+
+| Feature | What it means |
+| --- | --- |
+| Messages and reports | Volume and repeated appearance in distinct aggregate reports |
+| First and last seen | Receiver-supplied report-period bounds, not exact message times |
+| Reporter diversity | How many reporting organizations observed the source |
+| SPF and DKIM outcomes | Whether the receiver reported aligned authentication for the messages |
+| Authentication identities | Reported SPF domains, DKIM domains, and DKIM selectors when present |
+| Dispositions | `none`, `quarantine`, or `reject` actions reported by receivers |
+| Policy overrides | Receiver-reported counter-evidence such as forwarding or mailing-list handling |
+
+### Point-in-time corpus example
+
+The project maintainer authorized the following aggregate summary of the full
+local report archive for `georgestarcher.com`. Only the three-report mini
+corpus described above is published; the remainder of the archive and its full
+source-IP inventory stay local. This is an illustration of the output at the
+time of the run, not a continuing claim about the domain or any source.
+
+```text
+Report period: 2026-04-25 through 2026-07-09
+Reports: 49; messages: 114; sources: 55; reporters: 4
+Authentication: pass=66; fail=48
+Unauthenticated review: messages=48; sources=22
+Failed SPF and DKIM together: 48
+Receiver disposition for those failures: reject=48
+Policy overrides on those failures: 0
+Most repeated failing source: messages=8; reports=5
+```
+
+Those 48 observations claimed the protected domain but had neither aligned SPF
+nor aligned DKIM. That is consistent with attempted unauthorized use of the
+domain on the observed paths, but aggregate reports do not establish actor
+identity or intent. The library retains neutral evidence and does not label the
+sources malicious or safe to block.
+
+The public agent envelope for the report-evidence stage can still say that no
+structured review findings were produced. That statement means parsing and
+normalization produced no data-quality findings; it does **not** mean that no
+messages failed authentication. Always display the pass/fail and disposition
+totals beside the envelope status.
 
 ## 3. Optionally correlate completed results
 
@@ -158,6 +233,23 @@ is neutral review evidence, not a malicious verdict or permission to block.
 Inspect those two fields in `defaultReview.Summary()` and keep the underlying
 correlation findings visible.
 
+Correlation answers whether an observed stream matches declared organization
+intent. Candidate scoring then turns unexplained source behavior into an
+inspectable review queue. A candidate includes message and dual-failure counts,
+report and reporter diversity, report-period bounds, dispositions, score
+contributions, confidence caps, exclusions, severity, and recommended usage.
+It never authorizes blocking or claims maliciousness.
+
+A newcomer should read this stage as:
+
+```text
+Expected sender and passing stream -> configuration or normal-flow context
+Expected sender failure            -> configuration finding by default
+Unattributed authentication failure -> eligible for neutral source review
+Candidate score                     -> review priority, not attack probability
+Confidence                          -> evidence sufficiency, not certainty of intent
+```
+
 ## 4. Choose an output
 
 | Need | Application choice |
@@ -192,6 +284,95 @@ are:
 
 The library ships none of these network providers. No adapter may contact an
 observed subject source IP.
+
+### Source enrichment example
+
+Use `EnrichThreatCandidates` when the application has an explicit offline
+dataset or third-party `IPEnricher` that can assert ASN, network prefix,
+organization, or coarse country context.
+
+```text
+Input:  selected review-eligible candidates + caller-supplied IPEnricher
+Output: per-source assertions, provider provenance, freshness, conflicts,
+        unavailable/failed status, and ASN rollups
+Effect: may refine a confidence cap; never changes the threat score or action policy
+```
+
+The adapter may contact only its configured third-party service. It must never
+ping, scan, perform hidden PTR, or otherwise connect to the subject source IP.
+
+### Source activity example
+
+Use `CollectSourceActivity` when a human or application explicitly selects
+candidate IDs or source IPs and supplies a `SourceActivityProvider`.
+
+```text
+Input:  explicit candidate/IP selection + caller-supplied third-party provider
+Output: time-qualified activity metrics, feed memberships, provenance,
+        conflicts, rate limits, and incomplete or stale states
+Effect: supplemental context only; absence is not evidence of safety
+```
+
+Each eligible address is attempted at most once. The library does not retry,
+sleep, poll, discover more addresses, or ship a DShield adapter.
+
+### Phishing-intelligence example
+
+Use `NormalizePhishingIntelligenceSnapshot` and
+`CorrelatePhishingIntelligence` when the caller already owns licensed,
+validated offline intelligence.
+
+```text
+Input:  candidates + matching report evidence + offline normalized snapshots
+Match:  exact source IP or exact DMARC domain-role equality only
+Output: matched, conflicting, stale, future, withdrawn, expired, or no-match context
+Effect: never changes candidate score, eligibility, or action policy
+```
+
+The library does not download OpenPhish or another feed. Retrieval, licensing,
+schema mapping, refresh, removal, and storage remain application-owned.
+
+### Jurisdiction-context example
+
+Use `EvaluateJurisdictionContext` only after source enrichment supplied country
+assertions and the application selected an immutable policy.
+
+```text
+Input:  completed enrichment + built-in or caller-normalized policy
+Output: versioned country-policy matches, conflicts, freshness, attribution
+        limitations, and an optional default-off review-priority adjustment
+Effect: no score or severity change and no legal, nationality, or threat verdict
+```
+
+### Aggregate campaign-review example
+
+Use `CorrelateCampaignReportEvidence` when the application also has a completed
+authorized security-simulation campaign snapshot.
+
+```text
+Input:  campaign snapshot + report evidence
+Output: lower-confidence campaign-related aggregate observations and coverage
+Limit:  a report period cannot prove that one message belonged to a campaign
+```
+
+Message-level campaign classification is a separate workflow using body-free
+reported-message evidence. Provider recognition alone never authorizes a
+campaign or suppresses a suspicious source.
+
+### Defensive-export example
+
+After explicit human-reviewed candidate selection, an application can create a
+STIX 2.1 bundle or encode payloads for ThreatConnect, MISP, or Anomali
+ThreatStream.
+
+```text
+Input:  explicitly selected completed candidates and target capabilities
+Output: local payload objects only
+Effect: no target discovery, credential use, HTTP submission, retry, or approval
+```
+
+Defaults remain private and review-oriented. The consuming application owns
+the destination, credentials, submission, responses, and audit history.
 
 Campaign classification remains a separate workflow. Aggregate reports do not
 provide an authorized campaign inventory, exact message time, or sufficient

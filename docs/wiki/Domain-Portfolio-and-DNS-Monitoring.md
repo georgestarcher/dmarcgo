@@ -55,6 +55,33 @@ The optional perspective result adds answer-set agreement, disagreement, and
 incomplete-coverage context. It is not authoritative DNS evidence and does not
 alter those posture outputs.
 
+## Point-in-time example
+
+The project maintainer authorized this real-domain summary for illustration.
+It is a point-in-time observation of public DNS for `georgestarcher.com`, not a
+fixture or a continuing claim about the domain. A run at
+`2026-07-15T23:53:44Z` using the balanced scoring profile version 1 produced:
+
+| Result | Score | Grade |
+| --- | ---: | --- |
+| SPF | 100/100 | A+ |
+| DKIM | 85/100 | B |
+| DMARC | 100/100 | A+ |
+| Weighted domain and portfolio result | 95/100 | A+ |
+
+The calculation was `(100 x 30%) + (85 x 35%) + (100 x 35%) = 94.75`,
+rounded to 95. The domain reached `enforced` DNS maturity with 100% collection
+coverage across its three explicitly declared record names. The 15-point DKIM
+component deduction reflected a published 1024-bit RSA key rather than the
+recommended 2048-bit minimum.
+
+This example also demonstrates why the surrounding evidence matters. Complete
+collection coverage means every declared record name had a conclusive outcome;
+it does not mean that every SPF dependency was collected or that every sender
+uses the records correctly. DNS alone also cannot verify that aggregate reports
+are received, retained, and reviewed. Scores and findings may differ on a later
+run as DNS, the declared portfolio, or the selected versioned profile changes.
+
 ## What this does not prove
 
 A healthy DNS snapshot does not prove that every sending system uses the
@@ -64,8 +91,10 @@ abuse. Provider recognition supplies context only and never authorizes a sender.
 ## Sensitive data
 
 Operational portfolios can reveal private domains, selectors, providers, and
-ownership. Keep private portfolios outside the repository. Public examples must
-be synthetic.
+ownership. Keep private portfolios outside the repository. Public examples
+should normally be synthetic; the point-in-time example above is a narrowly
+scoped exception published with the domain owner's explicit permission and does
+not include the portfolio file or TXT record values.
 
 ## Safe next steps
 

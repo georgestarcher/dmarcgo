@@ -1,6 +1,6 @@
 # Automation outputs and AI safety
 
-> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v2. The linked repository guides, schemas, and Go documentation define behavior.
+> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v3. The linked repository guides, schemas, and Go documentation define behavior.
 
 ## Who this is for
 
@@ -65,6 +65,7 @@ the clock.
 ## Authoritative references
 
 - [Automation workflows](https://github.com/georgestarcher/dmarcgo/blob/main/docs/automation-workflows.md)
-- [Output schema v1](https://github.com/georgestarcher/dmarcgo/blob/main/schemas/output/v1.json)
+- [Current output schema v2](https://github.com/georgestarcher/dmarcgo/blob/main/schemas/output/v2.json)
+- [Immutable v2.1 output schema v1](https://github.com/georgestarcher/dmarcgo/blob/main/schemas/output/v1.json)
 - [Cross-mode output contract](https://github.com/georgestarcher/dmarcgo/blob/main/docs/output-contract.md)
 - [Analysis architecture](https://github.com/georgestarcher/dmarcgo/blob/main/docs/architecture.md)

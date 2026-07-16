@@ -13,7 +13,7 @@ body:
     attributes:
       label: dmarcgo version
       description: Include the exact module version or commit.
-      placeholder: v2.0.0
+      placeholder: v3.0.0
     validations:
       required: true
   - type: input

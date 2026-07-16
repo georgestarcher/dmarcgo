@@ -38,7 +38,7 @@ handoff without requiring every detail up front.
 
 ## Fifteen-minute first integration
 
-1. Add `github.com/georgestarcher/dmarcgo/v2` to an application using Go 1.25
+1. Add `github.com/georgestarcher/dmarcgo/v3` to an application using Go 1.25
    or newer.
 2. Choose one input boundary: a supplied report artifact or a caller-owned
    organization portfolio. Do not start with both unless the question requires
@@ -194,7 +194,7 @@ redaction, schema, and deterministic truncation contracts.
 
 ## Adoption checklist
 
-- [ ] The application uses the `/v2` module path and a supported Go version.
+- [ ] The application uses the `/v3` module path and a supported Go version.
 - [ ] Each workflow starts from the smallest required input set.
 - [ ] DNS, campaign retrieval, enrichment, and source activity are explicit.
 - [ ] Every optional context stage uses the documented input form: strict file,

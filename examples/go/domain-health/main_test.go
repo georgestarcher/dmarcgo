@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	dmarcgo "github.com/georgestarcher/dmarcgo/v2"
+	dmarcgo "github.com/georgestarcher/dmarcgo/v3"
 )
 
 type fixtureResolver struct {
@@ -63,13 +63,16 @@ func TestRun(t *testing.T) {
 			t.Errorf("summary does not contain %q:\n%s", expected, summary.String())
 		}
 	}
-	for _, name := range []string{"dns-health.json", "dns-health-agent.json"} {
+	for name, schemaVersion := range map[string]string{
+		"dns-health.json":       dmarcgo.AnalysisOutputSchemaVersion,
+		"dns-health-agent.json": dmarcgo.OutputSchemaVersion,
+	} {
 		data, readErr := os.ReadFile(filepath.Join(directory, name))
 		if readErr != nil {
 			t.Fatal(readErr)
 		}
-		if !bytes.Contains(data, []byte(`"schema_version":"1"`)) {
-			t.Errorf("%s does not contain the versioned output contract", name)
+		if !bytes.Contains(data, []byte(`"schema_version":"`+schemaVersion+`"`)) {
+			t.Errorf("%s does not contain schema version %s", name, schemaVersion)
 		}
 	}
 }

@@ -655,7 +655,9 @@ func stixObjectID(objectType string, parts ...string) string {
 
 // These fixed namespaces implement OASIS STIX 2.1 section 3.4. The dmarcgo
 // namespace is UUIDv5(URL, "https://github.com/georgestarcher/dmarcgo/v2/stix-2.1")
-// and is deliberately distinct from the OASIS SCO namespace.
+// and is deliberately distinct from the OASIS SCO namespace. It is frozen at
+// its first published value so a Go module-major migration does not change
+// identifiers for semantically identical evidence.
 var (
 	stixSCONamespace     = [16]byte{0x00, 0xab, 0xed, 0xb4, 0xaa, 0x42, 0x46, 0x6c, 0x9c, 0x01, 0xfe, 0xd2, 0x33, 0x15, 0xa9, 0xb7}
 	dmarcgoSTIXNamespace = [16]byte{0xe1, 0xd3, 0x36, 0x3e, 0xb3, 0xb4, 0x5d, 0x88, 0x8f, 0x66, 0x58, 0x1c, 0xfc, 0x87, 0xac, 0x9f}

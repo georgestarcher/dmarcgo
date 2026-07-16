@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	dmarcgo "github.com/georgestarcher/dmarcgo/v2"
+	dmarcgo "github.com/georgestarcher/dmarcgo/v3"
 )
 
 // CandidateReview demonstrates the optional pure composition step after an

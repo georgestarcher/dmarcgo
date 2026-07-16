@@ -3,7 +3,7 @@
 ## Usage questions
 
 Start with the [README](README.md), package examples, and
-[Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2).
+[Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3).
 When opening an issue, include the exact dmarcgo version, Go version, input
 format, expected behavior, actual behavior, and a minimal reproduction.
 

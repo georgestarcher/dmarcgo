@@ -24,9 +24,9 @@ def main() -> int:
                     "",
                     "go 1.25",
                     "",
-                    "require github.com/georgestarcher/dmarcgo/v2 v2.0.0",
+                    "require github.com/georgestarcher/dmarcgo/v3 v3.0.0",
                     "",
-                    f"replace github.com/georgestarcher/dmarcgo/v2 => {repo}",
+                    f"replace github.com/georgestarcher/dmarcgo/v3 => {repo}",
                     "",
                 ]
             ),

@@ -22,6 +22,8 @@ authoritative, versioned sources for behavior.
 | Run a portfolio YAML through current DNS health | [Getting started with a domain portfolio](getting-started-domain-health.md) |
 | Run a directory of aggregate reports through corpus analysis | [Getting started with a report directory](getting-started-report-directory.md) |
 | Adopt the complete library safely | [Organization adoption](adoption-guide.md) |
+| Upgrade an application from v2.1 to v3 | [v2.1-to-v3 migration](migration-v2.1-to-v3.md) |
+| Review the v3.0.0 API, schema, identity, and release decisions | [v3.0.0 release contract audit](release-v3-audit.md) |
 | Look up exact portfolio and campaign fields | [Configuration reference](configuration-reference.md) |
 | Integrate from an AI coding assistant | [Consumer-agent guide](consumer-agent-guide.md) |
 | Operate, roll out, and troubleshoot an integration | [Operations and troubleshooting](operations-and-troubleshooting.md) |
@@ -51,7 +53,9 @@ authoritative, versioned sources for behavior.
 ## Other contracts
 
 - [README](../README.md): installation, API chooser, and package overview
-- [Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2)
+- [v2.1-to-v3 migration](migration-v2.1-to-v3.md): import, API, schema, and compatibility changes
+- [v3.0.0 release contract audit](release-v3-audit.md): release-boundary evidence and schema decisions
+- [Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3)
 - [Output schemas](../schemas)
 - [Changelog](../CHANGELOG.md)
 - [Task-oriented project wiki](https://github.com/georgestarcher/dmarcgo/wiki)

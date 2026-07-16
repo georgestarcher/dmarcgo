@@ -1,4 +1,4 @@
-# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v2.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v2)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v2) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
+# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v3.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v3)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v3) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
 `dmarcgo` is a Go library for parsing DMARC aggregate report files and
 performing explicit, independently callable email-authentication analysis.
@@ -56,7 +56,7 @@ orchestrator.
 From another Go module:
 
 ```shell
-go get github.com/georgestarcher/dmarcgo/v2@latest
+go get github.com/georgestarcher/dmarcgo/v3@latest
 ```
 
 Then import the library:
@@ -68,7 +68,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -81,8 +81,10 @@ func main() {
 }
 ```
 
-Version 2 is the supported API line. The historical `v1.0.0` tag contains the
-original API and is retained only for Go module history; it is not maintained.
+Version 3 is the supported API line. The historical v1 and v2 tags are retained
+for Go module history; those API lines are not maintained.
+Applications upgrading from v2.1 should follow the
+[v2.1-to-v3 migration guide](docs/migration-v2.1-to-v3.md).
 
 ## What this package does
 
@@ -260,7 +262,7 @@ Local real-world report corpora should not be committed. DMARC reports can expos
 | You want dashboard-ready top lists | `dmarcgo.TopSources`, `dmarcgo.TopUnauthenticatedSources`, or `dmarcgo.TopCounts` | Returns sorted top-N slices without storage or scoring policy. |
 | You want data-quality checks | `report.Validate()` | Returns structured warnings/errors for malformed or non-standard content. |
 | You want spreadsheet-friendly rows | `dmarcgo.WriteFeaturesCSV(writer, features)` | Writes flattened feature rows with a header. |
-| You want versioned automation or AI-agent output for any completed v2 mode | `dmarcgo.BuildAnalysisOutput(completed, options)` or the report-specific builders | Produces a self-describing envelope with a strict mode data schema, findings, evidence, actions, provenance, redaction, and truncation metadata without rerunning work. |
+| You want versioned automation or AI-agent output for any completed v3 mode | `dmarcgo.BuildAnalysisOutput(completed, options)` or the report-specific builders | Produces a self-describing envelope with a strict mode data schema, findings, evidence, actions, provenance, redaction, and truncation metadata without rerunning work. |
 | You want native JSON, JSONL, or CSV for a completed analysis mode | The mode-specific writers from `WriteConfigurationValidationOutput` through `WriteJurisdictionContextOutput` | Serializes one of the twelve immutable analysis results without rerunning analysis or performing I/O beyond the supplied writer. |
 | You have strict versioned organization YAML | `dmarcgo.LoadPortfolioYAML(data)` | Rejects unknown and secret-bearing fields and performs no DNS or report access. |
 | You construct organization configuration in Go | `dmarcgo.NormalizePortfolio(config)` | Returns a deterministic normalized portfolio with defensive-copy accessors. |
@@ -306,7 +308,7 @@ sister-organization configuration, privacy boundaries, and release checks.
 
 Use the output builders when results will be consumed by workflow engines,
 AI summarizers, or other systems that need a stable, self-describing contract.
-The common schema covers the report helpers plus every completed v2
+The common schema covers the report helpers plus every completed v3
 organization-analysis, source-context, and campaign result. Use
 `BuildAnalysisOutput` for completed values implementing `OutputResult`.
 
@@ -341,7 +343,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -412,7 +414,7 @@ package main
 import (
 	"io"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func writeCandidates(writer io.Writer, threatCandidates dmarcgo.ThreatCandidateResult) error {
@@ -496,56 +498,52 @@ remain the intentionally simple flattened `report.Rows()` export. The
 They do not serialize report-evidence, DNS-health, correlation, candidate,
 enrichment, activity, phishing-intelligence, or jurisdiction result contracts.
 `WriteOutputJSON` and `WriteOutputJSONL` serialize the common envelope for all
-supported completed v2 modes. Native mode contracts remain independently
+supported completed v3 modes. Native mode contracts remain independently
 discoverable for consumers that prefer their complete typed shape.
 
 ```json
 {
-  "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json",
-  "schema_version": "1",
+  "schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v2.json",
+  "schema_version": "2",
   "mode": "report_summary",
   "profile": "agent",
   "detail": "summary",
   "generated_at": "2026-07-11T12:00:00Z",
   "status": "completed",
   "evaluation": {"state": "evaluated", "evaluated_at": "2026-07-11T12:00:00Z"},
-  "scope": {"target_domains": ["example.test"]},
-  "input": {"report_count": 1, "record_count": 2, "message_count": 27},
+  "scope": {"entity_ids": [], "business_units": [], "target_domains": ["example.test"]},
+  "input": {"report_count": 1, "record_count": 2, "message_count": 27, "artifacts": [], "coverage": []},
   "summary": {
     "headline": "No authentication failures or invalid records were present in the supplied summary.",
     "severity": "info",
     "confidence": "high"
   },
   "findings": [],
+  "data_schema": "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v2.json#/$defs/emptyData",
   "data": {},
   "recommended_actions": [],
   "warnings": [],
   "errors": [],
   "limitations": [],
-  "provenance": [{"id": "report-1", "type": "aggregate_report", "key": "synthetic-report-id"}],
+  "provenance": [],
   "redaction": {"profile": "operational", "operational_fields_changed": false},
-  "truncation": {
-    "truncated": false,
-    "collections": [
-      {"name": "data.by_source_ip", "total_items": 0, "returned_items": 0},
-      {"name": "data.by_disposition", "total_items": 0, "returned_items": 0},
-      {"name": "data.by_header_from", "total_items": 0, "returned_items": 0}
-    ]
-  }
+  "truncation": {"truncated": false, "collections": []},
+  "automation": {"eligible": false, "reason": "Output is advisory and requires caller review."}
 }
 ```
 
 Every JSONL line written by `WriteOutputJSONL` is a complete envelope. Use
 `OutputSchemaForVersion`, `OutputSchemaVersions`, and `SupportedOutputModes`
-for discovery. `OutputSchema()` remains the version-1 convenience accessor.
+for discovery. `OutputSchema()` returns the current version-2 envelope schema;
+`OutputSchemaForVersion("1")` returns the immutable v2.1.0 schema.
 `ModuleVersion` is caller supplied and omitted when unavailable; do not insert
 an imprecise value when reproducibility matters.
 
-Schema v1 becomes immutable at the v2.1.0 release boundary. Additive optional
-fields and new modes require a new published schema when they are not accepted
-by v1; removing fields, changing meanings, or changing stable codes requires a
-new schema version. The output schema version is independent of the Go module
-version.
+Schema v1 is immutable at the v2.1.0 release boundary. Version 3 emits schema
+v2 because its required envelope shape is not accepted by v1. Future additive
+fields and modes must remain valid against their declared schema; incompatible
+shape or meaning changes require another schema version. The output schema
+version is independent of the Go module version.
 
 The agent profile treats report-provided text as untrusted structured data. It
 does not turn reporter comments, domains, extension XML, or other input values
@@ -782,7 +780,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -813,7 +811,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -859,7 +857,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -891,7 +889,7 @@ package main
 import (
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -923,7 +921,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -954,7 +952,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -991,7 +989,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1297,7 +1295,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1322,7 +1320,7 @@ package main
 import (
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1348,7 +1346,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1378,7 +1376,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1401,7 +1399,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1429,7 +1427,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1455,7 +1453,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1491,7 +1489,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1518,7 +1516,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/georgestarcher/dmarcgo/v2"
+	"github.com/georgestarcher/dmarcgo/v3"
 )
 
 func main() {
@@ -1552,8 +1550,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/georgestarcher/dmarcgo/v2"
-	"github.com/georgestarcher/dmarcgo/v2/utilities"
+	"github.com/georgestarcher/dmarcgo/v3"
+	"github.com/georgestarcher/dmarcgo/v3/utilities"
 )
 
 func main() {

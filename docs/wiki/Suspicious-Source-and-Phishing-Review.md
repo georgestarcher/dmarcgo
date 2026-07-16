@@ -1,6 +1,6 @@
 # Suspicious-source and phishing review
 
-> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v2. The linked repository guides and Go documentation define behavior.
+> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v3. The linked repository guides and Go documentation define behavior.
 
 ## Who this is for
 

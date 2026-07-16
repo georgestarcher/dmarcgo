@@ -14,17 +14,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/georgestarcher/dmarcgo/v2/utilities"
+	"github.com/georgestarcher/dmarcgo/v3/utilities"
 )
 
 // OutputSchemaVersion is the current automation-envelope schema version.
-const OutputSchemaVersion = "1"
+const OutputSchemaVersion = "2"
+
+const outputSchemaVersionV1 = "1"
 
 // OutputSchemaID identifies the JSON Schema for the current envelope.
-const OutputSchemaID = "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v1.json"
+const OutputSchemaID = "https://raw.githubusercontent.com/georgestarcher/dmarcgo/main/schemas/output/v2.json"
 
 //go:embed schemas/output/v1.json
 var outputSchemaV1 []byte
+
+//go:embed schemas/output/v2.json
+var outputSchemaV2 []byte
 
 // ErrInvalidOutputOptions identifies an unsupported output option.
 var ErrInvalidOutputOptions = errors.New("invalid output options")
@@ -312,12 +317,14 @@ type SourceReview struct {
 	Passing         []SourceSummary    `json:"passing"`
 }
 
-// OutputSchema returns a copy of the embedded JSON Schema for version 1.
-func OutputSchema() []byte { return append([]byte(nil), outputSchemaV1...) }
+// OutputSchema returns a copy of the current embedded JSON Schema.
+func OutputSchema() []byte { return append([]byte(nil), outputSchemaV2...) }
 
 // OutputSchemaForVersion returns a copy of a supported embedded JSON Schema.
 func OutputSchemaForVersion(version string) ([]byte, error) {
 	switch version {
+	case outputSchemaVersionV1:
+		return append([]byte(nil), outputSchemaV1...), nil
 	case OutputSchemaVersion:
 		return OutputSchema(), nil
 	default:
@@ -326,7 +333,7 @@ func OutputSchemaForVersion(version string) ([]byte, error) {
 }
 
 // OutputSchemaVersions returns supported schema versions in ascending order.
-func OutputSchemaVersions() []string { return []string{OutputSchemaVersion} }
+func OutputSchemaVersions() []string { return []string{outputSchemaVersionV1, OutputSchemaVersion} }
 
 // SupportedOutputModes returns the modes supported by the current schema.
 func SupportedOutputModes() []OutputMode {

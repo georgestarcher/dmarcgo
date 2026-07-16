@@ -111,7 +111,7 @@ func (CampaignClassificationResult) outputResult()    {}
 func (CampaignReportCorrelationResult) outputResult() {}
 
 // BuildAnalysisOutput creates the common automation/agent envelope for an
-// already completed v2 analysis result. It performs no analysis, collection,
+// already completed v3 analysis result. It performs no analysis, collection,
 // lookup, file access, enrichment, campaign retrieval, or clock lookup beyond
 // the representation timestamp selected through OutputOptions.
 func BuildAnalysisOutput(result OutputResult, options OutputOptions) (OutputEnvelope, error) {

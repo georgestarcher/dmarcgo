@@ -1,6 +1,6 @@
 # API, schemas, standards, and versioning
 
-> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v2. The repository's Go documentation, schemas, and focused guides are authoritative.
+> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v3. The repository's Go documentation, schemas, and focused guides are authoritative.
 
 ## Who this is for
 
@@ -25,7 +25,7 @@ dependency, such as a resolver or enricher.
 
 ## Starting APIs
 
-- Import `github.com/georgestarcher/dmarcgo/v2`.
+- Import `github.com/georgestarcher/dmarcgo/v3`.
 - Use `OutputSchemaVersions`, `OutputSchemaForVersion`,
   `SupportedOutputModes`, `AnalysisOutputDescriptorForMode`, and
   `AnalysisOutputSchema` for contract discovery.
@@ -60,7 +60,7 @@ changes as explicit migrations.
 
 ## Authoritative references
 
-- [Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v2)
+- [Go package documentation](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3)
 - [Documentation index](https://github.com/georgestarcher/dmarcgo/blob/main/docs/README.md)
 - [Schemas](https://github.com/georgestarcher/dmarcgo/tree/main/schemas)
 - [Changelog](https://github.com/georgestarcher/dmarcgo/blob/main/CHANGELOG.md)

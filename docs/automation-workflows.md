@@ -186,7 +186,7 @@ source into an IOC merely because onboarding was incomplete.
 
 ## Output selection
 
-Use the common `OutputEnvelope` for report helpers and every completed v2
+Use the common `OutputEnvelope` for report helpers and every completed v3
 organization-analysis, source-context, and campaign result when automation or
 an AI consumer needs grounded findings and actions. Use a native mode writer
 for complete organization analysis data. Use a standards/vendor builder only
@@ -256,14 +256,14 @@ conflicting, failed, timed-out, and canceled states supplied by that mode.
 
 ## Version and migration policy
 
-The supported module line is `/v2`. In-memory analysis contracts, common
+The supported module line is `/v3`. In-memory analysis contracts, common
 envelope schemas, native analysis schemas, report-evidence persistence, scoring
 profiles, phishing-intelligence snapshots/results, jurisdiction policies, STIX
 extensions, and vendor mappings are versioned independently. Persist the
 relevant version and result digest with every output.
 
 There are no known consumers of the provisional pre-release organization
-analysis behavior. Tests validate the selected canonical v2 contracts rather
+analysis behavior. Tests validate the selected canonical v3 contracts rather
 than maintaining aliases for obsolete shapes. Future breaking schema changes
 must use a new schema version; a scoring or policy update must identify its own
 new version even when the JSON shape is unchanged.

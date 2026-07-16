@@ -1,6 +1,6 @@
 # Wiki maintenance
 
-> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v2. Repository source and the publishing workflow define the wiki content.
+> **Navigation guide, not a versioned contract.** This page tracks `dmarcgo` v3. Repository source and the publishing workflow define the wiki content.
 
 ## Canonical source
 

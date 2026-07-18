@@ -40,31 +40,8 @@ Public API changes must be deliberate and documented in `CHANGELOG.md`.
 
 ## Maintainer release process
 
-Go publishes this module when a semantic version tag is pushed. The release
-workflow accepts only `v3.x.x` tags, verifies the `/v3` module path and matching
-dated changelog entry, requires a GitHub-verified signed annotated tag pointing
-to a commit on `main`, runs `make ci`, and then creates the GitHub Release with
-the matching `CHANGELOG.md` section as its notes. It does not publish binaries because this repository is a
-library. Both CI and release workflows can also be rerun manually from GitHub
-Actions; release validation still requires the selected ref to be a valid tag.
-
-1. Update `CHANGELOG.md`, moving release changes out of `Unreleased` into a dated
-   version heading such as `## [3.0.0] - 2026-07-16`.
-2. Run `make ci` from a clean working tree and merge the release commit to `main`.
-3. Create and verify a signed annotated tag:
-
-   ```shell
-   git tag -s v3.0.0 -m "dmarcgo v3.0.0"
-   git verify-tag v3.0.0
-   ```
-
-4. Push the commit, then push the tag:
-
-   ```shell
-   git push origin main
-   git push origin v3.0.0
-   ```
-
-5. Confirm the `dmarcgo Release` workflow passes and that the GitHub Release is
-   visible. Do not move or reuse a published tag; issue a new patch version for
-   corrections.
+Go publishes this library from semantic-version tags rather than binary release
+archives. Follow [RELEASING.md](RELEASING.md) for version selection, release-PR
+preflight, signed annotated tagging, GitHub Actions behavior, public Go-module
+verification, and recovery rules. Never move or reuse a tag that has been
+pushed; publish corrections under a new semantic version.

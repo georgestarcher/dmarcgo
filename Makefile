@@ -2,7 +2,7 @@ STATICCHECK_VERSION ?= v0.7.0
 GOVULNCHECK_VERSION ?= v1.6.0
 COVERAGE_MIN ?= 80.0
 
-.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check docs-check release-notes-check release-metadata-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
+.PHONY: build test race cover cover-check fuzz-smoke bench-smoke clean format-check lint vuln readme-check wiki-check docs-check release-notes-check release-metadata-check release-check post-release-check api-check output-contract-check workflow-check portfolio-check dns-snapshot-check dns-perspective-check auth-record-check provider-catalog-check dns-health-check report-evidence-check correlation-check threat-candidate-check source-enrichment-check source-activity-check phishing-intelligence-check jurisdiction-context-check campaign-check stix-check stix-validator-check threatconnect-check misp-check threatstream-check ci
 
 build:
 	go build ./...
@@ -45,7 +45,18 @@ release-notes-check:
 
 release-metadata-check:
 	python3 scripts/validate_release_metadata_test.py
-	python3 scripts/validate_release_metadata.py --tag v3.0.0
+	python3 scripts/verify_release_publication_test.py
+	python3 scripts/validate_release_metadata.py
+
+release-check:
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required, for example: make release-check VERSION=v3.0.1" >&2; exit 2; fi
+	python3 scripts/validate_release_metadata.py --tag "$(VERSION)"
+	@version="$(VERSION)"; python3 scripts/extract_changelog.py "$${version#v}" >/dev/null
+	$(MAKE) ci
+
+post-release-check:
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required, for example: make post-release-check VERSION=v3.0.1" >&2; exit 2; fi
+	python3 scripts/verify_release_publication.py --tag "$(VERSION)"
 
 api-check:
 	go test -run 'TestParse|TestLoadBytes|TestLoadReader|TestLoadReportsFromDir|TestSummary|TestWriteFeaturesJSONL|TestWriteFeaturesCSV|TestValidate|TestMergeSummaries|TestDateRange|TestBuildReportSummaryOutput|TestOutput|TestSourceReviewOutput|TestReportRowsOutput|TestAnalysisOutput' ./...

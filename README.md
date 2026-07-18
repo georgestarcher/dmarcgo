@@ -1,4 +1,4 @@
-# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v3.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v3)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v3) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
+# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v3.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
 `dmarcgo` is a Go library for parsing DMARC aggregate report files and
 performing explicit, independently callable email-authentication analysis.
@@ -1639,6 +1639,8 @@ DMARC failure reports are separate. They are described by [RFC 9991](https://www
 - Read [SUPPORT.md](SUPPORT.md) before opening a usage or bug report.
 - Use the structured GitHub issue forms and never attach a live DMARC report.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) for development and release checks.
+- Maintainers should follow [RELEASING.md](RELEASING.md) for the complete signed
+  tag, automated GitHub Release, Go-module publication, and recovery procedure.
 - Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 - Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 

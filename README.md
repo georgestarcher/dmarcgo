@@ -1,4 +1,4 @@
-# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v3.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3) [![Report Card](https://goreportcard.com/badge/github.com/georgestarcher/dmarcgo/v3)](https://goreportcard.com/report/github.com/georgestarcher/dmarcgo/v3) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
+# dmarcgo [![Go Reference](https://pkg.go.dev/badge/github.com/georgestarcher/dmarcgo/v3.svg)](https://pkg.go.dev/github.com/georgestarcher/dmarcgo/v3) [![Build Status](https://github.com/georgestarcher/dmarcgo/workflows/dmarcgo%20CI/badge.svg)](https://github.com/georgestarcher/dmarcgo/actions)
 
 `dmarcgo` is a Go library for parsing DMARC aggregate report files and
 performing explicit, independently callable email-authentication analysis.
